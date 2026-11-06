@@ -1,0 +1,44 @@
+{
+  "name": "OPERATOR LOG // TACTICAL SUITE PRO",
+  "short_name": "OP LOG",
+  "description": "Offline-first tactical workout, nutrition and physique tracker with AI plate vision.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0d1115",
+  "theme_color": "#0d1115",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log a Meal",
+      "short_name": "Refuel",
+      "url": "/?tab=refuel",
+      "description": "Open the AI nutrition tracker"
+    },
+    {
+      "name": "Today's Session",
+      "short_name": "Mission",
+      "url": "/?tab=mission",
+      "description": "Open the workout tracker"
+    }
+  ]
+}

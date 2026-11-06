@@ -1,0 +1,17 @@
+{
+  "name": "operator-log-tactical-suite-pro",
+  "version": "3.0.1",
+  "private": true,
+  "type": "module",
+  "description": "OPERATOR LOG // TACTICAL SUITE PRO — offline-first PWA workout, nutrition & physique tracker with AI plate vision.",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'static site — no build step required'"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

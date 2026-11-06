@@ -1,0 +1,201 @@
+// functions/api/plate-vision.js
+// Cloudflare Pages Function
+
+const GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL     = "llama-3.2-11b-vision-preview";
+const TIMEOUT_MS = 25000;
+
+const SYSTEM_INSTRUCTION = `
+You are PLATE-VISION, a strict nutrition analyst for a tactical fitness application.
+
+Analyse the supplied image and return ONLY a single JSON object. No markdown, no code
+fences, no prose, no commentary.
+
+Required output shape (exact keys, exact types):
+{"is_food": boolean, "name": string, "p": number, "cal": number, "breakdown": string}
+
+STRICT RULES:
+1. If the image shows a TRACTOR, vehicle, motorcycle, machine, engine, tool, weapon,
+   animal, insect, person, body part, building, landscape, sky, screenshot, document,
+   text, clothing, furniture or ANY non-edible object, you MUST return:
+   {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
+2. If the image is blurry, empty, or you cannot identify food with confidence, return
+   the same rejection object above.
+3. Only set "is_food": true when you can clearly identify an edible meal, dish, snack,
+   drink or ingredient intended for consumption.
+4. "p" = estimated protein in grams (integer or one decimal). "cal" = estimated total
+   energy in kilocalories. Both must be numbers, never strings. Never return negatives.
+5. "name" = short dish name in Title Case, max 6 words (e.g. "Grilled Chicken and Rice").
+6. "breakdown" = one concise sentence listing the visible components and their rough
+   protein contribution (e.g. "Rice 8g P + grilled chicken 32g P + greens 3g P.").
+7. Be realistic. Do not inflate. If a portion looks small, estimate small.
+`.trim();
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    },
+  });
+}
+
+function reject(breakdown = "Rejected: not a food item.") {
+  return { is_food: false, name: "Non-food", p: 0, cal: 0, breakdown };
+}
+
+function sanitise(obj) {
+  if (!obj || typeof obj !== "object") return reject("Rejected: unreadable image.");
+  const isFood = obj.is_food === true || obj.is_food === "true";
+  const p      = Number(obj.p);
+  const cal    = Number(obj.cal);
+
+  if (!isFood) {
+    return reject(typeof obj.breakdown === "string" ? obj.breakdown : undefined);
+  }
+
+  return {
+    is_food: true,
+    name: String(obj.name || "Unidentified Meal").slice(0, 80),
+    p:    Number.isFinite(p)   ? Math.max(0, Math.round(p * 10) / 10) : 0,
+    cal:  Number.isFinite(cal) ? Math.max(0, Math.round(cal))         : 0,
+    breakdown: String(obj.breakdown || "Estimated from photo.").slice(0, 240),
+  };
+}
+
+function extractJSON(text) {
+  if (!text) return null;
+  let t = String(text).trim();
+  t = t.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const start = t.indexOf("{");
+  const end   = t.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
+}
+
+function fetchWithTimeout(url, opts, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+}
+
+export async function onRequest(context) {
+  const req = context.request;
+  const apiKey = context.env.GROQ_API_KEY;
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+    });
+  }
+
+  if (req.method !== "POST") {
+    return json({ ...reject("Rejected: POST required."), error: "method_not_allowed" });
+  }
+
+  let image = "";
+  try {
+    const body = await req.json();
+    image = typeof body?.image === "string" ? body.image : "";
+  } catch {
+    return json({ ...reject("Rejected: invalid request body."), error: "bad_body" });
+  }
+
+  image = image.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "").trim();
+
+  if (!image || image.length < 128) {
+    return json({ ...reject("Rejected: no usable image supplied."), error: "no_image" });
+  }
+
+  if (!apiKey) {
+    return json({
+      ...reject("Vision service is not configured (missing GROQ_API_KEY)."),
+      error: "no_api_key",
+    });
+  }
+
+  const payload = {
+    model: MODEL,
+    temperature: 0.1,
+    max_tokens: 400,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: SYSTEM_INSTRUCTION },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Analyse this image. Return the strict JSON object only." },
+          { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
+        ],
+      },
+    ],
+  };
+
+  const callOnce = async () =>
+    fetchWithTimeout(
+      GROQ_URL,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + apiKey,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      TIMEOUT_MS
+    );
+
+  try {
+    let res = await callOnce();
+
+    if (res.status === 429 || res.status >= 500) {
+      await new Promise((r) => setTimeout(r, 700));
+      res = await callOnce();
+    }
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });
+      }
+      if (res.status === 429) {
+        return json({ ...reject("Rejected: vision rate limit reached."), error: "rate_limit" });
+      }
+      if (res.status === 413 || res.status === 400) {
+        return json({ ...reject("Rejected: image not accepted by vision model."), error: "bad_image" });
+      }
+      return json({ ...reject("Rejected: vision service error."), error: "upstream_failure" });
+    }
+
+    const data = await res.json();
+    const rawContent = data?.choices?.[0]?.message?.content;
+
+    let parsed = null;
+    if (rawContent && typeof rawContent === "object") {
+      parsed = rawContent;
+    } else if (typeof rawContent === "string") {
+      parsed = extractJSON(rawContent);
+    }
+
+    if (!parsed) {
+      return json(reject("Rejected: vision model returned no usable data."));
+    }
+
+    return json(sanitise(parsed), 200);
+  } catch (err) {
+    const aborted = err && err.name === "AbortError";
+    return json({
+      ...reject(aborted ? "Rejected: vision request timed out." : "Rejected: vision service unavailable."),
+      error: aborted ? "timeout" : "upstream_failure",
+    });
+  }
+}
