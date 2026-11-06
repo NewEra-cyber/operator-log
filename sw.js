@@ -1,6 +1,6 @@
 /* OPERATOR LOG // TACTICAL SUITE PRO — Service Worker */
 // IMPORTANT: Bump this version number every time you push a major update
-const VERSION = "v3.7.1"; 
+const VERSION = "v3.8.0";
 const CACHE = "operator-log-" + VERSION;
 
 const CORE_ASSETS = [
@@ -34,7 +34,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.filter((k) => k.startsWith("operator-log-") && k !== CACHE)
-            .map((k) => caches.delete(k))
+          .map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
@@ -81,7 +81,7 @@ self.addEventListener("fetch", (event) => {
       return fetch(req).then((res) => {
         if (res && res.ok) {
           const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => { });
         }
         return res;
       }).catch(() => new Response("", { status: 504, statusText: "Offline" }));
