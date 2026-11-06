@@ -3353,25 +3353,40 @@
         /* service worker */
         if ("serviceWorker" in navigator) {
           window.addEventListener("load", function () {
-            navigator.serviceWorker.register("/sw.js").catch(function (e) {
+            navigator.serviceWorker.register("/sw.js").then(function (reg) {
+              // Check for updates every time the app is opened
+              reg.update();
+
+              // If a new service worker is found, reload the page to apply it
+              reg.onupdatefound = function () {
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = function () {
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New version ready! Reload to show the new UI.
+                    window.location.reload();
+                  }
+                };
+              };
+            }).catch(function (e) {
               console.warn("[OPLOG] SW registration failed", e);
             });
           });
         }
-
-        /* prevent accidental pull-to-refresh while dragging the lightbox */
-        document.addEventListener("touchmove", function (e) {
-          if (document.getElementById("lightbox").classList.contains("open")) e.preventDefault();
-        }, { passive: false });
       }
+
+      /* prevent accidental pull-to-refresh while dragging the lightbox */
+      document.addEventListener("touchmove", function (e) {
+        if (document.getElementById("lightbox").classList.contains("open")) e.preventDefault();
+      }, { passive: false });
+    }
 
       if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", boot);
-      } else {
-        boot();
-      }
+      document.addEventListener("DOMContentLoaded", boot);
+    } else {
+      boot();
+    }
 
-    })();
+    }) ();
   </script>
 </body>
 
