@@ -683,16 +683,88 @@
     /* ============================================================
    REST TIMER
    ============================================================ */
-    #restBar {
+    /* ============================================================
+   FULLSCREEN REST TIMER
+   ============================================================ */
+    .fullscreen-timer {
       position: fixed;
-      left: 0;
-      right: 0;
-      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
-      z-index: 55;
-      transform: translateY(140%);
-      transition: transform .28s cubic-bezier(.2, .9, .3, 1);
-      padding: 0 10px 8px;
-      pointer-events: none;
+      inset: 0;
+      z-index: 100;
+      background: rgba(5, 8, 11, 0.98);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .fullscreen-timer.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .timer-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    .timer-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .timer-track {
+      fill: none;
+      stroke: #1b242d;
+      stroke-width: 8;
+    }
+
+    .timer-progress {
+      fill: none;
+      stroke: var(--orange);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.2s linear;
+      filter: drop-shadow(0 0 12px var(--orange));
+    }
+
+    .timer-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(255, 42, 42, 0.5);
+    }
+
+    .timer-controls {
+      margin-top: 40px;
+    }
+
+    .rest-skip-btn {
+      background: transparent;
+      border: 2px solid var(--orange);
+      color: var(--orange);
+      padding: 12px 30px;
+      border-radius: 30px;
+      font-family: var(--head);
+      font-size: 16px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: 0.2s;
+    }
+
+    .rest-skip-btn:active {
+      background: var(--orange);
+      color: #000;
     }
 
     #restBar.show {
@@ -1709,17 +1781,17 @@
 
   <main id="view"></main>
 
-  <!-- REST TIMER -->
-  <div id="restBar">
-    <div class="rest-inner">
-      <div class="rest-clock mono" id="restClock">0:00</div>
-      <div class="rest-presets">
-        <button data-act="rest-preset" data-s="60">60s</button>
-        <button data-act="rest-preset" data-s="90">90s</button>
-        <button data-act="rest-preset" data-s="120">2m</button>
-        <button data-act="rest-preset" data-s="180">3m</button>
-      </div>
-      <button class="rest-skip" data-act="rest-skip">SKIP</button>
+  <!-- FULLSCREEN REST TIMER -->
+  <div id="fullscreenTimer" class="fullscreen-timer">
+    <div class="timer-container">
+      <svg class="timer-svg" viewBox="0 0 200 200">
+        <circle class="timer-track" cx="100" cy="100" r="90" />
+        <circle class="timer-progress" id="timerProgress" cx="100" cy="100" r="90" />
+      </svg>
+      <div class="timer-text mono" id="fullscreenClock">0:00</div>
+    </div>
+    <div class="timer-controls">
+      <button class="rest-skip-btn" data-act="rest-skip">SKIP REST</button>
     </div>
   </div>
 
@@ -2814,50 +2886,65 @@
       }
       const rest = { endAt: 0, total: 0, handle: null };
 
+      /* ---------------------------------------------------------------------------
+   REST TIMER (FULLSCREEN ANALOG)
+   --------------------------------------------------------------------------- */
+      const rest = { endAt: 0, total: 0, handle: null };
+      const timerProgress = document.getElementById("timerProgress");
+      const timerContainer = document.getElementById("fullscreenTimer");
+      const circumference = 2 * Math.PI * 90; // Radius is 90 in the SVG
+
       function startRest(seconds) {
         if (!seconds || seconds <= 0) return;
-        requestWakeLock(); // <--- ADD THIS
+        requestWakeLock();
         rest.total = seconds;
         rest.endAt = Date.now() + seconds * 1000;
-        const bar = document.getElementById("restBar");
-        bar.classList.add("show");
-        bar.classList.remove("ringing");
-        $$("#restBar .rest-presets button").forEach((b) => {
-          b.classList.toggle("on", Number(b.dataset.s) === seconds);
-        });
+
+        timerContainer.classList.add("show");
+        timerProgress.style.strokeDasharray = circumference;
+        timerProgress.style.strokeDashoffset = 0; // Start full
+
         tickRest();
         if (rest.handle) clearInterval(rest.handle);
-        rest.handle = setInterval(tickRest, 200);
+        rest.handle = setInterval(tickRest, 100);
       }
 
       function tickRest() {
-        const left = Math.max(0, Math.round((rest.endAt - Date.now()) / 1000));
-        const clock = document.getElementById("restClock");
+        const now = Date.now();
+        const left = Math.max(0, Math.round((rest.endAt - now) / 1000));
         const m = Math.floor(left / 60);
         const s = left % 60;
-        clock.textContent = m + ":" + pad2(s);
+
+        document.getElementById("fullscreenClock").textContent = m + ":" + pad2(s);
+
+        // Calculate progress (sweep effect)
+        const elapsed = rest.total - left;
+        const percentage = elapsed / rest.total;
+        timerProgress.style.strokeDashoffset = -(circumference * percentage);
+
         if (left <= 0) finishRest();
       }
 
       function finishRest() {
         if (rest.handle) { clearInterval(rest.handle); rest.handle = null; }
-        releaseWakeLock(); // <--- ADD THIS
-        const bar = document.getElementById("restBar");
-        bar.classList.add("ringing");
-        document.getElementById("restClock").textContent = "GO";
+        releaseWakeLock();
+
+        document.getElementById("fullscreenClock").textContent = "GO";
+        timerProgress.style.strokeDashoffset = -circumference;
+
         if (navigator.vibrate) {
           try { navigator.vibrate([220, 110, 220, 110, 320]); } catch (e) { }
         }
+
         setTimeout(() => {
-          bar.classList.remove("show", "ringing");
-        }, 3200);
+          timerContainer.classList.remove("show");
+        }, 2500);
       }
 
       function stopRest() {
         if (rest.handle) { clearInterval(rest.handle); rest.handle = null; }
-        releaseWakeLock(); // <--- ADD THIS
-        const bar = document.getElementById("restBar");
-        bar.classList.remove("show", "ringing");
+        releaseWakeLock();
+        timerContainer.classList.remove("show");
       }
 
       /* ---------------------------------------------------------------------------
