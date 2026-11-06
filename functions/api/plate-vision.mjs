@@ -1,8 +1,8 @@
 // functions/api/plate-vision.js
 // Cloudflare Pages Function
 
-const GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.6-27b";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -51,8 +51,8 @@ function reject(breakdown = "Rejected: not a food item.") {
 function sanitise(obj) {
   if (!obj || typeof obj !== "object") return reject("Rejected: unreadable image.");
   const isFood = obj.is_food === true || obj.is_food === "true";
-  const p      = Number(obj.p);
-  const cal    = Number(obj.cal);
+  const p = Number(obj.p);
+  const cal = Number(obj.cal);
 
   if (!isFood) {
     return reject(typeof obj.breakdown === "string" ? obj.breakdown : undefined);
@@ -61,8 +61,8 @@ function sanitise(obj) {
   return {
     is_food: true,
     name: String(obj.name || "Unidentified Meal").slice(0, 80),
-    p:    Number.isFinite(p)   ? Math.max(0, Math.round(p * 10) / 10) : 0,
-    cal:  Number.isFinite(cal) ? Math.max(0, Math.round(cal))         : 0,
+    p: Number.isFinite(p) ? Math.max(0, Math.round(p * 10) / 10) : 0,
+    cal: Number.isFinite(cal) ? Math.max(0, Math.round(cal)) : 0,
     breakdown: String(obj.breakdown || "Estimated from photo.").slice(0, 240),
   };
 }
@@ -72,7 +72,7 @@ function extractJSON(text) {
   let t = String(text).trim();
   t = t.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const start = t.indexOf("{");
-  const end   = t.lastIndexOf("}");
+  const end = t.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return null;
   try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
 }
@@ -164,7 +164,10 @@ export async function onRequest(context) {
     }
 
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
+      const errorText = await res.text();
+      console.error("[plate-vision] Groq error response:", errorText); // <-- ADD THIS LINE
+
+      if (res.status === 401 || res.status === 403) {        
         return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });
       }
       if (res.status === 429) {
