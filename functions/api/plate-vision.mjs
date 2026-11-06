@@ -2,7 +2,7 @@
 // Cloudflare Pages Function
 
 const GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL     = "llama-3.2-11b-vision-preview";
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
