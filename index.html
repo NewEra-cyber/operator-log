@@ -2040,6 +2040,7 @@
           p: num(m.p != null ? m.p : m.protein, 0),
           cal: num(m.cal != null ? m.cal : (m.kcal != null ? m.kcal : m.calories), 0),
           breakdown: String(m.breakdown || m.notes || "").slice(0, 240),
+          img: m.img || m.image || null, // <--- ADD THIS
           at: m.at || m.time || Date.now()
         }));
       }
@@ -2323,18 +2324,20 @@
         const mealList = meals.length
           ? meals.map((m) =>
             '<div class="meal">' +
+            '<div style="display:flex; align-items:center; gap:10px; min-width:0">' +
+            (m.img ? '<img src="' + m.img + '" style="width:38px; height:38px; border-radius:4px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" />' : '') +
             '<div style="min-width:0">' +
             '<div class="mn">' + esc(m.name) + "</div>" +
             (m.breakdown ? '<div class="mb">' + esc(m.breakdown) + "</div>" : "") +
             "</div>" +
-            '<div style="display:flex;align-items:center;gap:9px">' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:9px; flex-shrink:0;">' +
             '<div class="mv">+' + num(m.p, 0) + "g<em>" + num(m.cal, 0) + " kcal</em></div>" +
             '<button class="del" data-act="del-meal" data-id="' + m.id + '">✕</button>' +
             "</div>" +
             "</div>"
           ).join("")
           : '<div class="dim" style="font-size:11.5px;padding:8px 0">NO MEALS LOGGED FOR THIS DATE.</div>';
-
         return (
           '<section class="pad">' +
           '<div class="date-nav">' +
@@ -2438,6 +2441,7 @@
           const d = s.data || {};
           return '<div class="scan-result ok">' +
             "<h4>✓ " + esc(d.name || "Meal Detected") + "</h4>" +
+            (s.img ? '<img src="' + s.img + '" style="width:100%; height:160px; object-fit:cover; border-radius:4px; margin-bottom:8px; border:1px solid rgba(63,178,127,0.3);" />' : '') +
             '<div class="scan-macros"><span class="p">' + num(d.p, 0) + "g P</span>" +
             '<span class="c">' + num(d.cal, 0) + " KCAL</span></div>" +
             '<div style="font-size:11px;color:var(--muted)">' + esc(d.breakdown || "") + "</div>" +
@@ -2761,8 +2765,12 @@
         render();
 
         try {
+          // 1. Large image for AI
           const dataUrl = await compressImage(file, 850, 0.78);
           const base64 = dataUrl.split(",")[1];
+
+          // 2. Tiny image for the log
+          const thumbnail = await compressImage(file, 100, 0.5);
 
           const res = await fetch("/api/plate-vision", {
             method: "POST",
@@ -2778,7 +2786,7 @@
           } else if (!data || data.is_food !== true) {
             state.scan = { status: "reject", data: data || {} };
           } else {
-            state.scan = { status: "ok", data: data };
+            state.scan = { status: "ok", data: data, img: thumbnail }; // <--- SAVE THUMBNAIL HERE
           }
         } catch (err) {
           console.error("[plate-vision]", err);
@@ -2787,7 +2795,7 @@
         render();
       }
 
-      function addMealToDB(name, p, cal, breakdown) {
+      function addMealToDB(name, p, cal, breakdown, img) {
         const db = getDB();
         const key = state.nutDate;
         if (!db.logs[key] || typeof db.logs[key] !== "object") db.logs[key] = { meals: [] };
@@ -2798,6 +2806,7 @@
           p: num(p, 0),
           cal: num(cal, 0),
           breakdown: String(breakdown || "").slice(0, 240),
+          img: img || null, // <--- ADD THIS
           at: Date.now()
         });
         saveDB(db);
@@ -2993,7 +3002,8 @@
         if (act === "scan-clear") { state.scan = { status: "idle" }; render(); return; }
         if (act === "scan-confirm") {
           const d = state.scan.data || {};
-          addMealToDB(d.name || "Scanned Meal", d.p, d.cal, d.breakdown || "");
+          const img = state.scan.img || null; // <--- GET THE IMAGE
+          addMealToDB(d.name || "Scanned Meal", d.p, d.cal, d.breakdown || "", img); // <--- PASS IT
           state.scan = { status: "idle" };
           render();
           toast("MEAL LOGGED · +" + num(d.p, 0) + "G PROTEIN", "green");
