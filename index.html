@@ -2884,25 +2884,32 @@
           wakeLock = null;
         }
       }
-      const rest = { endAt: 0, total: 0, handle: null };
-
       /* ---------------------------------------------------------------------------
    REST TIMER (FULLSCREEN ANALOG)
    --------------------------------------------------------------------------- */
       const rest = { endAt: 0, total: 0, handle: null };
-      const timerProgress = document.getElementById("timerProgress");
-      const timerContainer = document.getElementById("fullscreenTimer");
-      const circumference = 2 * Math.PI * 90; // Radius is 90 in the SVG
+
+      // Wait for DOM to load to get these elements
+      let timerProgress, timerContainer;
+      const circumference = 2 * Math.PI * 90;
 
       function startRest(seconds) {
         if (!seconds || seconds <= 0) return;
-        requestWakeLock();
+
+        // Get elements here in case they weren't ready at boot
+        if (!timerContainer) {
+          timerContainer = document.getElementById("fullscreenTimer");
+          timerProgress = document.getElementById("timerProgress");
+        }
+
+        if (typeof requestWakeLock === 'function') requestWakeLock();
+
         rest.total = seconds;
         rest.endAt = Date.now() + seconds * 1000;
 
         timerContainer.classList.add("show");
         timerProgress.style.strokeDasharray = circumference;
-        timerProgress.style.strokeDashoffset = 0; // Start full
+        timerProgress.style.strokeDashoffset = 0;
 
         tickRest();
         if (rest.handle) clearInterval(rest.handle);
@@ -2917,34 +2924,35 @@
 
         document.getElementById("fullscreenClock").textContent = m + ":" + pad2(s);
 
-        // Calculate progress (sweep effect)
         const elapsed = rest.total - left;
         const percentage = elapsed / rest.total;
-        timerProgress.style.strokeDashoffset = -(circumference * percentage);
+        if (timerProgress) timerProgress.style.strokeDashoffset = -(circumference * percentage);
 
         if (left <= 0) finishRest();
       }
 
       function finishRest() {
         if (rest.handle) { clearInterval(rest.handle); rest.handle = null; }
-        releaseWakeLock();
+        if (typeof releaseWakeLock === 'function') releaseWakeLock();
 
-        document.getElementById("fullscreenClock").textContent = "GO";
-        timerProgress.style.strokeDashoffset = -circumference;
+        if (document.getElementById("fullscreenClock")) {
+          document.getElementById("fullscreenClock").textContent = "GO";
+        }
+        if (timerProgress) timerProgress.style.strokeDashoffset = -circumference;
 
         if (navigator.vibrate) {
           try { navigator.vibrate([220, 110, 220, 110, 320]); } catch (e) { }
         }
 
         setTimeout(() => {
-          timerContainer.classList.remove("show");
+          if (timerContainer) timerContainer.classList.remove("show");
         }, 2500);
       }
 
       function stopRest() {
         if (rest.handle) { clearInterval(rest.handle); rest.handle = null; }
-        releaseWakeLock();
-        timerContainer.classList.remove("show");
+        if (typeof releaseWakeLock === 'function') releaseWakeLock();
+        if (timerContainer) timerContainer.classList.remove("show");
       }
 
       /* ---------------------------------------------------------------------------
