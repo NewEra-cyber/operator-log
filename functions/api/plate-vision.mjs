@@ -6,29 +6,35 @@ const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
-You are PLATE-VISION, a strict nutrition analyst for a tactical fitness application.
+You are PLATE-VISION, a strict nutrition analyst specializing in KENYAN and EAST AFRICAN CUISINE.
 
-Analyse the supplied image and return ONLY a single JSON object. No markdown, no code
-fences, no prose, no commentary.
+Analyse the supplied image and return ONLY a single JSON object. No markdown, no prose.
 
-Required output shape (exact keys, exact types):
+Required output shape:
 {"is_food": boolean, "name": string, "p": number, "cal": number, "breakdown": string}
 
 STRICT RULES:
-1. If the image shows a TRACTOR, vehicle, motorcycle, machine, engine, tool, weapon,
-   animal, insect, person, body part, building, landscape, sky, screenshot, document,
-   text, clothing, furniture or ANY non-edible object, you MUST return:
+1. If the image shows a TRACTOR, vehicle, machine, animal, person, or ANY non-edible object, return:
    {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
-2. If the image is blurry, empty, or you cannot identify food with confidence, return
-   the same rejection object above.
-3. Only set "is_food": true when you can clearly identify an edible meal, dish, snack,
-   drink or ingredient intended for consumption.
-4. "p" = estimated protein in grams (integer or one decimal). "cal" = estimated total
-   energy in kilocalories. Both must be numbers, never strings. Never return negatives.
-5. "name" = short dish name in Title Case, max 6 words (e.g. "Grilled Chicken and Rice").
-6. "breakdown" = one concise sentence listing the visible components and their rough
-   protein contribution (e.g. "Rice 8g P + grilled chicken 32g P + greens 3g P.").
-7. Be realistic. Do not inflate. If a portion looks small, estimate small.
+2. If blurry or you cannot identify food, return the rejection object.
+3. Only set "is_food": true for edible meals.
+4. "p" = estimated protein in grams. "cal" = total energy in kilocalories. Never return negatives.
+5. "name" = short dish name in Title Case, max 6 words.
+6. "breakdown" = one concise sentence listing the components.
+
+*** CRITICAL LOCALIZATION RULES (KENYAN CUISINE) ***
+You MUST prioritize Kenyan names and macros over international equivalents:
+- Thick white block of maize meal -> **Ugali** (High Carb, Low Protein).
+- Small silver dried fish -> **Omena** (Very High Protein).
+- Mixture of maize and beans -> **Githeri** (Moderate Carbs & Protein).
+- Green grams / mung beans stew -> **Ndengu** (High Plant Protein).
+- Sautéed collard greens -> **Sukuma Wiki**.
+- Layered flatbread -> **Chapati**.
+- Fried dough balls -> **Mandazi**.
+- Rice and beans mixed -> **Pilau** (if spiced) or just **Rice & Beans**.
+- Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
+
+If the user shows a plate with Ugali and Omena, the name should be "Ugali and Omena" and the breakdown should estimate the macros based on a typical Kenyan portion size.
 `.trim();
 
 function json(body, status = 200) {
@@ -167,7 +173,7 @@ export async function onRequest(context) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText); // <-- ADD THIS LINE
 
-      if (res.status === 401 || res.status === 403) {        
+      if (res.status === 401 || res.status === 403) {
         return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });
       }
       if (res.status === 429) {
