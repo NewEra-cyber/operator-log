@@ -23,17 +23,22 @@
    TOKENS
    ============================================================ */
     :root {
-      --bg: #0d1115;
-      --card: #161c23;
-      --card-2: #11171d;
-      --border: #26313d;
-      --orange: #f0a030;
+      --bg: #050505;
+      /* Deeper black */
+      --card: #0f0f12;
+      /* Dark charcoal */
+      --card-2: #0a0a0c;
+      --border: #2a2a2a;
+      /* Darker borders */
+      --orange: #ff2a2a;
+      /* Primary Neon Red */
       --green: #3fb27f;
-      --red: #e5534b;
-      --cyan: #38bdf8;
-      --txt: #dfe7ef;
-      --muted: #7f8fa1;
-      --dim: #4a5a6b;
+      --red: #ff2a2a;
+      --cyan: #ff6b6b;
+      /* Soft red/cyan replacement */
+      --txt: #ffffff;
+      --muted: #8a8a8a;
+      --dim: #555555;
       --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --head: 'Chakra Petch', system-ui, sans-serif;
       --body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -257,6 +262,8 @@
       border-radius: 4px;
       padding: 14px;
       position: relative;
+      /* ADD THIS GLOW */
+      box-shadow: 0 4px 20px rgba(255, 42, 42, 0.05);
     }
 
     .kicker {
@@ -360,6 +367,14 @@
       padding: 14px 14px 12px;
       position: relative;
       margin-top: 4px;
+      /* ADD THIS GLOW */
+      box-shadow: 0 4px 20px rgba(255, 42, 42, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .ex-card:active {
+      box-shadow: 0 0 15px rgba(255, 42, 42, 0.3);
+      border-color: var(--orange);
     }
 
     .ex-card::before,
@@ -1828,67 +1843,65 @@
          --------------------------------------------------------------------------- */
       const TRAINING = [
         {
-          key: "upperA", tag: "MON", short: "UPPER A", name: "Upper Body A", focus: "HORIZONTAL PUSH / PULL",
+          key: "upperA", tag: "MON", short: "UPPER A", name: "Upper Body A", focus: "PUSH & LAT FOCUS",
           exercises: [
-            { id: "bench", name: "Barbell Bench Press", weight: 60, sets: 4, min: 6, max: 8, inc: 2.5, rest: 180, cues: "Retract scapula, bar to sternum, elbows ~45°, drive feet into the floor." },
-            { id: "row", name: "Barbell Bent-Over Row", weight: 50, sets: 4, min: 8, max: 10, inc: 2.5, rest: 150, cues: "Hinge to 45°, pull to lower ribs, zero torso English." },
-            { id: "ohp", name: "Standing Overhead Press", weight: 35, sets: 3, min: 6, max: 8, inc: 2.5, rest: 150, cues: "Glutes tight, ribs down, bar path past the nose." },
-            { id: "pulldown", name: "Lat Pulldown", weight: 45, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Elbows to hips, chest proud, 2s eccentric." },
-            { id: "curl", name: "Barbell Curl", weight: 25, sets: 3, min: 10, max: 12, inc: 2.5, rest: 75, cues: "Elbows pinned to ribs, no swing, squeeze at the top." },
-            { id: "tri", name: "Triceps Rope Pushdown", weight: 25, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Elbows fixed, spread the rope, full lockout." }
+            { id: "bench", name: "Barbell Bench Press", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Retract shoulder blades, touch chest, press from mid-chest to lock-out." },
+            { id: "row", name: "Barbell Bent-Over Row", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Hinged at hips, flat back, pull to waist, squeeze shoulder blades." },
+            { id: "pulldown", name: "Lat Pulldown", weight: 25, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Sit upright, pull bar to upper chest, squeeze shoulder blades." },
+            { id: "incdb", name: "Incline Dumbbell Press", weight: 10, sets: 3, min: 8, max: 10, inc: 2, rest: 90, cues: "Incline bench ~30 deg, tuck elbows, press upward and slightly inward." },
+            { id: "superset", name: "Superset: Tri & Lateral", weight: 10, sets: 3, min: 12, max: 15, inc: 1, rest: 60, cues: "5A OH Tri Ext (3x12-15) + 5B DB Lateral Raise (4x12-15)." },
+            { id: "cablecr", name: "Cable Crunch", weight: 15, sets: 3, min: 10, max: 15, inc: 2.5, rest: 60, cues: "Kneeling, hold rope by ears, crunch downward using abs." }
           ]
         },
         {
-          key: "lowerA", tag: "TUE", short: "LOWER A", name: "Lower Body A", focus: "SQUAT PATTERN / POSTERIOR",
+          key: "lowerA", tag: "TUE", short: "LOWER A", name: "Lower Body A", focus: "QUADS & STABILITY",
           exercises: [
-            { id: "squat", name: "Back Squat", weight: 80, sets: 4, min: 5, max: 8, inc: 5, rest: 180, cues: "Brace hard, knees track toes, hit depth, no bounce." },
-            { id: "rdl", name: "Romanian Deadlift", weight: 65, sets: 3, min: 8, max: 10, inc: 5, rest: 150, cues: "Hips back, bar shaves the thighs, stop at hamstring stretch." },
-            { id: "legpress", name: "Leg Press", weight: 120, sets: 3, min: 10, max: 12, inc: 10, rest: 120, cues: "Feet shoulder width, controlled eccentric, no locked knees." },
-            { id: "lunge", name: "Walking Lunge (DB)", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Long stride, torso upright, knee kisses the floor." },
-            { id: "calf", name: "Standing Calf Raise", weight: 40, sets: 3, min: 15, max: 20, inc: 5, rest: 60, cues: "Full stretch at the bottom, 1s pause at the top." }
+            { id: "squat", name: "Barbell Squat", weight: 30, sets: 3, min: 6, max: 8, inc: 5, rest: 120, cues: "Keep chest up, brace core, squat deep until thighs are parallel." },
+            { id: "legpress", name: "Leg Press", weight: 40, sets: 3, min: 8, max: 10, inc: 10, rest: 90, cues: "Feet shoulder-width, push through heels without locking knees." },
+            { id: "legcurl", name: "Lying Leg Curl", weight: 15, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Curl pad toward glutes, squeeze hamstrings." },
+            { id: "lunge", name: "Walking DB Lunges", weight: 8, sets: 3, min: 10, max: 12, inc: 2, rest: 90, cues: "Per leg. Keep torso upright, lower back knee just above floor." },
+            { id: "calf", name: "Standing Calf Raise", weight: 20, sets: 4, min: 12, max: 15, inc: 5, rest: 60, cues: "Balls of feet on block, lower heels for full stretch, raise high." },
+            { id: "plank", name: "Core Stability Block", weight: 0, sets: 3, min: 30, max: 60, inc: 0, rest: 60, cues: "Plank 30-60s / Side Plank 20-30s. Squeeze glutes, keep hips high." }
           ]
         },
         {
-          key: "recoveryA", tag: "WED", short: "RECOV", name: "Recovery / Mobility", focus: "ACTIVE RECOVERY · ZONE 2", recovery: true,
+          key: "recoveryA", tag: "WED", short: "RECOV", name: "Active Recovery", focus: "MOBILITY & RECON", recovery: true,
           exercises: [
-            { id: "catcow", name: "Cat-Cow Flow", weight: 0, sets: 2, min: 8, max: 10, inc: 0, rest: 45, cues: "Move with the breath, segment the spine." },
-            { id: "wgs", name: "World's Greatest Stretch", weight: 0, sets: 2, min: 5, max: 5, inc: 0, rest: 45, cues: "5 reps per side, hold the end range 3 seconds." },
-            { id: "hip90", name: "90/90 Hip Switch", weight: 0, sets: 2, min: 8, max: 8, inc: 0, rest: 45, cues: "Stay upright, control the transition." },
-            { id: "tspine", name: "Thoracic Rotation", weight: 0, sets: 2, min: 8, max: 8, inc: 0, rest: 45, cues: "8 per side, follow the hand with the eyes." },
-            { id: "hang", name: "Dead Hang", weight: 0, sets: 3, min: 1, max: 1, inc: 0, rest: 60, cues: "30 seconds per set, shoulders active." },
-            { id: "zone2", name: "Zone 2 Walk / Cycle", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "20 minutes. Nasal breathing, conversational pace." }
+            { id: "walk", name: "Light Walk", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "30-45 MIN. Brisk pace, outdoor track or treadmill." },
+            { id: "mobility", name: "Dynamic Mobility", weight: 0, sets: 1, min: 15, max: 20, inc: 0, rest: 0, cues: "15-20 MIN. Dynamic lunge stretches with torso rotation." },
+            { id: "foam", name: "Foam Rolling", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Roll quads, hamstrings, and calves. Focus on trigger points." },
+            { id: "hydration", name: "Hydration", weight: 0, sets: 1, min: 3, max: 4, inc: 0, rest: 0, cues: "Consume 3-4 liters of water, rehydrate the system." },
+            { id: "stretch", name: "Stretching & Breathing", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Seated hamstring stretch, deep diaphragmatic breathing." }
           ]
         },
         {
-          key: "upperB", tag: "THU", short: "UPPER B", name: "Upper Body B", focus: "INCLINE / VERTICAL PULL",
+          key: "upperB", tag: "THU", short: "UPPER B", name: "Upper Body B", focus: "VERTICAL & ARMS",
           exercises: [
-            { id: "incdb", name: "Incline DB Press", weight: 22, sets: 4, min: 8, max: 10, inc: 2, rest: 150, cues: "Bench at 30°, elbows tucked, full stretch at the bottom." },
-            { id: "pullup", name: "Pull-Up", weight: 0, sets: 4, min: 6, max: 10, inc: 2.5, rest: 150, cues: "Bodyweight or weighted. Chest to bar, no kipping." },
-            { id: "dbpress", name: "Seated DB Shoulder Press", weight: 18, sets: 3, min: 8, max: 10, inc: 2, rest: 120, cues: "Neutral grip, press slightly forward, ribs stacked." },
-            { id: "cablerow", name: "Seated Cable Row", weight: 50, sets: 3, min: 10, max: 12, inc: 5, rest: 90, cues: "Squeeze the shoulder blades, no torso rock." },
-            { id: "latraise", name: "Lateral Raise", weight: 8, sets: 3, min: 12, max: 15, inc: 1, rest: 60, cues: "Lead with the elbows, stop at shoulder height." },
-            { id: "hammer", name: "Hammer Curl", weight: 14, sets: 3, min: 10, max: 12, inc: 2, rest: 60, cues: "Neutral grip, no momentum, control the descent." }
+            { id: "ohp", name: "Barbell Overhead Press", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Brace core, press straight up, push head through at lockout." },
+            { id: "pulldown", name: "Lat Pulldown", weight: 25, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Sit upright, pull bar to upper chest, squeeze shoulder blades." },
+            { id: "dips", name: "Dips (Chest/Triceps)", weight: 0, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Lean forward for chest, upright for triceps. Lower until parallel." },
+            { id: "facepull", name: "Face Pulls (Cables)", weight: 10, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Pull towards face, externally rotate shoulders, squeeze rear delts." },
+            { id: "latraise", name: "DB Lateral Raise", weight: 4, sets: 4, min: 12, max: 15, inc: 1, rest: 60, cues: "Raise DBs to shoulder height, slight elbow bend, lead with elbows." },
+            { id: "curl", name: "DB Bicep Curls", weight: 6, sets: 3, min: 10, max: 12, inc: 1, rest: 60, cues: "Keep elbows locked at sides, curl to shoulder, controlled lowering." }
           ]
         },
         {
-          key: "lowerB", tag: "FRI", short: "LOWER B", name: "Lower Body B", focus: "HINGE / UNILATERAL",
+          key: "lowerB", tag: "FRI", short: "LOWER B", name: "Lower Body B", focus: "HINGE & POSTERIOR CHAIN",
           exercises: [
-            { id: "deadlift", name: "Conventional Deadlift", weight: 100, sets: 3, min: 3, max: 5, inc: 5, rest: 210, cues: "Bar over mid-foot, wedge in, push the floor away." },
-            { id: "frontsquat", name: "Front Squat", weight: 60, sets: 3, min: 6, max: 8, inc: 5, rest: 180, cues: "Elbows high, upright torso, full depth." },
-            { id: "bss", name: "Bulgarian Split Squat", weight: 16, sets: 3, min: 8, max: 10, inc: 2, rest: 120, cues: "Per leg. Front foot flat, drop straight down." },
-            { id: "legcurl", name: "Seated Leg Curl", weight: 35, sets: 3, min: 10, max: 12, inc: 5, rest: 75, cues: "Toes up, squeeze the hamstring, slow return." },
-            { id: "hlr", name: "Hanging Leg Raise", weight: 0, sets: 3, min: 10, max: 15, inc: 0, rest: 60, cues: "Posterior pelvic tilt, no swinging." }
+            { id: "rdl", name: "Romanian Deadlift", weight: 30, sets: 3, min: 6, max: 8, inc: 5, rest: 120, cues: "Hinge at hips, keep back straight, slight knee bend, feel hamstring stretch." },
+            { id: "bss", name: "Bulgarian Split Squat", weight: 8, sets: 3, min: 8, max: 10, inc: 2, rest: 90, cues: "Rear foot elevated on bench, lower hips straight down, front knee over ankle." },
+            { id: "legext", name: "Leg Extensions", weight: 20, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Control movement, fully extend legs, squeeze quads at top, lower slowly." },
+            { id: "legcurl", name: "Seated Leg Curls", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 60, cues: "Adjust pad, secure lap, curl legs back, squeeze hamstrings, control weight." },
+            { id: "calf", name: "Seated Calf Raises", weight: 20, sets: 3, min: 12, max: 15, inc: 5, rest: 60, cues: "Balls of feet on platform, lower heels for full stretch, raise high on toes." },
+            { id: "hlr", name: "Hanging Knee Raise", weight: 0, sets: 3, min: 10, max: 15, inc: 0, rest: 60, cues: "Hang from bar, keep upper body still, raise knees to chest." }
           ]
         },
         {
-          key: "recoveryB", tag: "SAT/SUN", short: "RECOV", name: "Recovery / Meal Prep", focus: "RESET · PREP · WEIGH-IN", recovery: true,
+          key: "recoveryB", tag: "SAT/SUN", short: "RECOV", name: "Recovery & Prep", focus: "SYSTEM RESET & MEAL PREP", recovery: true,
           exercises: [
-            { id: "foam", name: "Foam Roll — Full Body", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "10 minutes. Quads, IT band, lats, thoracic spine." },
-            { id: "hipflex", name: "Hip Flexor Stretch", weight: 0, sets: 2, min: 1, max: 1, inc: 0, rest: 30, cues: "60s per side, posterior tilt, glute engaged." },
-            { id: "weighin", name: "Weigh-In + Progress Photos", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Morning, fasted, same lighting. Log to Vault." },
-            { id: "batchcook", name: "Protein Batch Cook", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Cook 1.2kg chicken / beef. Portion into 5 containers." },
-            { id: "mealplan", name: "Plan Week of Meals", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Hit 105g protein daily. Shop the staples list." },
-            { id: "grocery", name: "Grocery Run", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Omena, eggs, ndengu, githeri, greens, groundnuts." }
+            { id: "walk", name: "Recovery Walk", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "30-45 MIN WALK. Brisk, conversational pace." },
+            { id: "stretch", name: "Light Stretching", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Focus on major muscle groups, hold stretches for 30s." },
+            { id: "mealprep", name: "Meal Prep", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Cook proteins, prep vegetables, portion meals for the week." }
           ]
         }
       ];
@@ -2365,13 +2378,6 @@
           "</div>" +
 
           '<div class="card">' +
-          '<div class="kicker" style="margin-bottom:8px">7-DAY PERFORMANCE MATRIX</div>' +
-          '<div class="matrix">' + matrix + "</div>" +
-          '<div class="mono" style="font-size:8px;color:var(--dim);letter-spacing:.12em;margin-top:7px">' +
-          "GREEN = 105G PROTEIN TARGET ACHIEVED</div>" +
-          "</div>" +
-
-          '<div class="card">' +
           '<div class="kicker" style="margin-bottom:9px">1-TAP STAPLES</div>' +
           '<div class="quick-grid">' + quick + "</div>" +
           "</div>" +
@@ -2383,6 +2389,10 @@
           '<circle cx="12" cy="12" r="3.5"/></svg>' +
           "SCAN MEAL" +
           "</button>" +
+          '<div class="manual" style="margin-top: 10px;">' +
+          '<input id="aiTextInput" type="text" placeholder="Or type: \'2 eggs and toast\'..." style="grid-column: span 3;" />' +
+          '<button data-act="ai-text-log">ASK AI</button>' +
+          '</div>' +
           scanResultHTML() +
           "</div>" +
 
@@ -2955,6 +2965,31 @@
           inp.click();
           return;
         }
+
+        /* --- NEW AI TEXT LOGGER --- */
+        if (act === "ai-text-log") {
+          const input = document.getElementById("aiTextInput");
+          const text = input.value.trim();
+          if (!text) return;
+
+          el.textContent = "...";
+          fetch("/api/text-macros", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text })
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.p > 0) {
+                addMealToDB(data.name, data.p, data.cal, data.breakdown);
+                render();
+                toast("LOGGED VIA AI", "green");
+              } else {
+                toast("AI couldn't find food", "red");
+                el.textContent = "ASK AI";
+              }
+            }).catch(() => { toast("Error", "red"); el.textContent = "ASK AI"; });
+          return;
+        }
+        /* -------------------------- */
         if (act === "scan-clear") { state.scan = { status: "idle" }; render(); return; }
         if (act === "scan-confirm") {
           const d = state.scan.data || {};
@@ -3188,6 +3223,8 @@
   </script>
 </body>
 
-</html>   
-    
+</html>  
+ 
+   
+ 
  
