@@ -3957,6 +3957,12 @@
       async function boot() {
         // 1. Load DB
         await initDB();
+        // Check for URL shortcuts (?tab=refuel)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('tab');
+        if (urlTab && ["mission", "refuel", "vault", "blueprint", "system"].includes(urlTab)) {
+          state.tab = urlTab;
+        }
 
         state.nutDate = ymd();
         state.dayKey = todayDayKey();
@@ -3973,7 +3979,12 @@
               const installingWorker = reg.installing;
               installingWorker.onstatechange = function () {
                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  window.location.reload();
+                  // Don't reload if resting, just show a toast
+                  if (document.getElementById("fullscreenTimer").classList.contains("show")) {
+                    toast("UPDATE READY - REFRESH WHEN DONE", "cyan");
+                  } else {
+                    window.location.reload();
+                  }
                 }
               };
             };

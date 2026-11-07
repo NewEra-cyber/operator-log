@@ -9,7 +9,7 @@ export async function onRequest(context) {
         if (!text) throw new Error("No text provided");
 
         const payload = {
-            model: "llama-3.1-8b-instant", // Fast text model
+            model: "llama-3.1-8b-instant",
             response_format: { type: "json_object" },
             messages: [
                 {
@@ -17,6 +17,7 @@ export async function onRequest(context) {
 Return ONLY JSON: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
 Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, and Chapati. 
 If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.` },
+                { role: "user", content: text } // <--- THIS WAS MISSING
             ]
         };
 
