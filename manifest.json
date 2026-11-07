@@ -6,24 +6,33 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "fullscreen",
+    "minimal-ui"
+  ],
   "orientation": "portrait-primary",
   "background_color": "#0d1115",
   "theme_color": "#0d1115",
   "lang": "en",
   "dir": "ltr",
-  "categories": ["health", "fitness", "productivity", "lifestyle"],
+  "categories": [
+    "health",
+    "fitness",
+    "productivity",
+    "lifestyle"
+  ],
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
