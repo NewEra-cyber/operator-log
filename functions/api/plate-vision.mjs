@@ -1,8 +1,9 @@
-// functions/api/plate-vision.js
+// functions/api/plate-vision.mjs
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+// Using the proven Groq vision model
+const MODEL = "llama-3.2-11b-vision-preview";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -133,7 +134,7 @@ export async function onRequest(context) {
     model: MODEL,
     temperature: 0.1,
     max_tokens: 400,
-    response_format: { type: "json_object" },
+    // REMOVED response_format HERE - Groq vision sometimes chokes on this
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
@@ -171,7 +172,7 @@ export async function onRequest(context) {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("[plate-vision] Groq error response:", errorText); // <-- ADD THIS LINE
+      console.error("[plate-vision] Groq error response:", errorText);
 
       if (res.status === 401 || res.status === 403) {
         return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });

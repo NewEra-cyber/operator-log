@@ -17,7 +17,7 @@ export async function onRequest(context) {
 Return ONLY JSON: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
 Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, and Chapati. 
 If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.` },
-                { role: "user", content: text } // <--- THIS WAS MISSING
+                { role: "user", content: text }
             ]
         };
 
@@ -28,9 +28,15 @@ If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdow
         });
 
         const data = await res.json();
-        const parsed = JSON.parse(data.choices[0].message.content);
+        
+        // Robust JSON extraction (strips markdown fences if the AI adds them)
+        let rawContent = data.choices[0].message.content;
+        rawContent = rawContent.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+        
+        const parsed = JSON.parse(rawContent);
         return new Response(JSON.stringify(parsed), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err) {
+        console.error("Text Macros Error:", err);
         return new Response(JSON.stringify({ is_food: false, name: "Error", p: 0, cal: 0, breakdown: "AI offline" }), { status: 200 });
     }
 }
