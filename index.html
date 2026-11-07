@@ -1778,6 +1778,137 @@
         grid-template-columns: repeat(3, 1fr)
       }
     }
+
+    /* ============================================================
+   CUSTOM CALENDAR
+   ============================================================ */
+    .cal-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 20px rgba(255, 42, 42, 0.05);
+    }
+
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .cal-header button {
+      background: #0a0e12;
+      border: 1px solid var(--border);
+      color: var(--txt);
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+    }
+
+    .cal-header button:active {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .cal-month-year {
+      font-family: var(--head);
+      font-size: 16px;
+      color: #fff;
+      letter-spacing: 0.1em;
+    }
+
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 50%;
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 13px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .cal-day:active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .cal-day.empty {
+      pointer-events: none;
+    }
+
+    .cal-day.today {
+      color: var(--orange);
+      border-color: var(--orange);
+      font-weight: bold;
+    }
+
+    .cal-day.selected {
+      background: var(--orange);
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255, 42, 42, 0.4);
+    }
+
+    /* Dot indicator for days with logged workouts */
+    .cal-day.has-log::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    .cal-day.selected.has-log::after {
+      background: #000;
+    }
+
+    .cal-today-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--txt);
+      font-family: var(--head);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .cal-today-btn:active {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
   </style>
 </head>
 
@@ -1889,6 +2020,38 @@
     </div>
   </div>
   <div class="toast" id="toast"></div>
+
+  <!-- CUSTOM CALENDAR MODAL -->
+  <div class="lightbox" id="calendarModal" style="background:rgba(5,8,11,.85);">
+    <div class="lb-bar">
+      <span class="mono" id="calTitle">SELECT DATE</span>
+      <div class="lb-btns">
+        <button data-act="close-cal">✕</button>
+      </div>
+    </div>
+    <div class="lb-stage" style="padding: 20px; align-items: flex-start;">
+      <div class="cal-container">
+        <div class="cal-header">
+          <button data-act="cal-prev">◀</button>
+          <div class="cal-month-year" id="calMonthYear">MONTH YEAR</div>
+          <button data-act="cal-next">▶</button>
+        </div>
+        <div class="cal-weekdays">
+          <div>M</div>
+          <div>T</div>
+          <div>W</div>
+          <div>T</div>
+          <div>F</div>
+          <div>S</div>
+          <div>S</div>
+        </div>
+        <div class="cal-grid" id="calGrid">
+          <!-- Days will be injected here -->
+        </div>
+        <button class="cal-today-btn" data-act="cal-today">JUMP TO TODAY</button>
+      </div>
+    </div>
+  </div>
 
   <!-- hidden file inputs -->
   <input type="file" id="foodInput" accept="image/*" hidden />
@@ -2339,14 +2502,17 @@
         refuelView: "log",
         planDay: "mon",
         dayKey: todayDayKey(),
-        missionDate: ymd(), // <--- ADD THIS
+        missionDate: ymd(),
         nutDate: ymd(),
         scan: { status: "idle" },
         photoTarget: null,
         cmpA: "w0",
         cmpB: "w8",
         cmpPose: "front",
-        bpKey: null
+        bpKey: null,
+        calTarget: null,
+        calMonth: new Date().getMonth(),
+        calYear: new Date().getFullYear()
       };
 
       function todayDayKey() {
@@ -2444,7 +2610,7 @@
           "<div>" +
           '<div class="kicker" style="display:flex; align-items:center; justify-content:space-between;">' +
           day.tag + " · " + dateKey +
-          '<input type="date" value="' + dateKey + '" data-act="mission-date" style="background:transparent; border:none; color:var(--muted); font-family:var(--mono); font-size:10px; text-align:right;" />' +
+          '<button class="mono" data-act="open-calendar" data-target="mission" data-date="' + dateKey + '" style="background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 8px; border-radius:4px; font-size:10px;">' + dateKey + ' 📅</button>' +
           '</div>' +
           '<h2 class="day-title">' + esc(day.name) + "</h2>" +
           '<div class="focus">' + esc(day.focus) + "</div>" +
@@ -2668,10 +2834,9 @@
           '</div>' +
 
           (state.refuelView === 'plan' ? viewMealPlan() : (
-            '<div class="date-nav">' +
-            '<button data-act="nut-prev">◀ PREV</button>' +
-            '<input type="date" value="' + key + '" data-act="nut-date" />' +
-            '<button data-act="nut-next">NEXT ▶</button>' +
+            '<div class="date-nav" style="grid-template-columns: 1fr 1fr; gap: 6px;">' +
+            '<button data-act="nut-prev" style="width:100%;">◀ PREV</button>' +
+            '<button data-act="nut-next" style="width:100%;">NEXT ▶</button>' +
             "</div>" +
 
             '<div class="card">' +
@@ -2707,7 +2872,9 @@
             "</div>" +
             "</div>" +
             "</div>" +
-
+            '<button class="mono" data-act="open-calendar" data-target="nut" data-date="' + key + '" style="background:var(--card); border:1px solid var(--border); color:var(--txt); padding:9px 8px; border-radius:3px; font-size:11px; text-align:center; outline:none; width:100%;">' +
+            fmtDate(key) + ' 📅' +
+            '</button>' +
             '<div class="card">' +
             '<div class="kicker" style="margin-bottom:9px">WATER INTAKE</div>' +
             '<div style="display:flex; gap:8px; justify-content:center; font-size:24px;">' +
@@ -3278,6 +3445,57 @@
         const c = document.getElementById("lbContent");
         c.style.transform = "translate(" + lb.x + "px," + lb.y + "px) scale(" + lb.scale + ")";
       }
+      function openCalendar(target, currentDateStr) {
+        state.calTarget = target;
+        const d = new Date(currentDateStr + "T12:00:00");
+        state.calMonth = d.getMonth();
+        state.calYear = d.getFullYear();
+        renderCalendar();
+        document.getElementById("calendarModal").classList.add("open");
+      }
+
+      function renderCalendar() {
+        const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+        document.getElementById("calMonthYear").textContent = monthNames[state.calMonth] + " " + state.calYear;
+
+        const firstDay = new Date(state.calYear, state.calMonth, 1).getDay();
+        const daysInMonth = new Date(state.calYear, state.calMonth + 1, 0).getDate();
+
+        // Adjust so Monday is 0, Sunday is 6
+        const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+        let html = "";
+
+        // Empty slots
+        for (let i = 0; i < startOffset; i++) {
+          html += '<div class="cal-day empty"></div>';
+        }
+
+        // Days
+        const todayStr = ymd();
+        const activeDateStr = state.calTarget === 'mission' ? state.missionDate : state.nutDate;
+        const db = getDB();
+
+        for (let i = 1; i <= daysInMonth; i++) {
+          const dateStr = state.calYear + "-" + pad2(state.calMonth + 1) + "-" + pad2(i);
+          const isToday = dateStr === todayStr;
+          const isSelected = dateStr === activeDateStr;
+
+          // Check if there's a log or workout for this day
+          const hasMeal = db.logs[dateStr] && db.logs[dateStr].meals && db.logs[dateStr].meals.length > 0;
+          const hasWorkout = Object.keys(db.workouts).some(k => k.includes("::" + dateStr) && db.workouts[k].ex && Object.keys(db.workouts[k].ex).length > 0);
+          const hasLog = hasMeal || hasWorkout;
+
+          let classes = "cal-day";
+          if (isToday) classes += " today";
+          if (isSelected) classes += " selected";
+          if (hasLog) classes += " has-log";
+
+          html += '<button class="' + classes + '" data-act="cal-pick" data-date="' + dateStr + '">' + i + '</button>';
+        }
+
+        document.getElementById("calGrid").innerHTML = html;
+      }
       function openHistory(exId) {
         const db = getDB();
         const day = getDay(state.dayKey);
@@ -3345,6 +3563,47 @@
         /* --- NEW FEATURES --- */
         if (act === "open-history") { openHistory(el.dataset.ex); return; }
         if (act === "close-history") { document.getElementById("historyModal").classList.remove("open"); return; }
+
+        /* --- CALENDAR ACTIONS --- */
+        if (act === "open-calendar") {
+          openCalendar(el.dataset.target, el.dataset.date);
+          return;
+        }
+        if (act === "close-cal") {
+          document.getElementById("calendarModal").classList.remove("open");
+          return;
+        }
+        if (act === "cal-prev") {
+          state.calMonth--;
+          if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+          renderCalendar();
+          return;
+        }
+        if (act === "cal-next") {
+          state.calMonth++;
+          if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+          renderCalendar();
+          return;
+        }
+        if (act === "cal-today") {
+          const today = new Date();
+          state.calMonth = today.getMonth();
+          state.calYear = today.getFullYear();
+          renderCalendar();
+          return;
+        }
+        if (act === "cal-pick") {
+          const dateStr = el.dataset.date;
+          if (state.calTarget === 'mission') {
+            state.missionDate = dateStr;
+          } else {
+            state.nutDate = dateStr;
+          }
+          document.getElementById("calendarModal").classList.remove("open");
+          render();
+          return;
+        }
+
         if (act === "add-water") {
           const count = Number(el.dataset.i);
           const db = getDB();
@@ -3596,11 +3855,6 @@
         if (!el) return;
         const act = el.dataset.act;
 
-        if (act === "nut-date") {
-          const v = el.value;
-          if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) { state.nutDate = v; render(); }
-          return;
-        }
         if (act === "mission-date") {
           const v = el.value;
           if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) { state.missionDate = v; render(); }
