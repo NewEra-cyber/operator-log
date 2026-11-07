@@ -3,7 +3,7 @@
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 // Using the proven Groq vision model
-const MODEL = "llama-3.2-11b-vision-preview";
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `

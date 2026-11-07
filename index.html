@@ -3338,7 +3338,7 @@
 
         try {
           // 1. Large image for AI
-          const dataUrl = await compressImage(file, 850, 0.78);
+          const dataUrl = await compressImage(file, 800, 0.65);
           const base64 = dataUrl.split(",")[1];
 
           // 2. Tiny image for the log
