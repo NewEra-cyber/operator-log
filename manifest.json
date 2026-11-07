@@ -24,15 +24,15 @@
   ],
   "icons": [
     {
-      "src": "/images/logo.png",
+      "src": "/images/logo.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.png",
+      "src": "/images/logo.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "maskable"
     }
   ],
