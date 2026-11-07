@@ -1,6 +1,6 @@
 /* OPERATOR LOG // TACTICAL SUITE PRO — Service Worker */
 // IMPORTANT: Bump this version number every time you push a major update
-const VERSION = "v4.2.3";
+const VERSION = "v4.3.0";
 const CACHE = "operator-log-" + VERSION;
 
 const CORE_ASSETS = [
