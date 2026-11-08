@@ -2,8 +2,8 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Updated to Groq's active vision model
-const MODEL = "llama-3.2-11b-vision-preview";
+// Updated to the actual, active Groq vision model
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -125,7 +125,6 @@ export async function onRequest(context) {
     model: MODEL,
     temperature: 0.1,
     max_tokens: 400,
-    // REMOVED response_format HERE - Groq vision sometimes chokes on this
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
@@ -164,18 +163,12 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
-
-      if (res.status === 401 || res.status === 403) {
-        return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });
-      }
-      if (res.status === 429) {
-        return json({ ...reject("Rejected: vision rate limit reached."), error: "rate_limit" });
-      }
-      if (res.status === 413) {
-        return json({ ...reject("Rejected: image not accepted by vision model."), error: "bad_image" });
-      }
-      // 400 is usually a bad model name or API issue, NOT a bad image. Do not show "Non-food".
-      return json({ ...reject("Vision service error. Please try again later."), error: "upstream_failure" });
+      
+      // THIS IS THE CRITICAL FIX: It will now print the EXACT Groq error to your screen.
+      return json({ 
+        ...reject(`Groq API Error (${res.status}): ${errorText.substring(0, 80)}...`), 
+        error: "upstream_failure" 
+      });
     }
 
     const data = await res.json();
