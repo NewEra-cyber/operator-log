@@ -1,6 +1,6 @@
 export async function onRequest(context) {
     const req = context.request;
-    const apiKey = context.env.GROQ_API_KEY;
+    const apiKey = context.env?.GROQ_API_KEY;
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
 
@@ -9,14 +9,17 @@ export async function onRequest(context) {
         if (!text) throw new Error("No text provided");
 
         const payload = {
-            model: "llama-3.1-8b-instant",
+            model: "llama-3.3-70b-versatile", // Smartest Groq model for JSON output
             response_format: { type: "json_object" },
+            temperature: 0.1,
             messages: [
                 {
-                    role: "system", content: `You are a nutrition bot specializing in Kenyan food. Extract macros from the user's text.
-Return ONLY JSON: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
+                    role: "system", 
+                    content: `You are an expert Kenyan nutrition bot. Extract macros from the user's text.
+Return ONLY a JSON object: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
 Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, Chapati, Matumbo, Nyama Choma, Managu, Mutura, and Indomie. 
-If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.` },
+If the user types something that is clearly not food, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.`
+                },
                 { role: "user", content: text }
             ]
         };
@@ -28,8 +31,8 @@ If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdow
         });
 
         const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
 
-        // Robust JSON extraction (strips markdown fences if the AI adds them)
         let rawContent = data.choices[0].message.content;
         rawContent = rawContent.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
 
@@ -37,6 +40,12 @@ If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdow
         return new Response(JSON.stringify(parsed), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err) {
         console.error("Text Macros Error:", err);
-        return new Response(JSON.stringify({ is_food: false, name: "Error", p: 0, cal: 0, breakdown: "AI offline" }), { status: 200 });
+        // Return the actual error so you can see it in the UI!
+        return new Response(JSON.stringify({ 
+            name: "AI Error", 
+            p: 0, 
+            cal: 0, 
+            breakdown: err.message || "AI service unavailable." 
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 }
