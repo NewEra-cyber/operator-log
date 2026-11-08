@@ -2,8 +2,8 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// The actual, working Groq vision model
-const MODEL = "llama-3.2-11b-vision-preview";
+// Verified active Groq vision model as per official documentation
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -169,11 +169,16 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
-      
-      return json({ 
-        ...reject(`Groq API Error (${res.status}): ${errorText.substring(0, 80)}...`), 
-        error: "upstream_failure" 
-      });
+
+      // If it's a 400 or 404, the model name is invalid.
+      if (res.status === 400 || res.status === 404) {
+        return json({
+          ...reject(`Model '${MODEL}' not found on Groq. Please verify.`),
+          error: "model_not_found"
+        });
+      }
+
+      return json({ ...reject(`Vision service error (${res.status}).`), error: "upstream_failure" });
     }
 
     const data = await res.json();
