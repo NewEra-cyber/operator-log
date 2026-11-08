@@ -1,7 +1,7 @@
 // functions/api/plate-vision.mjs
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Updated to the active replacement for the decommissioned Llama 3.2 Vision model
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
+// Restored to your proven working Groq vision model
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -126,6 +126,7 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error:", errorText);
+      // Surface the exact Groq response so you know if the model was decommissioned or the key is invalid
       return json(systemError(`Groq API Error (${res.status}): ${errorText.substring(0, 100)}`), 200);
     }
 
