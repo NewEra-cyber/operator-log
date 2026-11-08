@@ -1,6 +1,7 @@
 // functions/api/plate-vision.mjs
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.2-11b-vision-preview"; // The official Groq vision model
+// Updated to the active replacement for the decommissioned Llama 3.2 Vision model
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -74,7 +75,7 @@ function extractJSON(text) {
 
 export async function onRequest(context) {
   const req = context.request;
-  const apiKey = context.env?.GROQ_API_KEY; // Safe access
+  const apiKey = context.env?.GROQ_API_KEY;
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
@@ -125,7 +126,6 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error:", errorText);
-      // Return 200 so the frontend can display the exact error to the user
       return json(systemError(`Groq API Error (${res.status}): ${errorText.substring(0, 100)}`), 200);
     }
 
