@@ -2025,16 +2025,6 @@
     }
 
     /* MEASUREMENTS GRID */
-    .measure-grid input {
-      background: #0a0e12;
-      border: 1px solid var(--border);
-      color: var(--txt);
-      font-size: 16px !important;
-      padding: 10px;
-      border-radius: 3px;
-      outline: none;
-      width: 100%;
-    }
 
     .measure-grid input:focus {
       border-color: var(--orange);
@@ -2043,10 +2033,6 @@
 
     .measure-stat-row:last-child {
       border-bottom: 0;
-    }
-
-    .delta-same {
-      color: var(--muted);
     }
   </style>
 </head>
@@ -3094,13 +3080,6 @@
         }
         return "";
       }
-
-      const latestDate = dates[dates.length - 1];
-      const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
-
-      const latest = db.measurements[latestDate] || {};
-
-
       /* ---------------------------------------------------------------------------
          VIEW: VAULT
          --------------------------------------------------------------------------- */
