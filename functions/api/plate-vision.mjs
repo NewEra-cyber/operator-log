@@ -1,9 +1,6 @@
 // functions/api/plate-vision.mjs
-// Cloudflare Pages Function
-
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Using the proven Groq vision model
-const MODEL = "qwen/qwen3.8-27b";
+const MODEL = "llama-3.2-11b-vision-preview"; // Valid Groq vision model
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -42,12 +39,18 @@ function json(body, status = 200) {
   });
 }
 
+// Only use this for ACTUAL non-food items
 function reject(breakdown = "Rejected: not a food item.") {
   return { is_food: false, name: "Non-food", p: 0, cal: 0, breakdown };
 }
 
+// Use this for system errors so the UI shows an error, not a rejection
+function systemError(message) {
+  return { error: "system_error", is_food: true, name: "Error", p: 0, cal: 0, breakdown: message };
+}
+
 function sanitise(obj) {
-  if (!obj || typeof obj !== "object") return reject("Rejected: unreadable image.");
+  if (!obj || typeof obj !== "object") return systemError("Rejected: unreadable image.");
   const isFood = obj.is_food === true || obj.is_food === "true";
   const p = Number(obj.p);
   const cal = Number(obj.cal);
@@ -97,7 +100,7 @@ export async function onRequest(context) {
   }
 
   if (req.method !== "POST") {
-    return json({ ...reject("Rejected: POST required."), error: "method_not_allowed" });
+    return json(systemError("POST required."), 405);
   }
 
   let image = "";
@@ -105,27 +108,23 @@ export async function onRequest(context) {
     const body = await req.json();
     image = typeof body?.image === "string" ? body.image : "";
   } catch {
-    return json({ ...reject("Rejected: invalid request body."), error: "bad_body" });
+    return json(systemError("Invalid request body."), 400);
   }
 
   image = image.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "").trim();
 
   if (!image || image.length < 128) {
-    return json({ ...reject("Rejected: no usable image supplied."), error: "no_image" });
+    return json(systemError("No usable image supplied."), 400);
   }
 
   if (!apiKey) {
-    return json({
-      ...reject("Vision service is not configured (missing GROQ_API_KEY)."),
-      error: "no_api_key",
-    });
+    return json(systemError("Vision service is not configured (missing GROQ_API_KEY)."), 500);
   }
 
   const payload = {
     model: MODEL,
     temperature: 0.1,
     max_tokens: 400,
-    // REMOVED response_format HERE - Groq vision sometimes chokes on this
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
@@ -164,17 +163,8 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
-
-      if (res.status === 401 || res.status === 403) {
-        return json({ ...reject("Rejected: vision credentials rejected."), error: "auth" });
-      }
-      if (res.status === 429) {
-        return json({ ...reject("Rejected: vision rate limit reached."), error: "rate_limit" });
-      }
-      if (res.status === 413 || res.status === 400) {
-        return json({ ...reject("Rejected: image not accepted by vision model."), error: "bad_image" });
-      }
-      return json({ ...reject("Rejected: vision service error."), error: "upstream_failure" });
+      
+      return json(systemError(`Vision service error (${res.status}). Please try again.`), 500);
     }
 
     const data = await res.json();
@@ -188,15 +178,12 @@ export async function onRequest(context) {
     }
 
     if (!parsed) {
-      return json(reject("Rejected: vision model returned no usable data."));
+      return json(systemError("Vision model returned no usable data."), 500);
     }
 
     return json(sanitise(parsed), 200);
   } catch (err) {
     const aborted = err && err.name === "AbortError";
-    return json({
-      ...reject(aborted ? "Rejected: vision request timed out." : "Rejected: vision service unavailable."),
-      error: aborted ? "timeout" : "upstream_failure",
-    });
+    return json(systemError(aborted ? "Vision request timed out." : "Vision service unavailable."), 500);
   }
 }
