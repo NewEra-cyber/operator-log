@@ -7,22 +7,6 @@ const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
-You are PLATE-VISION, an expert nutrition analyst specializing in KENYAN and EAST AFRICAN CUISINE.
-
-Analyse the supplied image and return ONLY a single JSON object. No markdown, no prose.
-
-Required output shape:
-{"is_food": boolean, "name": string, "p": number, "cal": number, "breakdown": string}
-
-STRICT RULES:
-1. If the image shows a TRACTOR, vehicle, machine, animal, person, or ANY non-edible object, return:
-   {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
-2. If blurry or you cannot identify food, return the rejection object.
-3. Only set "is_food": true for edible meals.
-4. "p" = estimated protein in grams. "cal" = total energy in kilocalories. Never return negatives.
-5. "name" = short dish name in Title Case, max 6 words.
-6. "breakdown" = one concise sentence listing the components.
-
 *** CRITICAL KENYAN FOOD DICTIONARY & VISUAL RULES ***
 You MUST prioritize Kenyan names and macros over international equivalents. Here is how to visually identify them:
 - **Ugali**: Thick white block of maize meal. (High carb).
@@ -40,9 +24,9 @@ You MUST prioritize Kenyan names and macros over international equivalents. Here
 - **Kachumbari**: Fresh tomato and onion salad.
 - **Tilapia**: Whole fried fish.
 - **Smokie**: Thin, reddish-brown sausage.
+- **Indomie**: Yellow, curly instant noodles. Often cooked with a fried egg, tomatoes, and onions. If in the packet, it is a blue/red Indomie wrapper.
 
 Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
-Estimate portions realistically based on a standard 12-inch dinner plate. Be generous with portions.
 `.trim();
 
 function json(body, status = 200) {

@@ -15,7 +15,7 @@ export async function onRequest(context) {
                 {
                     role: "system", content: `You are a nutrition bot specializing in Kenyan food. Extract macros from the user's text.
 Return ONLY JSON: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
-Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, Chapati, Matumbo, Nyama Choma, Managu, and Mutura. 
+Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, Chapati, Matumbo, Nyama Choma, Managu, Mutura, and Indomie. 
 If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.` },
                 { role: "user", content: text }
             ]
