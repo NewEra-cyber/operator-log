@@ -2178,6 +2178,22 @@
     </div>
   </div>
 
+  <!-- LEGAL MODAL -->
+  <div class="lightbox" id="legalModal" style="background:rgba(5,8,11,.95); z-index: 300;">
+    <div class="lb-bar">
+      <span class="mono" id="legalTitle">LEGAL & PRIVACY</span>
+      <div class="lb-btns">
+        <button data-act="close-legal">✕</button>
+      </div>
+    </div>
+    <div class="lb-stage" style="padding: 20px; align-items: flex-start; overflow-y: auto;">
+      <div id="legalContent"
+        style="width:100%; max-width:600px; font-size: 12px; line-height: 1.6; color: var(--muted);">
+        <!-- Content injected via JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- hidden file inputs -->
   <input type="file" id="foodInput" accept="image/*" hidden />
   <input type="file" id="photoInput" accept="image/*" hidden />
@@ -3324,6 +3340,13 @@
           '<div id="syncStatus" class="mono" style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center;">STATUS: ' + (db.settings.syncId ? 'READY' : 'NOT CONFIGURED') + '</div>' +
           '</div>' +
 
+          '<div class="card">' +
+          '<div class="kicker" style="margin-bottom:6px">LEGAL & PRIVACY</div>' +
+          '<div class="dim" style="font-size:11px; margin-bottom:10px;">Read the operator agreement, health disclaimers, and data privacy policies.</div>' +
+          '<button class="act-btn" data-act="open-legal" data-type="privacy">⭳ PRIVACY POLICY</button>' +
+          '<button class="act-btn" data-act="open-legal" data-type="terms">⭳ TERMS & HEALTH DISCLAIMER</button>' +
+          '</div>' +
+
 
           '<div class="card">' +
           '<div class="kicker" style="margin-bottom:4px">DANGER ZONE</div>' +
@@ -3955,6 +3978,43 @@
               statusEl.textContent = "STATUS: PULL FAILED";
               toast("PULL FAILED", "red");
             });
+          return;
+        }
+        /* --- LEGAL MODAL --- */
+        if (act === "open-legal") {
+          const type = el.dataset.type;
+          const titleEl = document.getElementById("legalTitle");
+          const contentEl = document.getElementById("legalContent");
+
+          if (type === "privacy") {
+            titleEl.textContent = "PRIVACY POLICY";
+            contentEl.innerHTML = `
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px;">1. DATA COLLECTION</div>
+              <p>OPERATOR LOG is an offline-first application. Your workout logs, nutrition data, and progress photos are stored locally on your device (IndexedDB). If you utilize the Cloud Sync feature, your encrypted data is stored in Cloudflare KV, accessible only by your unique Sync Code.</p>
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px; margin-top:16px;">2. AI VISION SCANNER</div>
+              <p>When you use the AI Plate Scanner or Text Logger, images or text are securely transmitted to our API endpoint which forwards it to Groq. Images are analyzed for macronutrients and are not permanently stored on our servers.</p>
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px; margin-top:16px;">3. DATA SHARING</div>
+              <p>We do not sell, rent, or share your personal data, meal photos, or physique images with any third parties.</p>
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px; margin-top:16px;">4. DATA DELETION</div>
+              <p>You have full control over your data. You can delete individual logs, or use the "Purge All Local Data" button in the System tab to instantly wipe the local database and disconnect from the cloud.</p>
+            `;
+          } else {
+            titleEl.textContent = "TERMS & DISCLAIMER";
+            contentEl.innerHTML = `
+              <div style="color:var(--red); font-family:var(--head); margin-bottom:8px;">1. HEALTH & MEDICAL DISCLAIMER</div>
+              <p style="color:#fff;">The information and training programs provided by OPERATOR LOG are for educational and informational purposes only. They are not a substitute for professional medical advice, diagnosis, or treatment. Always consult a physician before starting any new exercise program or making dietary changes. You assume full responsibility for any injuries or health complications that may occur.</p>
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px; margin-top:16px;">2. AI ESTIMATION ACCURACY</div>
+              <p>The macronutrient values provided by the AI Vision and Text scanners are estimates. Do not rely on them for strict medical or competitive purposes. We are not liable for discrepancies in calorie or protein tracking.</p>
+              <div style="color:#fff; font-family:var(--head); margin-bottom:8px; margin-top:16px;">3. USE AT YOUR OWN RISK</div>
+              <p>This application is provided "as is" without warranty of any kind. By using this app, you agree that the creators are not responsible for any data loss, injuries, or damages incurred through its use.</p>
+            `;
+          }
+          document.getElementById("legalModal").classList.add("open");
+          return;
+        }
+
+        if (act === "close-legal") {
+          document.getElementById("legalModal").classList.remove("open");
           return;
         }
 
