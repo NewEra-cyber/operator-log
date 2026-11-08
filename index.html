@@ -1443,7 +1443,7 @@
     .ms-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 6px
+      gap: 4px;
     }
 
     .photo-slot {
@@ -2485,7 +2485,10 @@
         { k: "w6", label: "WEEK 6", sub: "CHECKPOINT" },
         { k: "w8", label: "WEEK 8", sub: "FINAL" }
       ];
-      const POSES = ["front", "side", "back"];
+      const POSES = ["front", "side", "back", "chest", "biceps", "triceps", "abs", "legs_front", "legs_back"];
+
+      // Helper to make "legs_front" look like "LEGS FRONT"
+      const formatPose = (p) => p.replace("_", " ").toUpperCase();
 
       const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
       const BAR_WEIGHT = 20;
@@ -2580,11 +2583,7 @@
           Object.keys(rawP).forEach((k) => {
             const v = rawP[k];
             if (!v || typeof v !== "object") return;
-            db.photos[k] = {
-              front: v.front || v.f || null,
-              side: v.side || v.s || null,
-              back: v.back || v.b || null
-            };
+            db.photos[k] = v; // <--- Just copy the object directly to preserve all keys!
           });
         }
         /* ---- favorites & weightLog ---- */
@@ -3095,47 +3094,12 @@
         }
         return "";
       }
-      function renderMeasurementHistory(db) {
-        const dates = Object.keys(db.measurements || {}).sort();
-        if (dates.length === 0) return '<div class="dim" style="font-size:11px; padding:10px 0;">NO MEASUREMENTS LOGGED YET.</div>';
 
-        const latestDate = dates[dates.length - 1];
-        const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
+      const latestDate = dates[dates.length - 1];
+      const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
 
-        const latest = db.measurements[latestDate] || {};
-        const prev = prevDate ? db.measurements[prevDate] : {};
+      const latest = db.measurements[latestDate] || {};
 
-        const fields = [
-          { key: "chest", label: "Chest" },
-          { key: "waist", label: "Waist" },
-          { key: "arms", label: "Arms" },
-          { key: "thighs", label: "Thighs" },
-          { key: "calves", label: "Calves" },
-          { key: "neck", label: "Neck" }
-        ];
-
-        let html = "";
-        fields.forEach(f => {
-          const val = num(latest[f.key], 0);
-          if (val === 0) return; // Skip if not logged
-
-          let deltaHTML = '<span class="delta-same">--</span>';
-          if (prev[f.key]) {
-            const diff = val - num(prev[f.key], 0);
-            if (diff > 0) deltaHTML = '<span class="delta-up">+' + diff.toFixed(1) + '</span>';
-            else if (diff < 0) deltaHTML = '<span class="delta-down">' + diff.toFixed(1) + '</span>';
-            else deltaHTML = '<span class="delta-same">0.0</span>';
-          }
-
-          html += '<div class="measure-stat-row">' +
-            '<span style="color:var(--muted)">' + f.label.toUpperCase() + '</span>' +
-            '<span><b style="color:#fff">' + val + 'cm</b> ' + deltaHTML + '</span>' +
-            '</div>';
-        });
-
-        if (!html) return '<div class="dim" style="font-size:11px; padding:10px 0;">NO DATA YET.</div>';
-        return html;
-      }
 
       /* ---------------------------------------------------------------------------
          VIEW: VAULT
@@ -3147,7 +3111,7 @@
             '<button class="photo-slot" data-act="photo" data-ms="' + m.k + '" data-pose="' + pose + '">' +
             (p[pose]
               ? '<img src="' + p[pose] + '" alt="' + m.label + " " + pose + '" loading="lazy" />'
-              : '<span class="ph-empty"><span>+</span><em>' + pose.toUpperCase() + "</em></span>") +
+              : '<span class="ph-empty"><span>+</span><em>' + formatPose(pose) + "</em></span>") +
             "</button>"
           ).join("");
           return '<div class="ms-block">' +
@@ -3159,8 +3123,7 @@
         const msOpts = MILESTONES.map((m) =>
           '<option value="' + m.k + '">' + m.label + "</option>").join("");
         const poseOpts = POSES.map((p) =>
-          '<option value="' + p + '"' + (state.cmpPose === p ? " selected" : "") + ">" + p.toUpperCase() + "</option>").join("");
-
+          '<option value="' + p + '"' + (state.cmpPose === p ? " selected" : "") + ">" + formatPose(p) + "</option>").join("");
         const imgA = (db.photos[state.cmpA] || {})[state.cmpPose];
         const imgB = (db.photos[state.cmpB] || {})[state.cmpPose];
 
@@ -3187,19 +3150,13 @@
           '</div>' +
           '</div>' +
           '</div>' +
-          // History Display
-          '<div style="margin-top:16px;">' +
-          '<div class="kicker" style="margin-bottom:4px;">LATEST VS PREVIOUS</div>' +
-          renderMeasurementHistory(db) +
-          '</div>' +
-          '</div>' +
 
           '<div class="card">' +
           '<div class="kicker" style="margin-bottom:9px">AI MUSCLE ANALYZER</div>' +
           '<div class="sel-row">' +
           '<select id="aiMileA">' + MILESTONES.map((m) => '<option value="' + m.k + '">' + m.label + ' (BEFORE)</option>').join("") + '</select>' +
           '<select id="aiMileB">' + MILESTONES.map((m) => '<option value="' + m.k + '"' + (m.k === "w8" ? " selected" : "") + '>' + m.label + ' (AFTER)</option>').join("") + '</select>' +
-          '<select id="aiPose"><option value="front">FRONT</option><option value="side">SIDE</option><option value="back">BACK</option></select>' +
+          '<select id="aiPose">' + POSES.map(p => '<option value="' + p + '">' + formatPose(p) + '</option>').join("") + '</select>' +
           '</div>' +
           '<button class="act-btn primary" data-act="analyze-physique" style="margin-top:8px;">⚡ ANALYZE PROGRESS</button>' +
 
