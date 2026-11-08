@@ -2025,13 +2025,6 @@
     }
 
     /* MEASUREMENTS GRID */
-    .measure-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
-
     .measure-grid input {
       background: #0a0e12;
       border: 1px solid var(--border);
@@ -2047,27 +2040,9 @@
       border-color: var(--orange);
     }
 
-    .measure-stat-row {
-      display: flex;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 6px 0;
-      border-bottom: 1px dashed #1d2731;
-    }
 
     .measure-stat-row:last-child {
       border-bottom: 0;
-    }
-
-    .delta-up {
-      color: var(--green);
-      font-weight: bold;
-    }
-
-    .delta-down {
-      color: var(--red);
-      font-weight: bold;
     }
 
     .delta-same {
@@ -2540,7 +2515,6 @@
           photos: {},
           favorites: [],
           weightLog: [],
-          measurements: {} // <--- ADD THIS
         };
       }
 
@@ -2632,10 +2606,6 @@
               delete db.history[oldId];
             }
           });
-        }
-        /* ---- measurements ---- */
-        if (raw.measurements && typeof raw.measurements === "object") {
-          db.measurements = raw.measurements;
         }
         db.version = 3;
         return db;
@@ -3217,26 +3187,24 @@
           '</div>' +
           '</div>' +
           '</div>' +
-
-          '<div class="card">' +
-          '<div class="kicker" style="margin-bottom:9px">MUSCLE MEASUREMENTS (CM)</div>' +
-
-          // Inputs
-          '<div class="measure-grid">' +
-          '<input id="measChest" type="number" step="0.1" placeholder="Chest" />' +
-          '<input id="measWaist" type="number" step="0.1" placeholder="Waist" />' +
-          '<input id="measArms" type="number" step="0.1" placeholder="Arms (Flexed)" />' +
-          '<input id="measThighs" type="number" step="0.1" placeholder="Thighs" />' +
-          '<input id="measCalves" type="number" step="0.1" placeholder="Calves" />' +
-          '<input id="measNeck" type="number" step="0.1" placeholder="Neck" />' +
-          '</div>' +
-          '<button data-act="save-measurements" class="act-btn" style="margin-top:8px; border-color:var(--cyan); color:var(--cyan);">LOG MEASUREMENTS</button>' +
-
           // History Display
           '<div style="margin-top:16px;">' +
           '<div class="kicker" style="margin-bottom:4px;">LATEST VS PREVIOUS</div>' +
           renderMeasurementHistory(db) +
           '</div>' +
+          '</div>' +
+
+          '<div class="card">' +
+          '<div class="kicker" style="margin-bottom:9px">AI MUSCLE ANALYZER</div>' +
+          '<div class="sel-row">' +
+          '<select id="aiMileA">' + MILESTONES.map((m) => '<option value="' + m.k + '">' + m.label + ' (BEFORE)</option>').join("") + '</select>' +
+          '<select id="aiMileB">' + MILESTONES.map((m) => '<option value="' + m.k + '"' + (m.k === "w8" ? " selected" : "") + '>' + m.label + ' (AFTER)</option>').join("") + '</select>' +
+          '<select id="aiPose"><option value="front">FRONT</option><option value="side">SIDE</option><option value="back">BACK</option></select>' +
+          '</div>' +
+          '<button class="act-btn primary" data-act="analyze-physique" style="margin-top:8px;">⚡ ANALYZE PROGRESS</button>' +
+
+          // Container for the AI Result
+          '<div id="aiAnalysisResult" style="display:none; margin-top:12px; padding:12px; background:#0a0e12; border:1px solid var(--border); border-radius:4px;"></div>' +
           '</div>' +
 
           '<div class="card">' +
@@ -3781,7 +3749,56 @@
         const act = el.dataset.act;
 
         if (navigator.vibrate) navigator.vibrate(10); // Haptic feedback
+        if (act === "analyze-physique") {
+          const mileA = document.getElementById("aiMileA").value;
+          const mileB = document.getElementById("aiMileB").value;
+          const pose = document.getElementById("aiPose").value;
 
+          const db = getDB();
+          const imgA = (db.photos[mileA] || {})[pose];
+          const imgB = (db.photos[mileB] || {})[pose];
+
+          if (!imgA || !imgB) {
+            toast("MISSING PHOTOS FOR THIS COMPARISON", "red");
+            return;
+          }
+
+          const resultDiv = document.getElementById("aiAnalysisResult");
+          resultDiv.style.display = "block";
+          resultDiv.innerHTML = '<div class="mono" style="color:var(--cyan); text-align:center;"><span class="spinner"></span> ANALYZING MUSCLE PROGRESS...</div>';
+
+          const base64A = imgA.split(",")[1];
+          const base64B = imgB.split(",")[1];
+
+          fetch("/api/analyze-physique", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image1: base64A, image2: base64B, pose: pose })
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.error) throw new Error(data.error);
+
+              let html = '<div style="font-family:var(--head); font-size:12px; color:#fff; margin-bottom:8px;">' + esc(data.overall) + '</div>';
+
+              data.muscles.forEach(m => {
+                let color = m.status === "Improved" ? "var(--green)" : (m.status === "Needs Work" ? "var(--red)" : "var(--muted)");
+                html += '<div style="display:flex; justify-content:space-between; border-bottom:1px dashed #1d2731; padding:6px 0;">' +
+                  '<div><span style="font-size:10px; color:' + color + '; font-weight:bold; display:block;">' + m.group.toUpperCase() + '</span>' +
+                  '<span style="font-size:10px; color:var(--muted);">' + esc(m.notes) + '</span></div>' +
+                  '<div class="mono" style="font-size:9px; color:' + color + ';">' + m.status.toUpperCase() + '</div>' +
+                  '</div>';
+              });
+
+              resultDiv.innerHTML = html;
+            })
+            .catch(err => {
+              console.error(err);
+              resultDiv.innerHTML = '<div class="mono" style="color:var(--red); font-size:10px;">FAILED TO ANALYZE. TRY AGAIN.</div>';
+            });
+
+          return;
+        }
         /* --- NEW FEATURES --- */
         if (act === "open-history") { openHistory(el.dataset.ex); return; }
         if (act === "close-history") { document.getElementById("historyModal").classList.remove("open"); return; }
@@ -3860,25 +3877,6 @@
           return;
         }
         /* --------------------- */
-        if (act === "save-measurements") {
-          const db = getDB();
-          if (!db.measurements) db.measurements = {};
-          const today = ymd();
-
-          db.measurements[today] = {
-            chest: num(document.getElementById("measChest")?.value, 0),
-            waist: num(document.getElementById("measWaist")?.value, 0),
-            arms: num(document.getElementById("measArms")?.value, 0),
-            thighs: num(document.getElementById("measThighs")?.value, 0),
-            calves: num(document.getElementById("measCalves")?.value, 0),
-            neck: num(document.getElementById("measNeck")?.value, 0)
-          };
-
-          saveDB(db);
-          render();
-          toast("MEASUREMENTS LOGGED", "green");
-          return;
-        }
 
         /* --- navigation --- */
         if (act === "tab") {
