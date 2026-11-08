@@ -23,25 +23,26 @@ STRICT RULES:
 5. "name" = short dish name in Title Case, max 6 words.
 6. "breakdown" = one concise sentence listing the components.
 
-*** CRITICAL PORTION & MACRO ESTIMATION RULES ***
-- Assume the plate is a standard large Kenyan dinner plate (approx 12 inches).
-- Be GENEROUS with your estimates. It is better to overestimate protein and calories than underestimate.
-- Dense Kenyan meals are usually 600 - 900 calories. Do not return values under 500 kcal for a full plate.
-- ALWAYS account for cooking oil in stews (add ~120 calories for every stewed item).
-- A standard portion of Rice + Ndengu on a full plate is ~25-30g Protein and ~700 kcal.
-- A standard portion of Ugali + Omena on a full plate is ~50-60g Protein and ~800 kcal.
+*** CRITICAL KENYAN FOOD DICTIONARY & VISUAL RULES ***
+You MUST prioritize Kenyan names and macros over international equivalents. Here is how to visually identify them:
+- **Ugali**: Thick white block of maize meal. (High carb).
+- **Omena**: Small silver dried fish. (Very high protein).
+- **Matumbo**: Chopped cow intestines/tripe. Looks like thick, brownish, chewy meat chunks stewed with tomatoes and onions. (Moderate protein, high fat).
+- **Githeri**: Mixture of maize and beans. (Moderate carbs & protein).
+- **Ndengu**: Green grams / mung beans stew. (High plant protein).
+- **Sukuma Wiki**: Sautéed collard greens (chopped, dark green).
+- **Managu / Terere**: Traditional dark leafy greens (nightshade/amaranth), often mixed with milk or cream.
+- **Nyama Choma**: Roasted/grilled meat (usually goat or beef), usually served with kachumbari.
+- **Mutura**: African sausage (dark, thick cylindrical meat).
+- **Chapati**: Layered flatbread (round, brown, flaky).
+- **Mandazi**: Fried dough balls (puffy, golden brown).
+- **Pilau**: Spiced rice with meat chunks (brownish rice).
+- **Kachumbari**: Fresh tomato and onion salad.
+- **Tilapia**: Whole fried fish.
+- **Smokie**: Thin, reddish-brown sausage.
 
-*** CRITICAL LOCALIZATION RULES (KENYAN CUISINE) ***
-You MUST prioritize Kenyan names and macros over international equivalents:
-- Thick white block of maize meal -> **Ugali** (High Carb, Low Protein).
-- Small silver dried fish -> **Omena** (Very High Protein).
-- Mixture of maize and beans -> **Githeri** (Moderate Carbs & Protein).
-- Green grams / mung beans stew -> **Ndengu** (High Plant Protein).
-- Sautéed collard greens -> **Sukuma Wiki**.
-- Layered flatbread -> **Chapati**.
-- Fried dough balls -> **Mandazi**.
-- Rice and beans mixed -> **Pilau** (if spiced) or just **Rice & Beans**.
-- Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
+Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
+Estimate portions realistically based on a standard 12-inch dinner plate. Be generous with portions.
 `.trim();
 
 function json(body, status = 200) {

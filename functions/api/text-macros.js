@@ -15,7 +15,7 @@ export async function onRequest(context) {
                 {
                     role: "system", content: `You are a nutrition bot specializing in Kenyan food. Extract macros from the user's text.
 Return ONLY JSON: {"name": "Short Name", "p": number, "cal": number, "breakdown": "Short description"}. 
-Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, and Chapati. 
+Recognize local foods like Ugali, Omena, Ndengu, Githeri, Sukuma Wiki, Chapati, Matumbo, Nyama Choma, Managu, and Mutura. 
 If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected"}.` },
                 { role: "user", content: text }
             ]
@@ -28,11 +28,11 @@ If no food is mentioned, return {"name": "Non-food", "p": 0, "cal": 0, "breakdow
         });
 
         const data = await res.json();
-        
+
         // Robust JSON extraction (strips markdown fences if the AI adds them)
         let rawContent = data.choices[0].message.content;
         rawContent = rawContent.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-        
+
         const parsed = JSON.parse(rawContent);
         return new Response(JSON.stringify(parsed), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err) {
