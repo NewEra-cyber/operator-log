@@ -2,8 +2,8 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Updated to the actual, active Groq vision model
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"; 
+// Restored to your original, active Groq vision model
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -164,11 +164,15 @@ export async function onRequest(context) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
       
-      // THIS IS THE CRITICAL FIX: It will now print the EXACT Groq error to your screen.
-      return json({ 
-        ...reject(`Groq API Error (${res.status}): ${errorText.substring(0, 80)}...`), 
-        error: "upstream_failure" 
-      });
+      // If it's a 404, show the exact model ID that failed
+      if (res.status === 404) {
+        return json({ 
+          ...reject(`Model '${MODEL}' not found on Groq. Please check the model name.`), 
+          error: "model_not_found" 
+        });
+      }
+
+      return json({ ...reject(`Vision service error (${res.status}).`), error: "upstream_failure" });
     }
 
     const data = await res.json();
