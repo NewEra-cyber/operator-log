@@ -2493,11 +2493,75 @@
       /* ---------------------------------------------------------------------------
          PERSISTENCE — multi-key migration
          --------------------------------------------------------------------------- */
+      function mergeDBs(local, remote) {
+        if (!remote || Object.keys(remote).length === 0) return local;
+        const merged = JSON.parse(JSON.stringify(local));
+
+        Object.keys(remote.logs || {}).forEach(date => {
+          if (!merged.logs[date]) {
+            merged.logs[date] = remote.logs[date];
+          } else {
+            const localMeals = merged.logs[date].meals || [];
+            const remoteMeals = remote.logs[date].meals || [];
+            const mealMap = new Map();
+            localMeals.forEach(m => mealMap.set(m.id, m));
+            remoteMeals.forEach(m => mealMap.set(m.id, m));
+            merged.logs[date].meals = Array.from(mealMap.values());
+            merged.logs[date].water = Math.max(merged.logs[date].water || 0, remote.logs[date].water || 0);
+          }
+        });
+
+        Object.keys(remote.workouts || {}).forEach(sessionKey => {
+          if (!merged.workouts[sessionKey]) {
+            merged.workouts[sessionKey] = remote.workouts[sessionKey];
+          } else {
+            const localEx = merged.workouts[sessionKey].ex || {};
+            const remoteEx = remote.workouts[sessionKey].ex || {};
+            Object.keys(remoteEx).forEach(exId => {
+              if (!localEx[exId]) {
+                localEx[exId] = remoteEx[exId];
+              } else {
+                const localDone = localEx[exId].sets.filter(Boolean).length;
+                const remoteDone = remoteEx[exId].sets.filter(Boolean).length;
+                if (remoteDone > localDone) localEx[exId] = remoteEx[exId];
+              }
+            });
+            merged.workouts[sessionKey].ex = localEx;
+          }
+        });
+
+        Object.keys(remote.history || {}).forEach(exId => {
+          const localPR = merged.history[exId];
+          const remotePR = remote.history[exId];
+          if (!localPR || (remotePR && remotePR.weight > localPR.weight)) {
+            merged.history[exId] = remotePR;
+          }
+        });
+
+        if (remote.weightLog) {
+          const weightMap = new Map();
+          (merged.weightLog || []).forEach(w => weightMap.set(w.date, w));
+          remote.weightLog.forEach(w => weightMap.set(w.date, w));
+          merged.weightLog = Array.from(weightMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+        }
+
+        Object.keys(remote.photos || {}).forEach(ms => {
+          if (!merged.photos[ms]) merged.photos[ms] = {};
+          Object.keys(remote.photos[ms]).forEach(pose => {
+            if (remote.photos[ms][pose]) {
+              merged.photos[ms][pose] = remote.photos[ms][pose];
+            }
+          });
+        });
+
+        return merged;
+      }
+
       function blankDB() {
         return {
           version: 3,
           created: Date.now(),
-          settings: { proteinTarget: 105, operator: "OPERATOR" },
+          settings: { proteinTarget: 105, operator: "OPERATOR", syncId: "" }, // <--- Added syncId
           logs: {},
           workouts: {},
           history: {},
@@ -3246,6 +3310,20 @@
           "Import runs a full multi-key migration — legacy v1/v2 backups are automatically upgraded." +
           "</div>" +
           "</div>" +
+          '<div class="card">' +
+          '<div class="kicker" style="margin-bottom:6px">CLOUD SYNC</div>' +
+          '<div class="dim" style="font-size:11px; margin-bottom:10px;">Enter a secret Sync Code (e.g. your name). Use the same code on other devices to sync your data.</div>' +
+          '<div class="manual" style="grid-template-columns: 1fr auto;">' +
+          '<input id="syncIdInput" type="text" placeholder="Sync Code" value="' + (db.settings.syncId || '') + '" style="font-size:16px !important;" />' +
+          '<button data-act="save-sync" style="font-size:12px !important; padding:0 15px;">SAVE</button>' +
+          '</div>' +
+          '<div style="display:flex; gap:8px; margin-top:10px;">' +
+          '<button class="act-btn" data-act="sync-push" style="flex:1; margin:0; border-color:var(--cyan); color:var(--cyan);">⭱ PUSH TO CLOUD</button>' +
+          '<button class="act-btn" data-act="sync-pull" style="flex:1; margin:0; border-color:var(--green); color:var(--green);">⭳ PULL & MERGE</button>' +
+          '</div>' +
+          '<div id="syncStatus" class="mono" style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center;">STATUS: ' + (db.settings.syncId ? 'READY' : 'NOT CONFIGURED') + '</div>' +
+          '</div>' +
+
 
           '<div class="card">' +
           '<div class="kicker" style="margin-bottom:4px">DANGER ZONE</div>' +
@@ -3813,6 +3891,72 @@
           return;
         }
         /* --------------------- */
+        /* --- CLOUD SYNC --- */
+        if (act === "save-sync") {
+          const v = document.getElementById("syncIdInput").value.trim();
+          if (!v) { toast("ENTER A SYNC CODE", "red"); return; }
+          const db = getDB();
+          db.settings.syncId = v;
+          saveDB(db);
+          render();
+          toast("SYNC CODE SAVED", "green");
+          return;
+        }
+
+        if (act === "sync-push") {
+          const db = getDB();
+          const syncId = db.settings.syncId;
+          if (!syncId) { toast("SAVE A SYNC CODE FIRST", "red"); return; }
+
+          const statusEl = document.getElementById("syncStatus");
+          statusEl.textContent = "STATUS: PUSHING TO CLOUD...";
+
+          fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: syncId, data: db })
+          })
+            .then(r => r.json())
+            .then(res => {
+              if (res.success) {
+                statusEl.textContent = "STATUS: SYNCED AT " + new Date().toLocaleTimeString();
+                toast("DATA PUSHED TO CLOUD", "green");
+              } else throw new Error("Failed");
+            })
+            .catch(err => {
+              statusEl.textContent = "STATUS: PUSH FAILED";
+              toast("PUSH FAILED", "red");
+            });
+          return;
+        }
+
+        if (act === "sync-pull") {
+          const db = getDB();
+          const syncId = db.settings.syncId;
+          if (!syncId) { toast("SAVE A SYNC CODE FIRST", "red"); return; }
+
+          const statusEl = document.getElementById("syncStatus");
+          statusEl.textContent = "STATUS: PULLING FROM CLOUD...";
+
+          fetch("/api/sync?id=" + encodeURIComponent(syncId))
+            .then(r => r.json())
+            .then(remoteData => {
+              if (Object.keys(remoteData).length === 0) {
+                toast("NO CLOUD DATA FOUND FOR THIS CODE", "red");
+                statusEl.textContent = "STATUS: NO CLOUD DATA FOUND";
+                return;
+              }
+              const mergedDB = mergeDBs(db, remoteData);
+              saveDB(mergedDB);
+              render();
+              toast("DATA PULLED & MERGED", "green");
+            })
+            .catch(err => {
+              statusEl.textContent = "STATUS: PULL FAILED";
+              toast("PULL FAILED", "red");
+            });
+          return;
+        }
 
         /* --- navigation --- */
         if (act === "tab") {
