@@ -1975,6 +1975,54 @@
       box-shadow: 0 0 10px rgba(255, 42, 42, 0.4);
       background: #000;
     }
+
+    /* ============================================================
+       MOBILE FIX: PREVENT IOS SAFARI AUTO-ZOOM & OVERFLOW
+       ============================================================ */
+
+    /* 1. Force all inputs to 16px to stop Safari auto-zoom */
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+
+    /* 2. Adjust the manual entry grid to fit the larger text */
+    .manual {
+      display: grid;
+      grid-template-columns: 1fr 65px 75px auto;
+      gap: 6px;
+    }
+
+    .manual input {
+      font-size: 16px !important;
+      padding: 10px 8px;
+    }
+
+    /* 3. Ensure the date picker doesn't stretch the screen */
+    .date-nav input[type=date] {
+      font-size: 16px !important;
+      padding: 10px 8px;
+    }
+
+    /* 4. Ensure the weight target input matches */
+    .load-in {
+      font-size: 16px !important;
+    }
+
+    /* 5. Final safety net to stop horizontal scrolling/zooming */
+    html,
+    body,
+    .pad,
+    .card {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
+    /* Specifically target the AI text input which is spanned across 3 columns */
+    #aiTextInput {
+      font-size: 16px !important;
+    }
   </style>
 </head>
 
