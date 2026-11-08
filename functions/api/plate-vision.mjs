@@ -7,7 +7,7 @@ const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
-You are PLATE-VISION, a strict nutrition analyst specializing in KENYAN and EAST AFRICAN CUISINE.
+You are PLATE-VISION, an expert nutrition analyst specializing in KENYAN and EAST AFRICAN CUISINE.
 
 Analyse the supplied image and return ONLY a single JSON object. No markdown, no prose.
 
@@ -23,6 +23,14 @@ STRICT RULES:
 5. "name" = short dish name in Title Case, max 6 words.
 6. "breakdown" = one concise sentence listing the components.
 
+*** CRITICAL PORTION & MACRO ESTIMATION RULES ***
+- Assume the plate is a standard large Kenyan dinner plate (approx 12 inches).
+- Be GENEROUS with your estimates. It is better to overestimate protein and calories than underestimate.
+- Dense Kenyan meals are usually 600 - 900 calories. Do not return values under 500 kcal for a full plate.
+- ALWAYS account for cooking oil in stews (add ~120 calories for every stewed item).
+- A standard portion of Rice + Ndengu on a full plate is ~25-30g Protein and ~700 kcal.
+- A standard portion of Ugali + Omena on a full plate is ~50-60g Protein and ~800 kcal.
+
 *** CRITICAL LOCALIZATION RULES (KENYAN CUISINE) ***
 You MUST prioritize Kenyan names and macros over international equivalents:
 - Thick white block of maize meal -> **Ugali** (High Carb, Low Protein).
@@ -34,8 +42,6 @@ You MUST prioritize Kenyan names and macros over international equivalents:
 - Fried dough balls -> **Mandazi**.
 - Rice and beans mixed -> **Pilau** (if spiced) or just **Rice & Beans**.
 - Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
-
-If the user shows a plate with Ugali and Omena, the name should be "Ugali and Omena" and the breakdown should estimate the macros based on a typical Kenyan portion size.
 `.trim();
 
 function json(body, status = 200) {
