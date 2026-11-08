@@ -2023,6 +2023,56 @@
     #aiTextInput {
       font-size: 16px !important;
     }
+
+    /* MEASUREMENTS GRID */
+    .measure-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .measure-grid input {
+      background: #0a0e12;
+      border: 1px solid var(--border);
+      color: var(--txt);
+      font-size: 16px !important;
+      padding: 10px;
+      border-radius: 3px;
+      outline: none;
+      width: 100%;
+    }
+
+    .measure-grid input:focus {
+      border-color: var(--orange);
+    }
+
+    .measure-stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 0;
+      border-bottom: 1px dashed #1d2731;
+    }
+
+    .measure-stat-row:last-child {
+      border-bottom: 0;
+    }
+
+    .delta-up {
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    .delta-down {
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    .delta-same {
+      color: var(--muted);
+    }
   </style>
 </head>
 
@@ -2484,12 +2534,13 @@
           version: 3,
           created: Date.now(),
           settings: { proteinTarget: 105, operator: "OPERATOR" },
-          logs: {},      // "YYYY-MM-DD" -> { meals: [ {id,name,p,cal,breakdown,at} ], water: 0 }
-          workouts: {},  // "dayKey::YYYY-MM-DD" -> { ex: { exId: {sets:[],reps:[],rir,weight} } }
-          history: {},   // exId -> { weight, reps, date }
-          photos: {},    // "w0" -> { front, side, back }
-          favorites: [], // [{ name, p, cal }]
-          weightLog: []  // [{ date, weight }]
+          logs: {},
+          workouts: {},
+          history: {},
+          photos: {},
+          favorites: [],
+          weightLog: [],
+          measurements: {} // <--- ADD THIS
         };
       }
 
@@ -2581,6 +2632,10 @@
               delete db.history[oldId];
             }
           });
+        }
+        /* ---- measurements ---- */
+        if (raw.measurements && typeof raw.measurements === "object") {
+          db.measurements = raw.measurements;
         }
         db.version = 3;
         return db;
@@ -3070,6 +3125,47 @@
         }
         return "";
       }
+      function renderMeasurementHistory(db) {
+        const dates = Object.keys(db.measurements || {}).sort();
+        if (dates.length === 0) return '<div class="dim" style="font-size:11px; padding:10px 0;">NO MEASUREMENTS LOGGED YET.</div>';
+
+        const latestDate = dates[dates.length - 1];
+        const prevDate = dates.length > 1 ? dates[dates.length - 2] : null;
+
+        const latest = db.measurements[latestDate] || {};
+        const prev = prevDate ? db.measurements[prevDate] : {};
+
+        const fields = [
+          { key: "chest", label: "Chest" },
+          { key: "waist", label: "Waist" },
+          { key: "arms", label: "Arms" },
+          { key: "thighs", label: "Thighs" },
+          { key: "calves", label: "Calves" },
+          { key: "neck", label: "Neck" }
+        ];
+
+        let html = "";
+        fields.forEach(f => {
+          const val = num(latest[f.key], 0);
+          if (val === 0) return; // Skip if not logged
+
+          let deltaHTML = '<span class="delta-same">--</span>';
+          if (prev[f.key]) {
+            const diff = val - num(prev[f.key], 0);
+            if (diff > 0) deltaHTML = '<span class="delta-up">+' + diff.toFixed(1) + '</span>';
+            else if (diff < 0) deltaHTML = '<span class="delta-down">' + diff.toFixed(1) + '</span>';
+            else deltaHTML = '<span class="delta-same">0.0</span>';
+          }
+
+          html += '<div class="measure-stat-row">' +
+            '<span style="color:var(--muted)">' + f.label.toUpperCase() + '</span>' +
+            '<span><b style="color:#fff">' + val + 'cm</b> ' + deltaHTML + '</span>' +
+            '</div>';
+        });
+
+        if (!html) return '<div class="dim" style="font-size:11px; padding:10px 0;">NO DATA YET.</div>';
+        return html;
+      }
 
       /* ---------------------------------------------------------------------------
          VIEW: VAULT
@@ -3119,6 +3215,27 @@
           '<input id="weightInput" type="number" step="0.1" placeholder="e.g. 65.5" style="width:80px; background:#0a0e12; border:1px solid var(--border); color:var(--txt); padding:4px 8px; border-radius:3px;" />' +
           '<button data-act="save-weight" style="background:var(--orange); color:#000; border:0; padding:4px 12px; border-radius:3px; font-weight:bold;">LOG</button>' +
           '</div>' +
+          '</div>' +
+          '</div>' +
+
+          '<div class="card">' +
+          '<div class="kicker" style="margin-bottom:9px">MUSCLE MEASUREMENTS (CM)</div>' +
+
+          // Inputs
+          '<div class="measure-grid">' +
+          '<input id="measChest" type="number" step="0.1" placeholder="Chest" />' +
+          '<input id="measWaist" type="number" step="0.1" placeholder="Waist" />' +
+          '<input id="measArms" type="number" step="0.1" placeholder="Arms (Flexed)" />' +
+          '<input id="measThighs" type="number" step="0.1" placeholder="Thighs" />' +
+          '<input id="measCalves" type="number" step="0.1" placeholder="Calves" />' +
+          '<input id="measNeck" type="number" step="0.1" placeholder="Neck" />' +
+          '</div>' +
+          '<button data-act="save-measurements" class="act-btn" style="margin-top:8px; border-color:var(--cyan); color:var(--cyan);">LOG MEASUREMENTS</button>' +
+
+          // History Display
+          '<div style="margin-top:16px;">' +
+          '<div class="kicker" style="margin-bottom:4px;">LATEST VS PREVIOUS</div>' +
+          renderMeasurementHistory(db) +
           '</div>' +
           '</div>' +
 
@@ -3743,6 +3860,25 @@
           return;
         }
         /* --------------------- */
+        if (act === "save-measurements") {
+          const db = getDB();
+          if (!db.measurements) db.measurements = {};
+          const today = ymd();
+
+          db.measurements[today] = {
+            chest: num(document.getElementById("measChest")?.value, 0),
+            waist: num(document.getElementById("measWaist")?.value, 0),
+            arms: num(document.getElementById("measArms")?.value, 0),
+            thighs: num(document.getElementById("measThighs")?.value, 0),
+            calves: num(document.getElementById("measCalves")?.value, 0),
+            neck: num(document.getElementById("measNeck")?.value, 0)
+          };
+
+          saveDB(db);
+          render();
+          toast("MEASUREMENTS LOGGED", "green");
+          return;
+        }
 
         /* --- navigation --- */
         if (act === "tab") {
