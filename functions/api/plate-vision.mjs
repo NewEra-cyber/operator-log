@@ -2,8 +2,8 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Restored to your original, active Groq vision model
-const MODEL = "qwen/qwen3.8-27b";
+// The actual, working Groq vision model
+const MODEL = "llama-3.2-11b-vision-preview";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -27,6 +27,12 @@ You MUST prioritize Kenyan names and macros over international equivalents. Here
 - **Indomie**: Yellow, curly instant noodles. Often cooked with a fried egg, tomatoes, and onions. If in the packet, it is a blue/red Indomie wrapper.
 
 Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
+
+You MUST return ONLY a JSON object in this exact format:
+{"is_food": true, "name": "Ugali and Sukuma", "p": 10, "cal": 350, "breakdown": "Estimated from photo"}.
+
+If the image is clearly NOT food (e.g., a person, a car, a blank wall), return:
+{"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
 `.trim();
 
 function json(body, status = 200) {
@@ -130,7 +136,7 @@ export async function onRequest(context) {
       {
         role: "user",
         content: [
-          { type: "text", text: "Analyse this image. Return the strict JSON object only." },
+          { type: "text", text: "Analyse this image and return the strict JSON object." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
@@ -164,15 +170,10 @@ export async function onRequest(context) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
       
-      // If it's a 404, show the exact model ID that failed
-      if (res.status === 404) {
-        return json({ 
-          ...reject(`Model '${MODEL}' not found on Groq. Please check the model name.`), 
-          error: "model_not_found" 
-        });
-      }
-
-      return json({ ...reject(`Vision service error (${res.status}).`), error: "upstream_failure" });
+      return json({ 
+        ...reject(`Groq API Error (${res.status}): ${errorText.substring(0, 80)}...`), 
+        error: "upstream_failure" 
+      });
     }
 
     const data = await res.json();
