@@ -1,7 +1,7 @@
-import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate } from './db.js';
-import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2 } from './utils.js';
-import { TRAINING } from './data.js';
-import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML } from './views.js';
+import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
+import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
+import { TRAINING, BLUEPRINTS } from './data.js';
+import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML } from './view.js';
 
 const state = {
   tab: "mission",
@@ -30,9 +30,6 @@ function getDay(key) {
   return TRAINING.filter((d) => d.key === key)[0] || TRAINING[0];
 }
 
-/* ---------------------------------------------------------------------------
-   MASTER RENDER
-   --------------------------------------------------------------------------- */
 function render() {
   const db = getDB();
   const view = document.getElementById("view");
@@ -50,7 +47,6 @@ function render() {
     b.classList.toggle("active", b.dataset.tab === state.tab);
   });
 
-  // Apply dynamic styles that were previously inline
   document.querySelectorAll('.progress-bar').forEach(el => {
     el.style.width = el.dataset.pct + '%';
   });
@@ -60,9 +56,6 @@ function render() {
   });
 }
 
-/* ---------------------------------------------------------------------------
-   REST TIMER
-   --------------------------------------------------------------------------- */
 let wakeLock = null;
 async function requestWakeLock() {
   try {
@@ -125,9 +118,6 @@ function stopRest() {
   if (timerContainer) timerContainer.classList.remove("show");
 }
 
-/* ---------------------------------------------------------------------------
-   ACTIONS
-   --------------------------------------------------------------------------- */
 function currentEx(exId) {
   const day = getDay(state.dayKey);
   return day.exercises.filter((e) => e.id === exId)[0];
@@ -207,13 +197,7 @@ function addMealToDB(name, p, cal, breakdown, img) {
   if (!db.logs[key] || typeof db.logs[key] !== "object") db.logs[key] = { meals: [] };
   if (!Array.isArray(db.logs[key].meals)) db.logs[key].meals = [];
   db.logs[key].meals.push({
-    id: uid(),
-    name: String(name || "Meal").slice(0, 90),
-    p: num(p, 0),
-    cal: num(cal, 0),
-    breakdown: String(breakdown || "").slice(0, 240),
-    img: img || null,
-    at: Date.now()
+    id: uid(), name: String(name || "Meal").slice(0, 90), p: num(p, 0), cal: num(cal, 0), breakdown: String(breakdown || "").slice(0, 240), img: img || null, at: Date.now()
   });
   saveDB(db);
   return db;
@@ -266,9 +250,6 @@ async function importJSON(file) {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   LIGHTBOX
-   --------------------------------------------------------------------------- */
 const lb = { scale: 1, x: 0, y: 0, dragging: false, sx: 0, sy: 0, ox: 0, oy: 0, pointers: {}, pinchDist: 0 };
 
 function applyLB() {
@@ -366,9 +347,6 @@ function closeLightbox() {
   state.bpKey = null;
 }
 
-/* ---------------------------------------------------------------------------
-   EVENT DELEGATION
-   --------------------------------------------------------------------------- */
 document.addEventListener("click", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
@@ -612,18 +590,13 @@ document.addEventListener("click", function (ev) {
   }
   if (act === "export") { exportJSON(); return; }
   if (act === "import") { const inp = document.getElementById("importInput"); inp.value = ""; inp.click(); return; }
+  
   if (act === "reset") {
     if (!window.confirm("PURGE ALL LOCAL DATA? This cannot be undone. Export a backup first.")) return;
-    try {
-      localStorage.clear();
-      if (dbInstance) {
-        const tx = dbInstance.transaction(STORE_NAME, "readwrite");
-        const req = tx.objectStore(STORE_NAME).clear();
-        req.onsuccess = () => { window.location.reload(); };
-      } else { window.location.reload(); }
-    } catch (e) { window.location.reload(); }
+    clearDB().then(() => window.location.reload());
     return;
   }
+  
   if (act === "refuel-toggle") { state.refuelView = el.dataset.view; render(); return; }
   if (act === "plan-day") { state.planDay = el.dataset.key; render(); return; }
 });
@@ -684,12 +657,8 @@ document.getElementById("importInput").addEventListener("change", function (e) {
   if (f) importJSON(f);
 });
 
-/* ---------------------------------------------------------------------------
-   LIGHTBOX GESTURES
-   --------------------------------------------------------------------------- */
 (function initLightboxGestures() {
   const stage = document.getElementById("lbStage");
-
   stage.addEventListener("wheel", function (e) {
     if (!document.getElementById("lightbox").classList.contains("open")) return;
     e.preventDefault();
@@ -750,9 +719,6 @@ document.getElementById("importInput").addEventListener("change", function (e) {
   });
 })();
 
-/* ---------------------------------------------------------------------------
-   BOOT
-   --------------------------------------------------------------------------- */
 function tickClock() {
   const d = new Date();
   const el = document.getElementById("sysClock");

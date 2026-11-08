@@ -238,3 +238,17 @@ export function mergeDBs(local, remote) {
 
   return merged;
 }
+// Add this to the bottom of db.js:
+export function clearDB() {
+  return new Promise((resolve) => {
+    memoryDB = blankDB();
+    if (dbInstance) {
+      const tx = dbInstance.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).clear();
+      req.onsuccess = () => resolve();
+    } else {
+      localStorage.removeItem(DB_KEY);
+      resolve();
+    }
+  });
+}
