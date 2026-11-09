@@ -76,61 +76,79 @@ export const MEAL_PLAN = {
   mon: {
     label: "MONDAY", focus: "UPPER A",
     meals: [
-      { time: "08:00", name: "Heavy Breakfast", desc: "1 packet Indomie + 2 eggs + 1 large mug milky tea + 1 slice bread.", p: 26, cal: 520 },
-      { time: "16:45", name: "Pre-Workout Snack", desc: "1–2 ripe bananas + 1 packet roasted groundnuts (njugu). (EAT ON CAMPUS)", p: 8, cal: 220 },
-      { time: "20:15", name: "Heavy Supper", desc: "Generous white ugali + stewed/fried omena (~130–140g) + sukuma wiki.", p: 68, cal: 880 }
-    ], totalP: 102, totalCal: 1620
+      { time: "6:00 AM", name: "Breakfast", desc: "1 egg, 3 slices of bread with peanut butter, 1 banana, 2 cups thick milk uji", p: 30, cal: 720 },
+      { time: "10:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 banana", p: 6, cal: 200 },
+      { time: "1:00 PM", name: "Lunch", desc: "2 cups cold githeri or beans (from last night), 2 slices of bread", p: 21, cal: 500 },
+      { time: "6:30 PM", name: "Pre-Workout", desc: "2 slices of bread with peanut butter, 1 banana", p: 9, cal: 300 },
+      { time: "8:30 PM", name: "Supper", desc: "2 cups ugali, sukuma, family protein, plus 1 cup of beans on the side", p: 38, cal: 780 },
+      { time: "Bed", name: "Recovery", desc: "250 ml mala", p: 8, cal: 150 }
+    ], totalP: 112, totalCal: 2650
   },
   tue: {
     label: "TUESDAY", focus: "LOWER A",
     meals: [
-      { time: "07:30", name: "Heavy Breakfast", desc: "2 cups cooked rice (or Indomie) + 1.5 cups stewed ndengu/beans + milky chai.", p: 36, cal: 680 },
-      { time: "16:45", name: "Pre-Workout Snack", desc: "1 ripe banana + 1 packet roasted njugu.", p: 8, cal: 220 },
-      { time: "20:15", name: "Heavy Supper", desc: "White Ugali + 3 scrambled eggs with tomatoes/onions + sukuma wiki.", p: 26, cal: 680 },
-      { time: "22:00", name: "Bedtime Recovery", desc: "1 packet (500ml) fresh milk or leftover njugu.", p: 16, cal: 300 }
-    ], totalP: 106, totalCal: 1880
+      { time: "6:00 AM", name: "Breakfast", desc: "1 egg, 3 slices of bread with margarine, 1 banana, 2 cups milk uji", p: 21, cal: 620 },
+      { time: "10:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 boiled sweet potato", p: 7, cal: 230 },
+      { time: "1:00 PM", name: "Lunch", desc: "3 peanut butter sandwiches (6 slices)", p: 18, cal: 450 },
+      { time: "6:30 PM", name: "Pre-Workout", desc: "1 large boiled sweet potato, 1 banana", p: 3, cal: 230 },
+      { time: "8:30 PM", name: "Supper", desc: "2.5 cups rice, 1 cup ndengu stew, cabbage, family protein", p: 33, cal: 750 },
+      { time: "Bed", name: "Recovery", desc: "1 glass of milk", p: 8, cal: 150 }
+    ], totalP: 90, totalCal: 2430
   },
   wed: {
     label: "WEDNESDAY", focus: "RECOVERY",
     meals: [
-      { time: "08:30", name: "Heavy Breakfast", desc: "3 eggs + 2 slices bread + milky chai.", p: 28, cal: 450 },
-      { time: "16:45", name: "Snack", desc: "Banana + groundnuts.", p: 8, cal: 220 },
-      { time: "20:00", name: "Heavy Supper", desc: "Ugali + Stewed Ndengu + greens.", p: 68, cal: 850 }
-    ], totalP: 104, totalCal: 1520
+      { time: "6:00 AM", name: "Breakfast", desc: "3 slices of bread with peanut butter, 1 banana, 2 cups milk uji", p: 24, cal: 650 },
+      { time: "10:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 orange", p: 6, cal: 160 },
+      { time: "1:00 PM", name: "Lunch", desc: "2 cups cold ndengu or githeri, 2 slices of bread", p: 21, cal: 390 },
+      { time: "6:30 PM", name: "Afternoon Snack", desc: "Handful of groundnuts, 1 banana", p: 6, cal: 200 },
+      { time: "8:30 PM", name: "Supper", desc: "2 cups ugali, big plate of sukuma, handful of omena stew", p: 31, cal: 580 },
+      { time: "Bed", name: "Recovery", desc: "250 ml mala", p: 8, cal: 150 }
+    ], totalP: 96, totalCal: 2130
   },
   thu: {
     label: "THURSDAY", focus: "UPPER B",
     meals: [
-      { time: "07:30", name: "Heavy Breakfast", desc: "2 cups rice + 1.5 cups ndengu + milky chai.", p: 36, cal: 680 },
-      { time: "16:45", name: "Pre-Workout Snack", desc: "1 banana + 1 packet njugu + black tea/coffee.", p: 8, cal: 220 },
-      { time: "20:15", name: "Heavy Supper", desc: "Ugali + Eggs + Sukuma wiki.", p: 46, cal: 750 },
-      { time: "22:00", name: "Bedtime Recovery", desc: "1 glass fresh milk.", p: 16, cal: 300 }
-    ], totalP: 106, totalCal: 1950
+      { time: "6:00 AM", name: "Breakfast", desc: "1 egg, 3 slices of bread with peanut butter, 1 banana, 2 cups milk uji", p: 30, cal: 720 },
+      { time: "10:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 banana", p: 6, cal: 200 },
+      { time: "1:00 PM", name: "Lunch", desc: "3 peanut butter sandwiches (6 slices)", p: 18, cal: 450 },
+      { time: "6:30 PM", name: "Pre-Workout", desc: "2 slices of bread with margarine, 1 banana", p: 7, cal: 300 },
+      { time: "8:30 PM", name: "Supper", desc: "2 cups ugali, a handful of omena stew, sukuma, 1 cup beans on the side", p: 43, cal: 780 },
+      { time: "Bed", name: "Recovery", desc: "1 glass of milk", p: 8, cal: 150 }
+    ], totalP: 112, totalCal: 2600
   },
   fri: {
     label: "FRIDAY", focus: "LOWER B",
     meals: [
-      { time: "08:00", name: "Heavy Breakfast", desc: "Indomie + 2 eggs + milky chai + bread.", p: 26, cal: 520 },
-      { time: "16:45", name: "Pre-Workout Snack", desc: "2 bananas + njugu.", p: 8, cal: 220 },
-      { time: "20:15", name: "Heavy Supper", desc: "Large Ugali + Fried/Stewed Omena + Sukuma wiki.", p: 68, cal: 880 }
-    ], totalP: 102, totalCal: 1620
+      { time: "6:00 AM", name: "Breakfast", desc: "1 egg, 3 slices of bread with margarine, 1 banana, 2 cups milk uji", p: 21, cal: 620 },
+      { time: "10:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 boiled sweet potato", p: 7, cal: 230 },
+      { time: "1:00 PM", name: "Lunch", desc: "2 cups cold githeri or beans, 2 slices of bread", p: 21, cal: 500 },
+      { time: "6:30 PM", name: "Pre-Workout", desc: "1 large boiled sweet potato, 1 banana", p: 3, cal: 230 },
+      { time: "8:30 PM", name: "Supper", desc: "2.5 cups rice, 1 cup beans or ndengu stew, cabbage, family protein", p: 35, cal: 815 },
+      { time: "Bed", name: "Recovery", desc: "250 ml mala", p: 8, cal: 150 }
+    ], totalP: 95, totalCal: 2545
   },
   sat: {
     label: "SATURDAY", focus: "PREP",
     meals: [
-      { time: "09:00", name: "Heavy Breakfast", desc: "3 eggs + 2 bread slices + milky chai.", p: 28, cal: 450 },
-      { time: "16:30", name: "Snack", desc: "Banana + njugu.", p: 8, cal: 220 },
-      { time: "20:00", name: "Heavy Supper", desc: "Spaghetti + Boiled/Fried Eggs + tomato sauce.", p: 21, cal: 580 },
-      { time: "22:00", name: "Bedtime Recovery", desc: "1 glass fresh milk.", p: 16, cal: 300 }
-    ], totalP: 73, totalCal: 1550
+      { time: "8:00 AM", name: "Breakfast", desc: "3 slices of bread with peanut butter, 1 banana, tea with milk", p: 20, cal: 530 },
+      { time: "11:00 AM", name: "Morning Snack", desc: "Handful of groundnuts, 1 orange", p: 6, cal: 160 },
+      { time: "1:00 PM", name: "Lunch", desc: "2 cups rice, 1 cup beans, omena stew, sukuma", p: 41, cal: 730 },
+      { time: "4:00 PM", name: "Afternoon Snack", desc: "2 slices of bread with peanut butter, 1 glass of milk", p: 18, cal: 400 },
+      { time: "7:30 PM", name: "Supper", desc: "Family dinner, normal portion", p: 20, cal: 600 },
+      { time: "Bed", name: "Recovery", desc: "250 ml mala", p: 8, cal: 150 }
+    ], totalP: 113, totalCal: 2570
   },
   sun: {
     label: "SUNDAY", focus: "PREP",
     meals: [
-      { time: "09:00", name: "Heavy Breakfast", desc: "Rice + Ndengu + milky chai.", p: 36, cal: 680 },
-      { time: "16:30", name: "Snack", desc: "Banana + njugu.", p: 8, cal: 220 },
-      { time: "20:00", name: "Heavy Supper", desc: "Ugali + Omena + Greens.", p: 68, cal: 880 }
-    ], totalP: 112, totalCal: 1780
+      { time: "8:00 AM", name: "Breakfast", desc: "2 cups milk uji, 1 chapati or 2 slices of bread, 1 banana", p: 15, cal: 560 },
+      { time: "11:00 AM", name: "Morning Snack", desc: "1 boiled sweet potato, handful of groundnuts", p: 7, cal: 230 },
+      { time: "1:00 PM", name: "Lunch", desc: "2 cups ugali, family protein or omena, sukuma", p: 31, cal: 580 },
+      { time: "4:00 PM", name: "Afternoon Snack", desc: "2 slices of bread with peanut butter, 1 glass of milk", p: 18, cal: 400 },
+      { time: "7:30 PM", name: "Supper", desc: "Family dinner, normal portion", p: 20, cal: 600 },
+      { time: "Bed", name: "Recovery", desc: "250 ml mala", p: 8, cal: 150 }
+    ], totalP: 99, totalCal: 2520
   }
 };
 

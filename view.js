@@ -1,27 +1,27 @@
 import { TRAINING, STAPLES, MEAL_PLAN, MILESTONES, POSES, BLUEPRINTS, PLATES, BAR_WEIGHT, formatPose } from './data.js';
 import { esc, fmtDate, dayLetter, num, fmtRest, addDays, ymd, pad2 } from './utils.js';
 export function viewMission(db, state) {
-    const dateKey = state.missionDate || ymd();
-    const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
-    const session = getSession(db, day.key, dateKey);
+  const dateKey = state.missionDate || ymd();
+  const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
+  const session = getSession(db, day.key, dateKey);
 
-    let totalSets = 0, doneSets = 0;
-    day.exercises.forEach((ex) => {
-        const s = getExState(session, ex, db);
-        totalSets += ex.sets;
-        doneSets += s.sets.filter(Boolean).length;
-    });
-    const pct = totalSets ? Math.round((doneSets / totalSets) * 100) : 0;
+  let totalSets = 0, doneSets = 0;
+  day.exercises.forEach((ex) => {
+    const s = getExState(session, ex, db);
+    totalSets += ex.sets;
+    doneSets += s.sets.filter(Boolean).length;
+  });
+  const pct = totalSets ? Math.round((doneSets / totalSets) * 100) : 0;
 
-    const pills = TRAINING.map((d) =>
-        `<button class="day-pill ${d.key === day.key ? "on" : ""}" data-act="pick-day" data-key="${d.key}">
+  const pills = TRAINING.map((d) =>
+    `<button class="day-pill ${d.key === day.key ? "on" : ""}" data-act="pick-day" data-key="${d.key}">
       <b>${d.tag}</b><span>${d.short}</span>
     </button>`
-    ).join("");
+  ).join("");
 
-    const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
+  const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
 
-    return `
+  return `
     <section class="pad">
       <div class="day-strip">${pills}</div>
       <div class="card">
@@ -51,28 +51,28 @@ export function viewMission(db, state) {
 }
 
 function exCardHTML(db, session, ex) {
-    const s = getExState(session, ex, db);
-    const best = db.history[ex.id];
-    const allDone = s.sets.every(Boolean) && s.sets.length > 0;
-    const overload = allDone && s.reps.every((r) => num(r, 0) >= ex.max);
-    const target = num(s.weight, 0) + ex.inc;
+  const s = getExState(session, ex, db);
+  const best = db.history[ex.id];
+  const allDone = s.sets.every(Boolean) && s.sets.length > 0;
+  const overload = allDone && s.reps.every((r) => num(r, 0) >= ex.max);
+  const target = num(s.weight, 0) + ex.inc;
 
-    const bestHTML = best
-        ? `<div class="best-badge">◈ PREVIOUS BEST <b>${best.weight}KG</b>${best.reps != null ? " × " + best.reps : ""}${best.date ? " · " + esc(best.date) : ""}</div>`
-        : "";
+  const bestHTML = best
+    ? `<div class="best-badge">◈ PREVIOUS BEST <b>${best.weight}KG</b>${best.reps != null ? " × " + best.reps : ""}${best.date ? " · " + esc(best.date) : ""}</div>`
+    : "";
 
-    const setsHTML = s.sets.map((on, i) =>
-        `<div class="set-item ${on ? "done" : ""}">
+  const setsHTML = s.sets.map((on, i) =>
+    `<div class="set-item ${on ? "done" : ""}">
       <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
       <input class="reps-in mono" type="number" inputmode="numeric" min="0" max="99" value="${s.reps[i]}" data-act="ex-reps" data-ex="${ex.id}" data-i="${i}" />
     </div>`
-    ).join("");
+  ).join("");
 
-    const rirHTML = [2, 1, 0].map((v) =>
-        `<button class="${num(s.rir) === v ? "on" : ""}" data-act="set-rir" data-ex="${ex.id}" data-v="${v}">${v}</button>`
-    ).join("");
+  const rirHTML = [2, 1, 0].map((v) =>
+    `<button class="${num(s.rir) === v ? "on" : ""}" data-act="set-rir" data-ex="${ex.id}" data-v="${v}">${v}</button>`
+  ).join("");
 
-    return `
+  return `
     <article class="ex-card" id="card-${ex.id}">
       <div class="ex-top">
         <div class="ex-id">
@@ -108,42 +108,42 @@ function exCardHTML(db, session, ex) {
 }
 
 export function viewRefuel(db, state) {
-    if (state.refuelView === 'plan') return viewMealPlan(state);
+  if (state.refuelView === 'plan') return viewMealPlan(state);
 
-    const key = state.nutDate;
-    const log = db.logs[key] || { meals: [] };
-    const meals = Array.isArray(log.meals) ? log.meals : [];
-    const target = num(db.settings.proteinTarget, 105) || 105;
-    const p = meals.reduce((a, m) => a + num(m.p, 0), 0);
-    const cal = meals.reduce((a, m) => a + num(m.cal, 0), 0);
-    const pct = Math.max(0, Math.min(1, p / target));
+  const key = state.nutDate;
+  const log = db.logs[key] || { meals: [] };
+  const meals = Array.isArray(log.meals) ? log.meals : [];
+  const target = num(db.settings.proteinTarget, 105) || 105;
+  const p = meals.reduce((a, m) => a + num(m.p, 0), 0);
+  const cal = meals.reduce((a, m) => a + num(m.cal, 0), 0);
+  const pct = Math.max(0, Math.min(1, p / target));
 
-    const R = 52;
-    const C = 2 * Math.PI * R;
-    const offset = C * (1 - pct);
+  const R = 52;
+  const C = 2 * Math.PI * R;
+  const offset = C * (1 - pct);
 
-    let matrix = "";
-    for (let i = 6; i >= 0; i--) {
-        const k = addDays(key, -i);
-        const v = dayProtein(db, k);
-        const hit = v >= target;
-        matrix += `<div class="mcell ${hit ? "hit " : ""}${k === ymd() ? "today" : ""}">
+  let matrix = "";
+  for (let i = 6; i >= 0; i--) {
+    const k = addDays(key, -i);
+    const v = dayProtein(db, k);
+    const hit = v >= target;
+    matrix += `<div class="mcell ${hit ? "hit " : ""}${k === ymd() ? "today" : ""}">
       <span class="d">${dayLetter(k)}</span>
       <span class="v">${Math.round(v)}</span>
     </div>`;
-    }
+  }
 
-    const favs = db.favorites || [];
-    const quick = STAPLES.concat(favs).map((s) =>
-        `<button class="qbtn" data-act="quick-add" data-name="${esc(s.name)}" data-p="${s.p}" data-cal="${s.cal}">
+  const favs = db.favorites || [];
+  const quick = STAPLES.concat(favs).map((s) =>
+    `<button class="qbtn" data-act="quick-add" data-name="${esc(s.name)}" data-p="${s.p}" data-cal="${s.cal}">
       <span class="qn">${esc(s.name)}</span>
       <span class="qp">+${s.p}g</span>
     </button>`
-    ).join("");
+  ).join("");
 
-    const mealList = meals.length
-        ? meals.map((m) =>
-            `<div class="meal">
+  const mealList = meals.length
+    ? meals.map((m) =>
+      `<div class="meal">
         <div class="meal-content">
           ${m.img ? `<img src="${m.img}" class="meal-img" />` : ''}
           <div class="min-w-0">
@@ -156,10 +156,10 @@ export function viewRefuel(db, state) {
           <button class="del" data-act="del-meal" data-id="${m.id}">✕</button>
         </div>
       </div>`
-        ).join("")
-        : '<div class="empty-msg">NO MEALS LOGGED FOR THIS DATE.</div>';
+    ).join("")
+    : '<div class="empty-msg">NO MEALS LOGGED FOR THIS DATE.</div>';
 
-    return `
+  return `
     <section class="pad">
       <div class="flex-row mb-4">
         <button class="act-btn ${state.refuelView === 'log' ? 'primary' : ''} btn-tab" data-act="refuel-toggle" data-view="log">DAILY LOG</button>
@@ -207,9 +207,9 @@ export function viewRefuel(db, state) {
         <div class="kicker mb-9">WATER INTAKE</div>
         <div class="water-row">
           ${Array.from({ length: 5 }).map((_, i) => {
-        const active = (log.water || 0) > i;
-        return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}">💧</button>`;
-    }).join('')}
+    const active = (log.water || 0) > i;
+    return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}">💧</button>`;
+  }).join('')}
         </div>
       </div>
 
@@ -257,25 +257,25 @@ export function viewRefuel(db, state) {
 }
 
 export function scanResultHTML(state) {
-    const s = state.scan || { status: "idle" };
-    if (s.status === "loading") {
-        return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
+  const s = state.scan || { status: "idle" };
+  if (s.status === "loading") {
+    return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
       <div class="dim small">Sending to plate-vision. Non-food items will be rejected.</div></div>`;
-    }
-    if (s.status === "reject") {
-        return `<div class="scan-result bad"><h4>✕ NON-FOOD DETECTED</h4>
+  }
+  if (s.status === "reject") {
+    return `<div class="scan-result bad"><h4>✕ NON-FOOD DETECTED</h4>
       <div class="dim small">${esc((s.data && s.data.breakdown) || "Rejected: not a food item.")}</div>
       <div class="mono color-red mt-8 small">0G PROTEIN LOGGED</div>
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
-    }
-    if (s.status === "error") {
-        return `<div class="scan-result bad"><h4>⚠ SCAN FAILED</h4>
+  }
+  if (s.status === "error") {
+    return `<div class="scan-result bad"><h4>⚠ SCAN FAILED</h4>
       <div class="dim small">${esc(s.message || "Vision service unavailable. Enter manually.")}</div>
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
-    }
-    if (s.status === "ok") {
-        const d = s.data || {};
-        return `<div class="scan-result ok">
+  }
+  if (s.status === "ok") {
+    const d = s.data || {};
+    return `<div class="scan-result ok">
       <h4>✓ ${esc(d.name || "Meal Detected")}</h4>
       ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid rgba(63,178,127,0.3);" />` : ''}
       <div class="scan-macros"><span class="p">${num(d.p, 0)}g P</span><span class="c">${num(d.cal, 0)} KCAL</span></div>
@@ -283,21 +283,21 @@ export function scanResultHTML(state) {
       <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
       <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
     </div>`;
-    }
-    return "";
+  }
+  return "";
 }
 
 function viewMealPlan(state) {
-    const day = MEAL_PLAN[state.planDay] || MEAL_PLAN.mon;
-    const dayPills = Object.keys(MEAL_PLAN).map((k) => {
-        const d = MEAL_PLAN[k];
-        return `<button class="day-pill ${state.planDay === k ? 'on' : ''}" data-act="plan-day" data-key="${k}">
+  const day = MEAL_PLAN[state.planDay] || MEAL_PLAN.mon;
+  const dayPills = Object.keys(MEAL_PLAN).map((k) => {
+    const d = MEAL_PLAN[k];
+    return `<button class="day-pill ${state.planDay === k ? 'on' : ''}" data-act="plan-day" data-key="${k}">
       <b>${d.label.substring(0, 3)}</b><span>${d.focus.split(' ')[0]}</span>
     </button>`;
-    }).join('');
+  }).join('');
 
-    const mealCards = day.meals.map(m =>
-        `<div class="card meal-card">
+  const mealCards = day.meals.map(m =>
+    `<div class="card meal-card">
       <div class="flex-between align-start mb-6">
         <div class="meal-title">${m.name}</div>
         <div class="mono meal-time">${m.time}</div>
@@ -308,9 +308,9 @@ function viewMealPlan(state) {
         <div class="mono color-cyan stat-macro">+${m.cal} kcal</div>
       </div>
     </div>`
-    ).join('');
+  ).join('');
 
-    return `
+  return `
     <div class="mt-10">
       <div class="day-strip mb-12">${dayPills}</div>
       <div class="card">
@@ -327,33 +327,54 @@ function viewMealPlan(state) {
           </div>
         </div>
       </div>
+      
       <div class="kicker mt-16 mb-4">MEAL TIMELINE</div>
       ${mealCards}
+
+      <!-- NEW SHOPPING LIST CARD -->
+      <div class="kicker mt-16 mb-4">WEEKLY EXTRAS TO BUY</div>
+      <div class="card" style="border-left: 3px solid var(--primary);">
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8;">
+          <li>🛒 <b>Eggs:</b> 4 (about KES 60)</li>
+          <li>🛒 <b>Bread:</b> 2 loaves (about KES 140)</li>
+          <li>🛒 <b>Peanut butter:</b> 1 jar (about KES 250)</li>
+          <li>🛒 <b>Margarine:</b> small tub every 2 weeks (about KES 100)</li>
+          <li>🛒 <b>Groundnuts:</b> ½ kg (about KES 150)</li>
+          <li>🛒 <b>Milk and mala:</b> about 3 litres (about KES 300)</li>
+          <li>🛒 <b>Omena:</b> ¼ kg (about KES 100-150)</li>
+          <li>🛒 <b>Bananas and oranges:</b> about KES 200</li>
+          <li>🛒 <b>Sweet potatoes:</b> 3 large (about KES 100)</li>
+        </ul>
+        <div class="mono mt-10 color-orange" style="font-size: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
+          ESTIMATED TOTAL: KES 1,400 - 1,500<br>
+          <span class="color-muted" style="font-size: 11px;">(Beans, ndengu & githeri from family pot)</span>
+        </div>
+      </div>
     </div>
   `;
 }
 
 export function viewVault(db, state) {
-    const blocks = MILESTONES.map((m) => {
-        const p = db.photos[m.k] || {};
-        const slots = POSES.map((pose) =>
-            `<button class="photo-slot" data-act="photo" data-ms="${m.k}" data-pose="${pose}">
+  const blocks = MILESTONES.map((m) => {
+    const p = db.photos[m.k] || {};
+    const slots = POSES.map((pose) =>
+      `<button class="photo-slot" data-act="photo" data-ms="${m.k}" data-pose="${pose}">
         ${p[pose] ? `<img src="${p[pose]}" alt="${m.label} ${pose}" loading="lazy" />` : `<span class="ph-empty"><span>+</span><em>${formatPose(pose)}</em></span>`}
       </button>`
-        ).join("");
-        return `<div class="ms-block">
+    ).join("");
+    return `<div class="ms-block">
       <div class="ms-head"><h3>${m.label}</h3><span>${m.sub}</span></div>
       <div class="ms-grid">${slots}</div>
     </div>`;
-    }).join("");
+  }).join("");
 
-    const poseOpts = POSES.map((p) =>
-        `<option value="${p}"${state.cmpPose === p ? " selected" : ""}>${formatPose(p)}</option>`
-    ).join("");
-    const imgA = (db.photos[state.cmpA] || {})[state.cmpPose];
-    const imgB = (db.photos[state.cmpB] || {})[state.cmpPose];
+  const poseOpts = POSES.map((p) =>
+    `<option value="${p}"${state.cmpPose === p ? " selected" : ""}>${formatPose(p)}</option>`
+  ).join("");
+  const imgA = (db.photos[state.cmpA] || {})[state.cmpPose];
+  const imgB = (db.photos[state.cmpB] || {})[state.cmpPose];
 
-    return `
+  return `
     <section class="pad">
       <div class="card">
         <div class="kicker">8-WEEK PHYSIQUE VAULT</div>
@@ -410,14 +431,14 @@ export function viewVault(db, state) {
 }
 
 export function viewBlueprint() {
-    const cards = BLUEPRINTS.map((bp) =>
-        `<button class="bp-card ${bp.full ? 'full-width' : ''}" data-act="open-bp" data-key="${bp.key}">
+  const cards = BLUEPRINTS.map((bp) =>
+    `<button class="bp-card ${bp.full ? 'full-width' : ''}" data-act="open-bp" data-key="${bp.key}">
       <img class="bp-img" src="${bp.src}" alt="${esc(bp.label)}" loading="lazy" />
       <span class="bp-label">${esc(bp.label)}</span>
     </button>`
-    ).join("");
+  ).join("");
 
-    return `
+  return `
     <section class="pad">
       <div class="card">
         <div class="kicker">OPERATOR BLUEPRINT DECK</div>
@@ -430,21 +451,21 @@ export function viewBlueprint() {
 }
 
 export function viewSystem(db) {
-    let bytes = 0;
-    try { bytes = new Blob([JSON.stringify(db)]).size; } catch (e) { bytes = JSON.stringify(db).length; }
-    const kb = (bytes / 1024).toFixed(1);
+  let bytes = 0;
+  try { bytes = new Blob([JSON.stringify(db)]).size; } catch (e) { bytes = JSON.stringify(db).length; }
+  const kb = (bytes / 1024).toFixed(1);
 
-    const mealCount = Object.keys(db.logs).reduce((a, k) => {
-        const l = db.logs[k];
-        return a + (l && Array.isArray(l.meals) ? l.meals.length : 0);
-    }, 0);
-    const sessionCount = Object.keys(db.workouts).length;
-    const photoCount = Object.keys(db.photos).reduce((a, k) => a + POSES.filter((p) => (db.photos[k] || {})[p]).length, 0);
-    const bestCount = Object.keys(db.history).length;
+  const mealCount = Object.keys(db.logs).reduce((a, k) => {
+    const l = db.logs[k];
+    return a + (l && Array.isArray(l.meals) ? l.meals.length : 0);
+  }, 0);
+  const sessionCount = Object.keys(db.workouts).length;
+  const photoCount = Object.keys(db.photos).reduce((a, k) => a + POSES.filter((p) => (db.photos[k] || {})[p]).length, 0);
+  const bestCount = Object.keys(db.history).length;
 
-    const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
+  const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
-    return `
+  return `
     <section class="pad">
       <div class="card">
         <div class="kicker">SYSTEM STATUS</div>
@@ -504,61 +525,61 @@ export function viewSystem(db) {
 
 /* Helpers */
 export function getSession(db, dayKey, dateKey, createIfMissing = false) {
-    const k = dayKey + "::" + dateKey;
-    if (createIfMissing) {
-        if (!db.workouts[k]) db.workouts[k] = { ex: {} };
-    }
-    if (!db.workouts[k]) return { ex: {} };
-    if (!db.workouts[k].ex) db.workouts[k].ex = {};
-    return db.workouts[k];
+  const k = dayKey + "::" + dateKey;
+  if (createIfMissing) {
+    if (!db.workouts[k]) db.workouts[k] = { ex: {} };
+  }
+  if (!db.workouts[k]) return { ex: {} };
+  if (!db.workouts[k].ex) db.workouts[k].ex = {};
+  return db.workouts[k];
 }
 
 export function getExState(session, ex, db) {
-    let s = session.ex[ex.id];
-    if (!s || typeof s !== "object") {
-        let defaultWeight = ex.weight;
-        if (db && db.history && db.history[ex.id] && db.history[ex.id].weight > ex.weight) {
-            defaultWeight = db.history[ex.id].weight;
-        }
-        s = { sets: [], reps: [], rir: 2, weight: defaultWeight };
-        session.ex[ex.id] = s;
+  let s = session.ex[ex.id];
+  if (!s || typeof s !== "object") {
+    let defaultWeight = ex.weight;
+    if (db && db.history && db.history[ex.id] && db.history[ex.id].weight > ex.weight) {
+      defaultWeight = db.history[ex.id].weight;
     }
-    if (!Array.isArray(s.sets)) s.sets = [];
-    if (!Array.isArray(s.reps)) s.reps = [];
-    while (s.sets.length < ex.sets) { s.sets.push(false); s.reps.push(ex.max); }
-    while (s.reps.length < ex.sets) s.reps.push(ex.max);
-    if (s.rir === undefined || s.rir === null) s.rir = 2;
-    if (s.weight === undefined || s.weight === null) s.weight = ex.weight;
-    return s;
+    s = { sets: [], reps: [], rir: 2, weight: defaultWeight };
+    session.ex[ex.id] = s;
+  }
+  if (!Array.isArray(s.sets)) s.sets = [];
+  if (!Array.isArray(s.reps)) s.reps = [];
+  while (s.sets.length < ex.sets) { s.sets.push(false); s.reps.push(ex.max); }
+  while (s.reps.length < ex.sets) s.reps.push(ex.max);
+  if (s.rir === undefined || s.rir === null) s.rir = 2;
+  if (s.weight === undefined || s.weight === null) s.weight = ex.weight;
+  return s;
 }
 
 export function platesFor(total) {
-    const t = num(total, 0);
-    if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 20KG" };
-    let perSide = (t - BAR_WEIGHT) / 2;
-    const list = [];
-    for (let i = 0; i < PLATES.length; i++) {
-        const p = PLATES[i];
-        while (perSide >= p - 0.001) { list.push(p); perSide -= p; }
-    }
-    return { list: list, note: perSide > 0.02 ? "CLOSEST LOADABLE" : "" };
+  const t = num(total, 0);
+  if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 20KG" };
+  let perSide = (t - BAR_WEIGHT) / 2;
+  const list = [];
+  for (let i = 0; i < PLATES.length; i++) {
+    const p = PLATES[i];
+    while (perSide >= p - 0.001) { list.push(p); perSide -= p; }
+  }
+  return { list: list, note: perSide > 0.02 ? "CLOSEST LOADABLE" : "" };
 }
 
 export function plateHTML(res) {
-    if (!res.list.length) return '<span class="mono" style="font-size:9px;color:var(--dim)">' + esc(res.note) + "</span>";
-    const perSide = res.list.reduce((a, b) => a + b, 0);
-    return res.list.map((p) => `<span class="plate" data-w="${p}">${p}</span>`).join("") +
-        `<span class="mono plate-total">${perSide}kg / SIDE</span>`;
+  if (!res.list.length) return '<span class="mono" style="font-size:9px;color:var(--dim)">' + esc(res.note) + "</span>";
+  const perSide = res.list.reduce((a, b) => a + b, 0);
+  return res.list.map((p) => `<span class="plate" data-w="${p}">${p}</span>`).join("") +
+    `<span class="mono plate-total">${perSide}kg / SIDE</span>`;
 }
 
 export function dayProtein(db, key) {
-    const l = db.logs[key];
-    if (!l || !Array.isArray(l.meals)) return 0;
-    return l.meals.reduce((a, m) => a + num(m.p, 0), 0);
+  const l = db.logs[key];
+  if (!l || !Array.isArray(l.meals)) return 0;
+  return l.meals.reduce((a, m) => a + num(m.p, 0), 0);
 }
 
 export function dayCal(db, key) {
-    const l = db.logs[key];
-    if (!l || !Array.isArray(l.meals)) return 0;
-    return l.meals.reduce((a, m) => a + num(m.cal, 0), 0);
+  const l = db.logs[key];
+  if (!l || !Array.isArray(l.meals)) return 0;
+  return l.meals.reduce((a, m) => a + num(m.cal, 0), 0);
 }
