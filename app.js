@@ -22,10 +22,9 @@ const state = {
 };
 
 function todayDayKey() {
-  const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryB" };
+  const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   return map[new Date().getDay()];
 }
-
 function getDay(key) {
   return TRAINING.filter((d) => d.key === key)[0] || TRAINING[0];
 }
@@ -373,24 +372,24 @@ document.addEventListener("click", function (ev) {
     fetch("/api/analyze-physique", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image1: base64A, image2: base64B, pose })
     })
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) throw new Error(data.error);
-      let html = `<div class="stat-title color-white mb-8" style="font-family:var(--head); font-size:12px;">${esc(data.overall)}</div>`;
-      data.muscles.forEach(m => {
-        let color = m.status === "Improved" ? "var(--green)" : (m.status === "Needs Work" ? "var(--red)" : "var(--muted)");
-        html += `<div class="flex-between" style="border-bottom:1px dashed #1d2731; padding:6px 0;">
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        let html = `<div class="stat-title color-white mb-8" style="font-family:var(--head); font-size:12px;">${esc(data.overall)}</div>`;
+        data.muscles.forEach(m => {
+          let color = m.status === "Improved" ? "var(--green)" : (m.status === "Needs Work" ? "var(--red)" : "var(--muted)");
+          html += `<div class="flex-between" style="border-bottom:1px dashed #1d2731; padding:6px 0;">
           <div><span class="small font-bold display-block" style="color:${color};">${m.group.toUpperCase()}</span>
           <span class="small color-muted">${esc(m.notes)}</span></div>
           <div class="mono" style="font-size:9px; color:${color};">${m.status.toUpperCase()}</div>
         </div>`;
+        });
+        resultDiv.innerHTML = html;
+      })
+      .catch(err => {
+        console.error(err);
+        resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO ANALYZE. TRY AGAIN.</div>';
       });
-      resultDiv.innerHTML = html;
-    })
-    .catch(err => {
-      console.error(err);
-      resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO ANALYZE. TRY AGAIN.</div>';
-    });
     return;
   }
 
@@ -590,13 +589,13 @@ document.addEventListener("click", function (ev) {
   }
   if (act === "export") { exportJSON(); return; }
   if (act === "import") { const inp = document.getElementById("importInput"); inp.value = ""; inp.click(); return; }
-  
+
   if (act === "reset") {
     if (!window.confirm("PURGE ALL LOCAL DATA? This cannot be undone. Export a backup first.")) return;
     clearDB().then(() => window.location.reload());
     return;
   }
-  
+
   if (act === "refuel-toggle") { state.refuelView = el.dataset.view; render(); return; }
   if (act === "plan-day") { state.planDay = el.dataset.key; render(); return; }
 });

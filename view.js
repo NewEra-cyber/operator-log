@@ -323,11 +323,14 @@ function viewMealPlan(state) {
 
   return `
     <div class="mt-10">
-      <div class="card" style="border-left: 3px solid var(--red); background: rgba(255, 75, 75, 0.05);">
-        <div class="kicker color-red mb-4">RULES FOR ALL DAYS</div>
-        <div style="font-size: 13px; color: var(--muted); line-height: 1.5;">
-          Nothing is cooked or heated during the day. Cooking happens at about 5:30-6am or in the evening. Lunch is always eaten cold.
-        </div>
+      <div class="card" style="border-left: 3px solid var(--primary); background: rgba(0, 229, 255, 0.05);">
+        <div class="kicker color-orange mb-4">RULES FOR THE WHOLE WEEK</div>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6;">
+          <li>• <b>Weights:</b> Starting guesses. Use RPE (about 2 reps left on the last rep).</li>
+          <li>• <b>Progression:</b> Keep weight until you hit top of rep range on all sets, then add 2.5 kg.</li>
+          <li>• <b>Weigh-in:</b> Once a week, same morning.</li>
+          <li>• <b>Never skip:</b> The 6am uji and the supper after training.</li>
+        </ul>
       </div>
 
       <div class="day-strip mb-12 mt-12">${dayPills}</div>
@@ -350,26 +353,10 @@ function viewMealPlan(state) {
       <div class="kicker mt-16 mb-4">MEAL TIMELINE</div>
       ${mealCards}
 
-      <!-- PREP TONIGHT ALERT -->
       <div class="card" style="border: 1px solid var(--primary); background: rgba(0, 229, 255, 0.05); margin-top: 16px;">
         <div class="kicker color-orange mb-4">🌙 PREP TONIGHT</div>
         <div style="font-size: 14px; font-weight: 600; color: #fff;">
           ${day.prep}
-        </div>
-      </div>
-
-      <!-- WEEKLY EXTRAS & CHECK -->
-      <div class="kicker mt-16 mb-4">WEEKLY EXTRAS & CHECK</div>
-      <div class="card" style="border-left: 3px solid var(--primary);">
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8;">
-          <li>🛒 <b>Beans/Green Grams:</b> KES 40 × 3</li>
-          <li>🛒 <b>Extra Omena:</b> about KES 100</li>
-          <li>🛒 <b>Milk:</b> Your biggest cost (buy in bulk if possible)</li>
-          <li>🛒 <b>Eggs:</b> Only your share at family supper</li>
-        </ul>
-        <div class="mono mt-10 color-orange" style="font-size: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
-          WEEKLY WEIGH-IN: Weigh yourself every week.<br>
-          <span class="color-muted" style="font-size: 11px;">If weight is flat after 2-3 weeks, add 4 biscuits with milk before bed or another cup of ugali/rice at supper.</span>
         </div>
       </div>
     </div>
