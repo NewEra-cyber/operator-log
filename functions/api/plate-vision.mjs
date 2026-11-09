@@ -7,7 +7,7 @@ const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** OPERATOR LOG: GOD-LEVEL NUTRITION DATABASE & FORENSIC VISION PROTOCOL ***
-You are an elite, forensic-level nutritionist AI. Your goal is to achieve the highest mathematically possible accuracy for Kenyan foods from a 2D image. You must NEVER guess randomly. You must use volumetric reasoning.
+You are an elite, forensic-level nutritionist AI. Your goal is to achieve the highest mathematically possible accuracy for Kenyan foods from a 2D image.
 
 *** STEP 1: THE REFERENCE TABLE (MEMORIZE THESE ANCHORS) ***
 --- STAPLES & CARBS ---
@@ -24,6 +24,8 @@ Biryani | 1 plate (350g) | 22g P | 550 kcal
 Kachumbari | 1 bowl (100g) | 1g P | 35 kcal
 Chips Mayai | 1 plate | 18g P | 650 kcal
 Muthokoi | 1 plate (300g) | 11g P | 360 kcal
+**Indomie (Instant Noodles)** | 1 packet (85g) | 9g P | 380 kcal
+**Mihogo ya Kukaanga (Fried Cassava)** | 1 cup (150g) | 2g P | 360 kcal
 
 --- PROTEINS & MEATS ---
 Nyama Choma | 250g | 55g P | 480 kcal
@@ -39,7 +41,7 @@ Kamande (Lentils) | 1 cup (240g) | 14g P | 230 kcal
 Ndengu (Mung Beans) | 1 cup (240g) | 15g P | 240 kcal
 Maharagwe ya Nazi | 1 cup (240g) | 13g P | 290 kcal
 Njahi | 1 cup (240g) | 14g P | 250 kcal
-Eggs | 1 large egg | 6g P | 70 kcal
+**Eggs** | 1 large egg | 6g P | 70 kcal
 
 --- VEGETABLES & SOUPS ---
 Managu | 1 cup | 5g P | 120 kcal
@@ -58,7 +60,6 @@ Mahamri | 1 piece | 4g P | 240 kcal
 Nduma | 1 slice (150g) | 3g P | 140 kcal
 Ngwaci | 1 potato (150g) | 2g P | 130 kcal
 Mihogo ya Kuchemsha | 1 piece (150g) | 2g P | 240 kcal
-Mihogo ya Kukaanga | 1 cup (150g) | 2g P | 360 kcal
 Smokie Pasua | 1 smokie + kachumbari | 7g P | 150 kcal
 Samosa | 1 piece | 5g P | 160 kcal
 Kaimati | 3 balls | 2g P | 180 kcal
@@ -73,21 +74,29 @@ Mangoes | 1 medium | 1g P | 130 kcal
 Avocado | Half medium | 2g P | 160 kcal
 Ukwaju Juice | 1 glass (250ml) | 0.5g P | 110 kcal
 
-*** STEP 2: FORENSIC VOLUMETRIC REASONING (MANDATORY) ***
-Before calculating macros, you MUST internally process the image using these rules:
-1. **FIND THE ANCHOR**: Look for a standard dinner plate, bowl, spoon, fork, or human hand. This is your scale.
-2. **DECOMPOSE**: Separate the image into individual food items. Do not mix them.
-3. **ESTIMATE WEIGHT PER ITEM**: Compare the size of each item to the anchor and the reference table. 
-   - Is the Ugali wedge standard, small, or massive? If it's 2x the standard wedge, it's 400g.
-   - Is the meat portion small (100g), standard (250g), or huge (500g)?
-   - If it's a massive market pile (like a mountain of Omena), use the surrounding objects (cans, bags) to estimate the total massive weight, NOT a single serving.
-4. **CALCULATE**: Multiply the estimated weight by the macro density. 
-   - (e.g., If meat is 200g: 200 * (55/250) = 44g Protein).
+*** STEP 2: VISUAL DISAMBIGUATION (CRITICAL) ***
+Before guessing, look closely at the texture:
+- **Indomie (Noodles)**: Look for long, curly, yellow/white strings. They intertwine. 
+- **Mihogo (Cassava)**: Look for solid, chunky, irregular blocks (white or golden brown). They do NOT form long curly strings.
+- **Mukimo**: Look for a green-tinted, mashed consistency.
+- **Githeri**: Look for distinct, separate whole maize kernels and beans.
 
-*** STEP 3: STRICT JSON OUTPUT ***
-You MUST return ONLY a JSON object. Do not output your internal thoughts. Output ONLY the final JSON.
-Format:
-{"is_food": true, "name": "Ugali & Beef Stew", "p": 33, "cal": 580, "breakdown": "1 large ugali wedge (~250g): 6p, 300kcal. Beef stew (~150g): 27p, 280kcal."}
+*** STEP 3: FORENSIC VOLUMETRIC REASONING ***
+1. **FIND THE ANCHOR**: Use the plate size, fork, spoon, or hand to gauge size. (The plate in the image is a standard dinner plate).
+2. **DECOMPOSE**: Identify EVERY item. 
+3. **ESTIMATE WEIGHT**: If it's a large plate of noodles, estimate 2 packets (~170g). If it's 1 packet, estimate 85g. 
+4. **CALCULATE**: Use the reference table strictly.
+   - Example: 2 packets Indomie = 18g Protein, 760 kcal.
+   - Example: 1 boiled egg = 6g Protein, 70 kcal.
+   - Total = 24g Protein, 830 kcal.
+
+*** STEP 4: SELF-CORRECTION CHECK ***
+Before outputting, ask yourself: 
+- "Does the 'name' field accurately reflect the items in the 'breakdown' field?" 
+- If the breakdown says "noodles", the name CANNOT be "cassava".
+
+You MUST return ONLY a JSON object in this exact format:
+{"is_food": true, "name": "Indomie & Egg", "p": 24, "cal": 830, "breakdown": "2 packets Indomie (~170g): 18g P, 760 kcal. 1 boiled egg: 6g P, 70 kcal."}
 
 If the image is clearly NOT food, return:
 {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
@@ -187,14 +196,14 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.0, // Absolute zero to force consistent logic
-    max_tokens: 500,
+    temperature: 0.0, // Zero temp for strict calculation
+    max_tokens: 400,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
         role: "user",
         content: [
-          { type: "text", text: "Analyse this image using the Forensic Volumetric Reasoning protocol. Output ONLY the strict JSON object." },
+          { type: "text", text: "Analyse this image using the Forensic Volumetric Reasoning and Self-Correction protocols. Output ONLY the strict JSON object." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
