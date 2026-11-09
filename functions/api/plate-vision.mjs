@@ -2,34 +2,40 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Verified active Groq vision model as per official documentation
+// Active Groq vision model
 const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** CRITICAL KENYAN FOOD DICTIONARY & VISUAL RULES ***
 You MUST prioritize Kenyan names and macros over international equivalents. Here is how to visually identify them:
-- **Ugali**: Thick white block of maize meal. (High carb).
-- **Omena**: Small silver dried fish. (Very high protein).
-- **Matumbo**: Chopped cow intestines/tripe. Looks like thick, brownish, chewy meat chunks stewed with tomatoes and onions. (Moderate protein, high fat).
-- **Githeri**: Mixture of maize and beans. (Moderate carbs & protein).
-- **Ndengu**: Green grams / mung beans stew. (High plant protein).
-- **Sukuma Wiki**: Sautéed collard greens (chopped, dark green).
-- **Managu / Terere**: Traditional dark leafy greens (nightshade/amaranth), often mixed with milk or cream.
-- **Nyama Choma**: Roasted/grilled meat (usually goat or beef), usually served with kachumbari.
-- **Mutura**: African sausage (dark, thick cylindrical meat).
-- **Chapati**: Layered flatbread (round, brown, flaky).
-- **Mandazi**: Fried dough balls (puffy, golden brown).
-- **Pilau**: Spiced rice with meat chunks (brownish rice).
+- **Ugali**: Thick white block of maize meal. (High carb). 1 standard fist-sized serving = ~200g (approx 4g protein, 300 kcal).
+- **Omena**: Small silver dried fish. (Very high protein). 1 standard serving = ~100g (approx 45g protein, 290 kcal).
+- **Matumbo**: Chopped cow intestines/tripe. 1 standard serving = ~150g (approx 20g protein, 250 kcal).
+- **Githeri**: Mixture of maize and beans. 1 cup = ~200g (approx 15g protein, 250 kcal).
+- **Ndengu**: Green grams / mung beans stew. 1 cup = ~200g (approx 14g protein, 210 kcal).
+- **Sukuma Wiki**: Sautéed collard greens. (Low calorie).
+- **Managu / Terere**: Traditional dark leafy greens.
+- **Nyama Choma**: Roasted/grilled meat. 1 standard serving = ~150g (approx 35g protein, 350 kcal).
+- **Mutura**: African sausage. 1 piece = ~100g (approx 15g protein, 250 kcal).
+- **Chapati**: Layered flatbread. 1 piece = ~60g (approx 4g protein, 200 kcal).
+- **Mandazi**: Fried dough balls. 1 piece = ~50g (approx 3g protein, 200 kcal).
+- **Pilau**: Spiced rice with meat chunks. 1 cup = ~200g (approx 10g protein, 300 kcal).
 - **Kachumbari**: Fresh tomato and onion salad.
-- **Tilapia**: Whole fried fish.
-- **Smokie**: Thin, reddish-brown sausage.
-- **Indomie**: Yellow, curly instant noodles. Often cooked with a fried egg, tomatoes, and onions. If in the packet, it is a blue/red Indomie wrapper.
+- **Tilapia**: Whole fried fish. 1 whole medium fish = ~300g (approx 60g protein, 400 kcal).
+- **Smokie**: Thin, reddish-brown sausage. 1 piece = ~30g (approx 5g protein, 80 kcal).
+- **Indomie**: Yellow, curly instant noodles. 1 packet = ~85g (approx 9g protein, 380 kcal).
+- **Eggs**: 1 large egg = ~50g (approx 6g protein, 70 kcal).
+- **Rice**: 1 cup cooked = ~150g (approx 4g protein, 200 kcal).
 
-Do NOT use terms like Fufu, Polenta, Anchovies, or Collard Greens. Use the exact Kenyan names above.
+*** CALCULATION RULES ***
+1. First, visually estimate the weight in grams of EACH item on the plate.
+2. Calculate the protein and calories for EACH item based on the weight anchors above.
+3. Sum them up for the final total.
+4. Do NOT underestimate. If there is a substantial portion of meat/fish/eggs, ensure the protein reflects it accurately.
 
 You MUST return ONLY a JSON object in this exact format:
-{"is_food": true, "name": "Ugali and Sukuma", "p": 10, "cal": 350, "breakdown": "Estimated from photo"}.
+{"is_food": true, "name": "Ugali and Sukuma", "p": 10, "cal": 350, "breakdown": "Estimated 200g ugali, 1 cup greens"}.
 
 If the image is clearly NOT food (e.g., a person, a car, a blank wall), return:
 {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
@@ -129,14 +135,14 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.1,
+    temperature: 0.1, // Low temp for consistent calculations
     max_tokens: 400,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
         role: "user",
         content: [
-          { type: "text", text: "Analyse this image and return the strict JSON object." },
+          { type: "text", text: "Analyse this image carefully. Estimate the portion sizes, calculate the macros, and return the strict JSON object." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
@@ -170,7 +176,6 @@ export async function onRequest(context) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
 
-      // If it's a 400 or 404, the model name is invalid.
       if (res.status === 400 || res.status === 404) {
         return json({
           ...reject(`Model '${MODEL}' not found on Groq. Please verify.`),
