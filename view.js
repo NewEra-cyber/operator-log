@@ -108,7 +108,21 @@ function exCardHTML(db, session, ex) {
 }
 
 export function viewRefuel(db, state) {
-  if (state.refuelView === 'plan') return viewMealPlan(state);
+  const navButtons = `
+    <div class="flex-row mb-4">
+      <button class="act-btn ${state.refuelView === 'log' ? 'primary' : ''} btn-tab" data-act="refuel-toggle" data-view="log">DAILY LOG</button>
+      <button class="act-btn ${state.refuelView === 'plan' ? 'primary' : ''} btn-tab" data-act="refuel-toggle" data-view="plan">MEAL PROTOCOL</button>
+    </div>
+  `;
+
+  if (state.refuelView === 'plan') {
+    return `
+      <section class="pad">
+        ${navButtons}
+        ${viewMealPlan(state)}
+      </section>
+    `;
+  }
 
   const key = state.nutDate;
   const log = db.logs[key] || { meals: [] };
@@ -161,10 +175,7 @@ export function viewRefuel(db, state) {
 
   return `
     <section class="pad">
-      <div class="flex-row mb-4">
-        <button class="act-btn ${state.refuelView === 'log' ? 'primary' : ''} btn-tab" data-act="refuel-toggle" data-view="log">DAILY LOG</button>
-        <button class="act-btn ${state.refuelView === 'plan' ? 'primary' : ''} btn-tab" data-act="refuel-toggle" data-view="plan">MEAL PROTOCOL</button>
-      </div>
+      ${navButtons}
 
       <div class="date-nav date-nav-2col">
         <button data-act="nut-prev" class="w-full">◀ PREV</button>
