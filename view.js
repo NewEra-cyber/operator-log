@@ -312,7 +312,15 @@ function viewMealPlan(state) {
 
   return `
     <div class="mt-10">
-      <div class="day-strip mb-12">${dayPills}</div>
+      <div class="card" style="border-left: 3px solid var(--red); background: rgba(255, 75, 75, 0.05);">
+        <div class="kicker color-red mb-4">RULES FOR ALL DAYS</div>
+        <div style="font-size: 13px; color: var(--muted); line-height: 1.5;">
+          Nothing is cooked or heated during the day. Cooking happens at about 5:30-6am or in the evening. Lunch is always eaten cold.
+        </div>
+      </div>
+
+      <div class="day-strip mb-12 mt-12">${dayPills}</div>
+      
       <div class="card">
         <div class="row between">
           <div>
@@ -331,23 +339,26 @@ function viewMealPlan(state) {
       <div class="kicker mt-16 mb-4">MEAL TIMELINE</div>
       ${mealCards}
 
-      <!-- NEW SHOPPING LIST CARD -->
-      <div class="kicker mt-16 mb-4">WEEKLY EXTRAS TO BUY</div>
+      <!-- PREP TONIGHT ALERT -->
+      <div class="card" style="border: 1px solid var(--primary); background: rgba(0, 229, 255, 0.05); margin-top: 16px;">
+        <div class="kicker color-orange mb-4">🌙 PREP TONIGHT</div>
+        <div style="font-size: 14px; font-weight: 600; color: #fff;">
+          ${day.prep}
+        </div>
+      </div>
+
+      <!-- WEEKLY EXTRAS & CHECK -->
+      <div class="kicker mt-16 mb-4">WEEKLY EXTRAS & CHECK</div>
       <div class="card" style="border-left: 3px solid var(--primary);">
         <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8;">
-          <li>🛒 <b>Eggs:</b> 4 (about KES 60)</li>
-          <li>🛒 <b>Bread:</b> 2 loaves (about KES 140)</li>
-          <li>🛒 <b>Peanut butter:</b> 1 jar (about KES 250)</li>
-          <li>🛒 <b>Margarine:</b> small tub every 2 weeks (about KES 100)</li>
-          <li>🛒 <b>Groundnuts:</b> ½ kg (about KES 150)</li>
-          <li>🛒 <b>Milk and mala:</b> about 3 litres (about KES 300)</li>
-          <li>🛒 <b>Omena:</b> ¼ kg (about KES 100-150)</li>
-          <li>🛒 <b>Bananas and oranges:</b> about KES 200</li>
-          <li>🛒 <b>Sweet potatoes:</b> 3 large (about KES 100)</li>
+          <li>🛒 <b>Beans/Green Grams:</b> KES 40 × 3</li>
+          <li>🛒 <b>Extra Omena:</b> about KES 100</li>
+          <li>🛒 <b>Milk:</b> Your biggest cost (buy in bulk if possible)</li>
+          <li>🛒 <b>Eggs:</b> Only your share at family supper</li>
         </ul>
         <div class="mono mt-10 color-orange" style="font-size: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
-          ESTIMATED TOTAL: KES 1,400 - 1,500<br>
-          <span class="color-muted" style="font-size: 11px;">(Beans, ndengu & githeri from family pot)</span>
+          WEEKLY WEIGH-IN: Weigh yourself every week.<br>
+          <span class="color-muted" style="font-size: 11px;">If weight is flat after 2-3 weeks, add 4 biscuits with milk before bed or another cup of ugali/rice at supper.</span>
         </div>
       </div>
     </div>
