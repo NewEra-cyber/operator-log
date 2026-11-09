@@ -2,40 +2,42 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Active Groq vision model
-const MODEL = "qwen/qwen3.8-27b";
+const MODEL = "qwen/qwen3.8-27b"; // Active Groq vision model
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** CRITICAL KENYAN FOOD DICTIONARY & VISUAL RULES ***
-You MUST prioritize Kenyan names and macros over international equivalents. Here is how to visually identify them:
-- **Ugali**: Thick white block of maize meal. (High carb). 1 standard fist-sized serving = ~200g (approx 4g protein, 300 kcal).
-- **Omena**: Small silver dried fish. (Very high protein). 1 standard serving = ~100g (approx 45g protein, 290 kcal).
-- **Matumbo**: Chopped cow intestines/tripe. 1 standard serving = ~150g (approx 20g protein, 250 kcal).
-- **Githeri**: Mixture of maize and beans. 1 cup = ~200g (approx 15g protein, 250 kcal).
-- **Ndengu**: Green grams / mung beans stew. 1 cup = ~200g (approx 14g protein, 210 kcal).
+You MUST prioritize Kenyan names and macros over international equivalents:
+- **Ugali**: Thick white block of maize meal. (High carb). 1 fist = ~200g (approx 4g protein, 300 kcal).
+- **Omena**: Small silver dried fish. (Very high protein). 100g = 45g protein, 290 kcal.
+- **Matumbo**: Chopped cow intestines/tripe. 150g = 20g protein, 250 kcal.
+- **Githeri**: Mixture of maize and beans. 1 cup = 200g (approx 15g protein, 250 kcal).
+- **Ndengu**: Green grams / mung beans stew. 1 cup = 200g (approx 14g protein, 210 kcal).
 - **Sukuma Wiki**: Sautéed collard greens. (Low calorie).
-- **Managu / Terere**: Traditional dark leafy greens.
-- **Nyama Choma**: Roasted/grilled meat. 1 standard serving = ~150g (approx 35g protein, 350 kcal).
-- **Mutura**: African sausage. 1 piece = ~100g (approx 15g protein, 250 kcal).
-- **Chapati**: Layered flatbread. 1 piece = ~60g (approx 4g protein, 200 kcal).
-- **Mandazi**: Fried dough balls. 1 piece = ~50g (approx 3g protein, 200 kcal).
-- **Pilau**: Spiced rice with meat chunks. 1 cup = ~200g (approx 10g protein, 300 kcal).
-- **Kachumbari**: Fresh tomato and onion salad.
-- **Tilapia**: Whole fried fish. 1 whole medium fish = ~300g (approx 60g protein, 400 kcal).
-- **Smokie**: Thin, reddish-brown sausage. 1 piece = ~30g (approx 5g protein, 80 kcal).
-- **Indomie**: Yellow, curly instant noodles. 1 packet = ~85g (approx 9g protein, 380 kcal).
-- **Eggs**: 1 large egg = ~50g (approx 6g protein, 70 kcal).
-- **Rice**: 1 cup cooked = ~150g (approx 4g protein, 200 kcal).
+- **Nyama Choma**: Roasted/grilled meat. 150g = 35g protein, 350 kcal.
+- **Mutura**: African sausage. 100g = 15g protein, 250 kcal.
+- **Chapati**: Layered flatbread. 1 piece = 60g (approx 4g protein, 200 kcal).
+- **Mandazi**: Fried dough balls. 1 piece = 50g (approx 3g protein, 200 kcal).
+- **Pilau**: Spiced rice with meat chunks. 1 cup = 200g (approx 10g protein, 300 kcal).
+- **Tilapia**: Whole fried fish. 300g = 60g protein, 400 kcal.
+- **Smokie**: Thin, reddish-brown sausage. 1 piece = 30g (approx 5g protein, 80 kcal).
+- **Indomie**: Yellow, curly instant noodles. 1 packet = 85g (approx 9g protein, 380 kcal).
+- **Eggs**: 1 large egg = 50g (approx 6g protein, 70 kcal).
+- **Rice**: 1 cup cooked = 150g (approx 4g protein, 200 kcal).
+
+*** SCALE AWARENESS & PORTION ESTIMATION (CRITICAL) ***
+You MUST look for scale reference objects in the image (hands, spoons, cans, plates, phones, bags). 
+1. **Standard Plates**: If the food is on a standard plate or bowl, estimate the portion on that plate.
+2. **Bulk Piles / Markets**: If the image shows a massive pile of food (like a market stall or bulk storage), DO NOT default to a standard 100g serving. Use the reference objects (like the cans in the image) to estimate the total weight of the *entire visible pile*. (e.g., If a standard can is 400g, and the pile is 50 times the size of the can, the pile is 20,000g).
+3. **Calculate Macros for the VISIBLE portion**: If it's a massive pile, your macro estimate MUST reflect that massive pile (e.g., thousands of grams), not a single serving. 
 
 *** CALCULATION RULES ***
-1. First, visually estimate the weight in grams of EACH item on the plate.
-2. Calculate the protein and calories for EACH item based on the weight anchors above.
-3. Sum them up for the final total.
-4. Do NOT underestimate. If there is a substantial portion of meat/fish/eggs, ensure the protein reflects it accurately.
+1. Visually estimate the weight in grams of the portion shown.
+2. Calculate the protein and calories based on the weight anchors above.
+3. Do NOT underestimate.
 
 You MUST return ONLY a JSON object in this exact format:
-{"is_food": true, "name": "Ugali and Sukuma", "p": 10, "cal": 350, "breakdown": "Estimated 200g ugali, 1 cup greens"}.
+{"is_food": true, "name": "Omena", "p": 450, "cal": 2900, "breakdown": "Estimated 1kg visible pile based on can size"}.
 
 If the image is clearly NOT food (e.g., a person, a car, a blank wall), return:
 {"is_food": false, "name": "Non-food", "p": 0, "cal": 0, "breakdown": "Rejected: not a food item."}
@@ -135,14 +137,14 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.1, // Low temp for consistent calculations
+    temperature: 0.1,
     max_tokens: 400,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
         role: "user",
         content: [
-          { type: "text", text: "Analyse this image carefully. Estimate the portion sizes, calculate the macros, and return the strict JSON object." },
+          { type: "text", text: "Analyse this image carefully. Estimate the scale and portion size using visual anchors, calculate the macros for the visible portion, and return the strict JSON object." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
@@ -175,11 +177,11 @@ export async function onRequest(context) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("[plate-vision] Groq error response:", errorText);
-
+      
       if (res.status === 400 || res.status === 404) {
-        return json({
-          ...reject(`Model '${MODEL}' not found on Groq. Please verify.`),
-          error: "model_not_found"
+        return json({ 
+          ...reject(`Model '${MODEL}' not found on Groq. Please verify.`), 
+          error: "model_not_found" 
         });
       }
 
