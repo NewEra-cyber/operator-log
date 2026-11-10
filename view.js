@@ -19,6 +19,7 @@ export function viewMission(db, state) {
     </button>`
   ).join("");
 
+  // This generates the workout cards ONLY ONCE
   const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
 
   return `
@@ -45,10 +46,10 @@ export function viewMission(db, state) {
           <span>${pct === 100 ? "SESSION COMPLETE ✓" : "IN PROGRESS"}</span>
         </div>
       </div>
+      
       ${cards}
-            ${cards}
 
-      <!-- AI COACH SECTION -->
+      <!-- AI COACH SECTION (Only appears once at the bottom) -->
       <div class="card" style="margin-top: 16px; border-left: 3px solid var(--primary);">
         <div class="kicker mb-4">AI TACTICAL COACH</div>
         <div class="small color-muted mb-8">Log your sets and reps above, then ask the coach for next week's progression.</div>
@@ -58,7 +59,6 @@ export function viewMission(db, state) {
         </button>
         <div id="coachResult" class="ai-result" style="margin-top: 16px;"></div>
       </div>
-    
     </section>
   `;
 }
