@@ -577,6 +577,64 @@ document.addEventListener("click", function (ev) {
     toast("MEAL LOGGED · +" + num(d.p, 0) + "G PROTEIN", "green");
     return;
   }
+  if (act === "ask-coach") {
+    const db = getDB();
+    const day = getDay(state.dayKey);
+    const session = getSession(db, day.key, state.missionDate);
+
+    // Check if any sets are done
+    let hasData = false;
+    const workoutLog = [];
+
+    day.exercises.forEach(ex => {
+      const s = getExState(session, ex, db);
+      const doneSets = s.sets.filter(Boolean).length;
+      if (doneSets > 0) {
+        hasData = true;
+        const repsDone = s.reps.filter((r, i) => s.sets[i]);
+        workoutLog.push({
+          exercise: ex.name,
+          weight: s.weight,
+          setsCompleted: doneSets,
+          repsPerSet: repsDone,
+          rir: s.rir
+        });
+      }
+    });
+
+    if (!hasData) {
+      toast("LOG AT LEAST ONE SET BEFORE ASKING THE COACH", "red");
+      return;
+    }
+
+    const btn = document.getElementById("askCoachBtn");
+    const resultDiv = document.getElementById("coachResult");
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> ANALYZING...';
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = '<div class="mono color-cyan text-center">Consulting the AI Coach...</div>';
+
+    fetch("/api/mission-coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workoutData: { day: day.name, date: state.missionDate, exercises: workoutLog } })
+    })
+      .then(r => r.json())
+      .then(data => {
+        // Convert markdown line breaks to HTML
+        const formattedAdvice = data.advice.replace(/\n/g, '<br>');
+        resultDiv.innerHTML = `<div style="font-size: 13px; line-height: 1.6; color: var(--txt);">${formattedAdvice}</div>`;
+      })
+      .catch(() => {
+        resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO CONNECT TO COACH.</div>';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V7a1 1 0 0 0-1-1z"/></svg> ANALYZE PERFORMANCE';
+      });
+    return;
+  }
   if (act === "toggle-vault") {
     const key = el.dataset.key;
     state.vaultMilestone = (state.vaultMilestone === key) ? null : key;

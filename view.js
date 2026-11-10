@@ -46,6 +46,19 @@ export function viewMission(db, state) {
         </div>
       </div>
       ${cards}
+            ${cards}
+
+      <!-- AI COACH SECTION -->
+      <div class="card" style="margin-top: 16px; border-left: 3px solid var(--primary);">
+        <div class="kicker mb-4">AI TACTICAL COACH</div>
+        <div class="small color-muted mb-8">Log your sets and reps above, then ask the coach for next week's progression.</div>
+        <button class="scan-btn" data-act="ask-coach" id="askCoachBtn" style="background: rgba(0, 229, 255, 0.1); color: var(--primary); border: 1px solid var(--primary);">
+          <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V7a1 1 0 0 0-1-1z"/></svg>
+          ANALYZE PERFORMANCE
+        </button>
+        <div id="coachResult" class="ai-result" style="margin-top: 16px;"></div>
+      </div>
+    
     </section>
   `;
 }
