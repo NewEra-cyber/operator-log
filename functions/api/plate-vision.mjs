@@ -5,7 +5,6 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "qwen/qwen3.8-27b"; // Active Groq vision model
 const TIMEOUT_MS = 25000;
 
-// The AI will ONLY identify the food and estimate weight. It will NOT do math.
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
 You are an elite nutritionist AI. Your ONLY job is to identify the Kenyan foods on the plate and estimate their weight in grams. 
@@ -41,38 +40,91 @@ If the image is clearly NOT food, return:
 {"is_food": false, "name": "Non-food", "items": []}
 `.trim();
 
-// Hardcoded Macro Database (per 100g)
-// This guarantees 100% math accuracy.
+// EXHAUSTIVE KENYAN MACRO DATABASE (per 100g)
+// Calculated from your 60-item list
 const MACRO_DB = {
+  // STAPLES & CARBS
   "ugali": { p: 2.5, cal: 120 },
-  "white rice": { p: 2.5, cal: 130 },
+  "sukuma wiki": { p: 2.0, cal: 53 },
+  "githeri": { p: 4.0, cal: 127 },
+  "chapati": { p: 7.5, cal: 325 },
+  "mukimo": { p: 2.8, cal: 132 },
+  "irio": { p: 2.4, cal: 124 },
+  "matoke": { p: 1.3, cal: 97 },
   "wali wa nazi": { p: 2.5, cal: 175 },
-  "maharagwe": { p: 5.5, cal: 120 }, // Beans
-  "beans": { p: 5.5, cal: 120 },
-  "njahi": { p: 6.0, cal: 105 }, // Black beans
-  "ndengu": { p: 6.0, cal: 100 }, // Green grams
-  "githeri": { p: 4.0, cal: 125 },
+  "white rice": { p: 2.5, cal: 130 },
+  "pilau": { p: 5.3, cal: 160 },
+  "biryani": { p: 6.3, cal: 157 },
+  "kachumbari": { p: 1.0, cal: 35 },
+  "viazi karai": { p: 2.0, cal: 193 },
+  "chips mayai": { p: 5.1, cal: 186 },
+  "kimanga": { p: 3.0, cal: 140 },
+  "muthokoi": { p: 3.7, cal: 120 },
+
+  // PROTEINS & MEATS
+  "nyama choma": { p: 22.0, cal: 192 },
+  "kuku choma": { p: 14.0, cal: 128 },
+  "kuku kienyeji": { p: 10.0, cal: 93 },
+  "samaki wa kupaka": { p: 10.5, cal: 102 },
+  "samaki mkaango": { p: 12.7, cal: 150 },
   "omena": { p: 53.0, cal: 350 },
+  "mutura": { p: 12.0, cal: 190 },
+  "beef stew": { p: 11.2, cal: 136 },
+  "mbuzi wet fry": { p: 18.0, cal: 184 },
+  "kamande": { p: 5.8, cal: 96 },
+  "ndengu": { p: 6.3, cal: 100 },
+  "maharagwe ya nazi": { p: 5.4, cal: 121 },
+  "maharagwe": { p: 5.5, cal: 120 },
+  "beans": { p: 5.5, cal: 120 },
+  "njahi": { p: 5.8, cal: 104 },
+  "mayai boiro": { p: 12.0, cal: 170 },
   "egg": { p: 12.0, cal: 140 },
   "eggs": { p: 12.0, cal: 140 },
+
+  // VEGETABLES & SOUPS
+  "managu": { p: 3.3, cal: 80 },
+  "terere": { p: 2.7, cal: 43 },
+  "sagaa": { p: 3.3, cal: 47 },
+  "mrenda": { p: 2.7, cal: 40 },
+  "kundeh": { p: 4.0, cal: 60 },
+  "kandolo": { p: 2.0, cal: 37 },
+  "mshirikale": { p: 2.7, cal: 47 },
+  "supu ya ndewe": { p: 5.0, cal: 60 },
+  "cabbage": { p: 1.3, cal: 50 },
+  "mchicha": { p: 2.0, cal: 33 },
+
+  // BREAKFAST, SNACKS & STREET FOOD
+  "mandazi": { p: 8.0, cal: 440 },
+  "mahamri": { p: 8.0, cal: 480 },
+  "nduma": { p: 2.0, cal: 93 },
+  "ngwaci": { p: 1.3, cal: 87 },
+  "mihogo ya kuchemsha": { p: 1.3, cal: 160 },
+  "mihogo ya kukaanga": { p: 1.3, cal: 240 },
+  "smokie pasua": { p: 7.0, cal: 150 },
+  "samosa": { p: 10.0, cal: 320 },
+  "kaimati": { p: 4.0, cal: 360 },
+  "mkate wa sinia": { p: 3.0, cal: 190 },
+  "maandazi ya pasua": { p: 7.3, cal: 246 },
+  "chapo-smokie": { p: 6.5, cal: 205 },
+  "boflo": { p: 8.3, cal: 350 },
+  "bread": { p: 8.3, cal: 266 },
+  "biscuits": { p: 5.0, cal: 450 },
   "indomie": { p: 10.5, cal: 450 },
   "spaghetti": { p: 5.0, cal: 150 },
-  "chapati": { p: 7.5, cal: 325 },
-  "sukuma wiki": { p: 2.0, cal: 50 },
-  "greens": { p: 2.0, cal: 50 },
-  "beef": { p: 25.0, cal: 200 },
-  "nyama choma": { p: 25.0, cal: 200 },
-  "chicken": { p: 22.0, cal: 150 },
-  "kuku": { p: 22.0, cal: 150 },
-  "milk": { p: 3.5, cal: 60 },
-  "uji": { p: 2.0, cal: 60 },
-  "bread": { p: 8.0, cal: 260 },
-  "biscuits": { p: 5.0, cal: 450 },
-  "avocado": { p: 2.0, cal: 160 },
-  "banana": { p: 1.0, cal: 90 },
-  "mandazi": { p: 5.0, cal: 350 },
   "chips": { p: 3.0, cal: 300 },
-  "cabbage": { p: 1.5, cal: 50 }
+
+  // FRUITS & DRINKS
+  "chai ya maziwa": { p: 1.6, cal: 48 },
+  "maziwa lala": { p: 3.2, cal: 60 },
+  "uji": { p: 1.7, cal: 60 },
+  "mangoes": { p: 0.7, cal: 87 },
+  "avocado": { p: 2.0, cal: 160 },
+  "passion fruit": { p: 2.0, cal: 70 },
+  "ukwaju juice": { p: 0.2, cal: 44 },
+  "milk": { p: 3.2, cal: 60 },
+  "groundnuts": { p: 26.0, cal: 567 },
+  "banana": { p: 1.0, cal: 90 },
+  "greens": { p: 2.0, cal: 50 } // Generic fallback
 };
 
 function json(body, status = 200) {
@@ -182,7 +234,7 @@ export async function onRequest(context) {
       return json(reject("Rejected: vision model returned no usable data."));
     }
 
-    // === THE JAVASCRIPT DOES THE MATH ===
+    // === JAVASCRIPT DOES THE MATH ===
     let totalP = 0;
     let totalCal = 0;
     let breakdownParts = [];
@@ -193,7 +245,7 @@ export async function onRequest(context) {
       const nameLower = item.name.toLowerCase();
       let matchedKey = Object.keys(MACRO_DB).find(k => nameLower.includes(k));
       
-      // Default to a generic profile if unknown
+      // Default to a generic profile if completely unknown
       let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
       
       const weight = Number(item.weight_g) || 0;
