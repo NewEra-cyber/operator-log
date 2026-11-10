@@ -7,8 +7,8 @@ export async function onRequest(context) {
     }
 
     if (!apiKey) {
-        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing from Cloudflare environment variables." }), {
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing from Cloudflare environment variables." }), { 
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });
     }
 
@@ -17,11 +17,11 @@ export async function onRequest(context) {
         if (!workoutData) throw new Error("No workout data provided");
 
         const payload = {
-            model: "llama-3.3-70b-versatile",
+            model: "qwen/qwen3.8-27b", // Updated to the active Groq model
             temperature: 0.3,
             messages: [
                 {
-                    role: "system",
+                    role: "system", 
                     content: `You are an elite, tactical strength and conditioning coach. 
                     The user is a beginner/intermediate lifter following a 4-day Upper/Lower split.
                     They will send you their workout log for today (including exercises, weights, sets, reps, and RIR (Reps in Reserve)).
@@ -46,22 +46,22 @@ export async function onRequest(context) {
         if (!res.ok) {
             const errorText = await res.text();
             console.error("Groq API Error:", errorText);
-            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status}): ${errorText.substring(0, 100)}` }), {
-                status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status}): ${errorText.substring(0, 100)}` }), { 
+                status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
             });
         }
 
         const data = await res.json();
         const advice = data.choices[0].message.content;
-
-        return new Response(JSON.stringify({ advice }), {
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        
+        return new Response(JSON.stringify({ advice }), { 
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });
 
     } catch (err) {
         console.error("Mission Coach Error:", err);
-        return new Response(JSON.stringify({ advice: `System Error: ${err.message}` }), {
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        return new Response(JSON.stringify({ advice: `System Error: ${err.message}` }), { 
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });
     }
 }
