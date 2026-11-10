@@ -12,6 +12,7 @@ const state = {
   nutDate: ymd(),
   scan: { status: "idle" },
   photoTarget: null,
+  vaultMilestone: null,
   cmpA: "w0",
   cmpB: "w8",
   cmpPose: "front",
@@ -401,7 +402,7 @@ document.addEventListener("click", function (ev) {
   if (act === "cal-prev") { state.calMonth--; if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; } renderCalendar(); return; }
   if (act === "cal-next") { state.calMonth++; if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; } renderCalendar(); return; }
   if (act === "cal-today") { const today = new Date(); state.calMonth = today.getMonth(); state.calYear = today.getFullYear(); renderCalendar(); return; }
-    if (act === "cal-pick") {
+  if (act === "cal-pick") {
     const dateStr = el.dataset.date;
     if (state.calTarget === 'mission') {
       state.missionDate = dateStr;
@@ -576,7 +577,17 @@ document.addEventListener("click", function (ev) {
     toast("MEAL LOGGED · +" + num(d.p, 0) + "G PROTEIN", "green");
     return;
   }
+  if (act === "toggle-vault") {
+    const key = el.dataset.key;
+    state.vaultMilestone = (state.vaultMilestone === key) ? null : key;
+    render();
+    return;
+  }
 
+  if (act === "photo") {
+    state.photoTarget = { ms: el.dataset.ms, pose: el.dataset.pose };
+    const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return;
+  }
   if (act === "photo") {
     state.photoTarget = { ms: el.dataset.ms, pose: el.dataset.pose };
     const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return;

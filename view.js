@@ -366,15 +366,49 @@ function viewMealPlan(state) {
 export function viewVault(db, state) {
   const blocks = MILESTONES.map((m) => {
     const p = db.photos[m.k] || {};
+    const photoCount = POSES.filter(pose => p[pose]).length;
+    const isOpen = state.vaultMilestone === m.k;
+
+    // If the folder is closed, show the folder card
+    if (!isOpen) {
+      return `
+        <div class="card folder-card" data-act="toggle-vault" data-key="${m.k}">
+          <div class="flex-between w-full">
+            <div class="flex-row" style="gap: 12px;">
+              <div class="folder-icon">📁</div>
+              <div>
+                <h3 class="day-title" style="font-size: 18px; margin: 0;">${m.label}</h3>
+                <div class="focus" style="margin-top: 2px;">${m.sub}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="mono color-cyan font-bold" style="font-size: 14px;">${photoCount}/9</div>
+              <div class="small color-muted">PHOTOS</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // If the folder is open, show the photo grid
     const slots = POSES.map((pose) =>
       `<button class="photo-slot" data-act="photo" data-ms="${m.k}" data-pose="${pose}">
         ${p[pose] ? `<img src="${p[pose]}" alt="${m.label} ${pose}" loading="lazy" />` : `<span class="ph-empty"><span>+</span><em>${formatPose(pose)}</em></span>`}
       </button>`
     ).join("");
-    return `<div class="ms-block">
-      <div class="ms-head"><h3>${m.label}</h3><span>${m.sub}</span></div>
-      <div class="ms-grid">${slots}</div>
-    </div>`;
+
+    return `
+      <div class="ms-block open">
+        <div class="ms-head" data-act="toggle-vault" data-key="${m.k}" style="cursor: pointer;">
+          <div class="flex-row">
+            <div class="folder-icon" style="opacity: 0.5;">📂</div>
+            <h3>${m.label}</h3>
+          </div>
+          <span class="mono color-cyan">${m.sub} · TAP TO CLOSE</span>
+        </div>
+        <div class="ms-grid">${slots}</div>
+      </div>
+    `;
   }).join("");
 
   const poseOpts = POSES.map((p) =>
@@ -388,10 +422,15 @@ export function viewVault(db, state) {
       <div class="card">
         <div class="kicker">8-WEEK PHYSIQUE VAULT</div>
         <h2 class="day-title mt-4">BI-WEEKLY MILESTONES</h2>
-        <div class="dim small mt-5">Photos are compressed on-device before storage. Tap a slot to capture or upload.</div>
+        <div class="dim small mt-5">Tap a folder to open your progress photos for that week.</div>
       </div>
-      ${blocks}
+      
+      <div class="flex-col" style="gap: 8px; margin-top: 8px;">
+        ${blocks}
+      </div>
 
+      <!-- ... keep the rest of the viewVault (Body Weight Tracker, AI Analyzer, Side-by-Side) exactly the same ... -->
+      
       <div class="card">
         <div class="kicker mb-9">BODY WEIGHT TRACKER</div>
         <div class="row between mb-12">
