@@ -401,10 +401,17 @@ document.addEventListener("click", function (ev) {
   if (act === "cal-prev") { state.calMonth--; if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; } renderCalendar(); return; }
   if (act === "cal-next") { state.calMonth++; if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; } renderCalendar(); return; }
   if (act === "cal-today") { const today = new Date(); state.calMonth = today.getMonth(); state.calYear = today.getFullYear(); renderCalendar(); return; }
-  if (act === "cal-pick") {
+    if (act === "cal-pick") {
     const dateStr = el.dataset.date;
-    if (state.calTarget === 'mission') state.missionDate = dateStr;
-    else state.nutDate = dateStr;
+    if (state.calTarget === 'mission') {
+      state.missionDate = dateStr;
+      // Auto-switch the workout program to match the selected date's day of the week
+      const d = new Date(dateStr + "T12:00:00");
+      const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
+      state.dayKey = dayMap[d.getDay()];
+    } else {
+      state.nutDate = dateStr;
+    }
     document.getElementById("calendarModal").classList.remove("open");
     render();
     return;
