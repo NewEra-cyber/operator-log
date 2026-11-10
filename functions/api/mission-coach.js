@@ -7,7 +7,7 @@ export async function onRequest(context) {
     }
 
     if (!apiKey) {
-        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing from Cloudflare environment variables." }), { 
+        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY missing." }), { 
             status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });
     }
@@ -17,21 +17,18 @@ export async function onRequest(context) {
         if (!workoutData) throw new Error("No workout data provided");
 
         const payload = {
-            model: "qwen/qwen3.8-27b", // Updated to the active Groq model
-            temperature: 0.3,
+            model: "qwen/qwen3.8-27b",
+            temperature: 0.2,
             messages: [
                 {
                     role: "system", 
-                    content: `You are an elite, tactical strength and conditioning coach. 
-                    The user is a beginner/intermediate lifter following a 4-day Upper/Lower split.
-                    They will send you their workout log for today (including exercises, weights, sets, reps, and RIR (Reps in Reserve)).
+                    content: `You are an elite, tactical strength coach. Analyze the user's workout log.
                     
-                    Your job is to analyze the data and provide:
-                    1. A brief tactical assessment of today's performance (e.g., noting fatigue if RIR drops or reps fall off).
-                    2. Strict progressive overload advice for next week (when to add weight, when to hold steady, when to deload).
-                    3. One specific form or mindset cue for their weakest exercise today.
-
-                    Keep it concise, motivating, and formatted cleanly in 3 short paragraphs. Use bullet points if necessary.`
+                    RULES:
+                    1. Be ruthlessly concise. Maximum 15 words per sentence.
+                    2. Use exactly 3 sections: "ASSESSMENT:", "NEXT WEEK:", "FOCUS:".
+                    3. Use ALL CAPS for the section titles.
+                    4. NO markdown headers (no #). NO asterisks (**). Just plain text with line breaks.`
                 },
                 { role: "user", content: JSON.stringify(workoutData) }
             ]
@@ -45,8 +42,7 @@ export async function onRequest(context) {
 
         if (!res.ok) {
             const errorText = await res.text();
-            console.error("Groq API Error:", errorText);
-            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status}): ${errorText.substring(0, 100)}` }), { 
+            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status})` }), { 
                 status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
             });
         }
@@ -59,7 +55,6 @@ export async function onRequest(context) {
         });
 
     } catch (err) {
-        console.error("Mission Coach Error:", err);
         return new Response(JSON.stringify({ advice: `System Error: ${err.message}` }), { 
             status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });

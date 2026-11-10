@@ -2079,3 +2079,28 @@ body,
     border: 1px solid var(--primary);
     box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
 }
+
+/* AI Coach Terminal Output */
+.coach-text {
+    font-family: var(--font-mono);
+    /* JetBrains Mono */
+    font-size: 12px;
+    line-height: 1.7;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    /* Gives it that aggressive tactical look */
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+}
+
+.coach-highlight {
+    color: var(--primary);
+    font-weight: 700;
+    font-family: var(--font-head);
+    font-size: 13px;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}

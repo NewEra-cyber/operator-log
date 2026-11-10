@@ -620,9 +620,15 @@ document.addEventListener("click", function (ev) {
     })
       .then(r => r.json())
       .then(data => {
-        const formattedAdvice = data.advice.replace(/\n/g, '<br>');
+        // Parse markdown bold (**) to HTML tags, and newlines to breaks
+        let formattedAdvice = data.advice
+          .replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>')
+          .replace(/\n/g, '<br>');
+
+        // Check for errors
         const color = formattedAdvice.includes("ERROR") || formattedAdvice.includes("Error") ? "var(--red)" : "var(--txt)";
-        resultDiv.innerHTML = `<div style="font-size: 13px; line-height: 1.6; color: ${color};">${formattedAdvice}</div>`;
+
+        resultDiv.innerHTML = `<div class="coach-text" style="color: ${color};">${formattedAdvice}</div>`;
       })
       .catch((err) => {
         console.error(err);
