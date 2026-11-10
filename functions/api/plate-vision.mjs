@@ -9,20 +9,22 @@ const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
 You are an elite nutritionist AI. Your ONLY job is to identify the Kenyan foods on the plate and estimate their weight in grams. 
 
-*** VISUAL DISAMBIGUATION RULES ***
+*** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
+- **Ndengu (Green Grams)**: Look for SMALL, round, yellowish-green or olive-green seeds. They are much smaller than beans and usually served as a thick, uniform stew.
+- **Maharagwe (Beans)**: Look for LARGER, kidney-shaped, reddish-brown or pinto beans. They are distinctly bigger than green grams.
+- **Njahi**: Look for distinctly BLACK, medium-sized beans.
+- **Githeri**: Look for a mixture of whole maize kernels (large, yellow/white) and beans.
 - **White Rice**: Plain, white, fluffy grains. (Do NOT call it Wali wa Nazi unless you clearly see a thick, yellow/brown coconut sauce).
-- **Maharagwe (Beans)**: Brown, red, or pinto beans stewed with tomatoes/onions.
-- **Njahi**: Distinctly BLACK beans.
-- **Githeri**: Whole maize kernels mixed with beans.
 - **Indomie**: Yellow, long, curly instant noodles.
 - **Ugali**: Solid white block of maize meal.
 - **Omena**: Small silver dried fish.
+- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
 
-*** WEIGHT ESTIMATION (CRITICAL) ***
+*** WEIGHT ESTIMATION ***
 Look at the plate, spoon, or hand in the image to gauge size. 
 - A standard dinner plate is ~10 inches.
 - A large mound of rice covering 1/4 of the plate is ~200-250g.
-- A standard cup of beans is ~200g.
+- A standard cup of stewed legumes (Ndengu/Beans) is ~200g.
 - A piece of meat the size of a fist is ~150g.
 
 *** OUTPUT FORMAT ***
@@ -32,7 +34,7 @@ Format:
   "is_food": true,
   "items": [
     {"name": "White Rice", "weight_g": 250},
-    {"name": "Maharagwe (Beans)", "weight_g": 150}
+    {"name": "Ndengu (Green Grams)", "weight_g": 150}
   ]
 }
 
@@ -41,7 +43,6 @@ If the image is clearly NOT food, return:
 `.trim();
 
 // EXHAUSTIVE KENYAN MACRO DATABASE (per 100g)
-// Calculated from your 60-item list
 const MACRO_DB = {
   // STAPLES & CARBS
   "ugali": { p: 2.5, cal: 120 },
@@ -73,6 +74,7 @@ const MACRO_DB = {
   "mbuzi wet fry": { p: 18.0, cal: 184 },
   "kamande": { p: 5.8, cal: 96 },
   "ndengu": { p: 6.3, cal: 100 },
+  "green grams": { p: 6.3, cal: 100 }, // Added alias
   "maharagwe ya nazi": { p: 5.4, cal: 121 },
   "maharagwe": { p: 5.5, cal: 120 },
   "beans": { p: 5.5, cal: 120 },
@@ -241,7 +243,6 @@ export async function onRequest(context) {
     let itemNames = [];
 
     parsed.items.forEach(item => {
-      // Find the best match in the database
       const nameLower = item.name.toLowerCase();
       let matchedKey = Object.keys(MACRO_DB).find(k => nameLower.includes(k));
       
@@ -261,7 +262,6 @@ export async function onRequest(context) {
       }
     });
 
-    // Final Sanity Check
     if (totalCal === 0) {
       return json(reject("Rejected: could not calculate macros."));
     }
