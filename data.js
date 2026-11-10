@@ -2,66 +2,71 @@ export const TRAINING = [
   {
     key: "upperA", tag: "MON", short: "UPPER A", name: "Upper Body A", focus: "PUSH & LAT FOCUS",
     exercises: [
-      { id: "bench", name: "Bench Press", equipment: "barbell", weight: 30, sets: 4, min: 6, max: 8, inc: 2.5, rest: 150, cues: "2 sec down, brief pause on the chest, push up hard, shoulder blades pinched." },
-      { id: "row", name: "Chest-Supported DB Row", equipment: "dumbbell", weight: 12, sets: 3, min: 8, max: 10, inc: 2, rest: 120, cues: "Chest on the pad, elbows to hips, squeeze 1 sec." },
-      { id: "incdb", name: "Incline DB Press (30°)", equipment: "dumbbell", weight: 10, sets: 3, min: 8, max: 10, inc: 2, rest: 120, cues: "Deep stretch at the bottom, elbows at 45-60°." },
-      { id: "pulldown", name: "Lat Pulldown", equipment: "machine", weight: 35, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Pull to the upper chest, drive the elbows down, don't lean back." },
-      { id: "supersetA", name: "Superset: Curl & OH Triceps", equipment: "dumbbell", weight: 6, sets: 3, min: 10, max: 12, inc: 1, rest: 90, cues: "5A Incline DB Curl: Arms hang fully. 5B OH Tri Ext: Stay upright, full extension." },
-      { id: "latraise", name: "Lateral Raise", equipment: "dumbbell", weight: 4, sets: 3, min: 12, max: 15, inc: 1, rest: 60, cues: "Lead with the elbows, no swinging." }
+      { id: "bench", name: "Barbell Bench Press", equipment: "barbell", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Retract shoulder blades, touch chest, press from mid-chest to lock-out." },
+      { id: "row", name: "Barbell Bent-Over Row", equipment: "barbell", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Hinged at hips, flat back, pull to waist, squeeze shoulder blades." },
+      { id: "pulldown", name: "Lat Pulldown", equipment: "machine", weight: 25, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Sit upright, pull bar to upper chest, squeeze shoulder blades at the bottom." },
+      { id: "incdb", name: "Incline Dumbbell Press", equipment: "dumbbell", weight: 10, sets: 3, min: 8, max: 10, inc: 2, rest: 90, cues: "Incline bench (~30 deg), tuck elbows, press upward and slightly inward. Keep core braced." },
+      { id: "supersetA", name: "Superset: Tri & Side Delts", equipment: "dumbbell", weight: 10, sets: 3, min: 10, max: 15, inc: 1, rest: 60, cues: "5A Overhead Triceps Ext (3x10-15) + 5B DB Lateral Raise (3x10-15). Control descent." },
+      { id: "cablecr", name: "Cable Crunch", equipment: "machine", weight: 15, sets: 3, min: 10, max: 15, inc: 2.5, rest: 60, cues: "Kneeling, hold rope by ears, crunch downward using abs, squeeze at bottom. Do not sit back on heels." }
     ]
   },
   {
     key: "lowerA", tag: "TUE", short: "LOWER A", name: "Lower Body A", focus: "QUADS & STABILITY",
     exercises: [
-      { id: "squat", name: "Back Squat", equipment: "barbell", weight: 40, sets: 3, min: 6, max: 8, inc: 5, rest: 180, cues: "Keep chest up, brace core, squat deep until thighs are parallel." },
-      { id: "rdl", name: "Romanian Deadlift", equipment: "barbell", weight: 30, sets: 3, min: 8, max: 10, inc: 5, rest: 120, cues: "Hinge at hips, keep back straight, slight knee bend, feel hamstring stretch." },
-      { id: "legpress", name: "Leg Press", equipment: "machine", weight: 60, sets: 3, min: 10, max: 12, inc: 10, rest: 120, cues: "Feet shoulder-width, push through heels without locking knees." },
-      { id: "legcurlA", name: "Leg Curl", equipment: "machine", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Curl pad toward glutes, squeeze hamstrings." },
-      { id: "calfA", name: "Standing Calf Raise", equipment: "machine", weight: 30, sets: 4, min: 10, max: 12, inc: 5, rest: 60, cues: "Pause 2 sec at the bottom of every rep." },
-      { id: "hlr", name: "Hanging Knee Raise", equipment: "bodyweight", weight: 0, sets: 2, min: 12, max: 15, inc: 0, rest: 60, cues: "Hang from bar, keep upper body still, raise knees to chest." }
+      { id: "squat", name: "Barbell Squat", equipment: "barbell", weight: 30, sets: 3, min: 6, max: 8, inc: 5, rest: 120, cues: "Use a rack with safety pins. Keep chest up, brace core, squat deep until thighs are parallel." },
+      { id: "legpress", name: "Leg Press", equipment: "machine", weight: 40, sets: 3, min: 8, max: 10, inc: 10, rest: 90, cues: "Place feet shoulder-width on platform, lower slowly, push through heels without locking knees." },
+      { id: "legcurlA", name: "Lying Leg Curl", equipment: "machine", weight: 15, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Lie flat on pad, grasp handles, curl pad toward glutes, squeeze hamstrings." },
+      { id: "lunge", name: "Walking DB Lunges", equipment: "dumbbell", weight: 8, sets: 3, min: 10, max: 12, inc: 2, rest: 90, cues: "Per leg. Keep torso upright, take a long stride, lower back knee just above floor, alternate." },
+      { id: "calfA", name: "Standing Calf Raise", equipment: "machine", weight: 20, sets: 4, min: 12, max: 15, inc: 5, rest: 60, cues: "Balls of feet on block, lower heels for full stretch, raise up high on toes, pause." },
+      { id: "plank", name: "Core Stability Block", equipment: "bodyweight", weight: 0, sets: 3, min: 30, max: 60, inc: 0, rest: 60, cues: "Plank 30-60s / Side Plank 20-30s. Squeeze glutes, don't sag, keep hips high. Focus on rigid torso hold." }
     ]
   },
   {
     key: "recoveryA", tag: "WED", short: "RECOV", name: "Active Recovery", focus: "MOBILITY & RECON", recovery: true,
     exercises: [
-      { id: "walkA", name: "Walk", equipment: "bodyweight", weight: 0, sets: 1, min: 20, max: 30, inc: 0, rest: 0, cues: "20-30 MIN. Brisk pace, outdoor track or treadmill." },
-      { id: "stretchA", name: "Stretch", equipment: "bodyweight", weight: 0, sets: 1, min: 5, max: 10, inc: 0, rest: 0, cues: "Quads, hamstrings, and calves. Take it easy, legs will be sore." },
-      { id: "hydration", name: "Hydration", equipment: "bodyweight", weight: 0, sets: 1, min: 3, max: 3, inc: 0, rest: 0, cues: "Drink about 3 litres of water." }
+      { id: "walkA", name: "Light Walk", equipment: "bodyweight", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "30-45 MIN. Brisk pace, outdoor track or treadmill, focus on circulation and system flushing." },
+      { id: "mobility", name: "Dynamic Mobility", equipment: "bodyweight", weight: 0, sets: 1, min: 15, max: 20, inc: 0, rest: 0, cues: "15-20 MIN. Perform dynamic lunge stretches with torso rotation. Focus on opening hips and reach up." },
+      { id: "foam", name: "Foam Rolling", equipment: "bodyweight", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "10-15 MIN. Roll quads, hamstrings, and calves on a foam roller. Focus on trigger points." },
+      { id: "hydration", name: "Hydration", equipment: "bodyweight", weight: 0, sets: 1, min: 3, max: 4, inc: 0, rest: 0, cues: "Consume 3-4 liters of water, rehydrate the system." },
+      { id: "stretchA", name: "Stretching & Breathing", equipment: "bodyweight", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "10-15 MIN. Static holds like a seated hamstring stretch, focus on deep diaphragmatic breathing to down-regulate." }
     ]
   },
   {
     key: "upperB", tag: "THU", short: "UPPER B", name: "Upper Body B", focus: "VERTICAL & ARMS",
     exercises: [
-      { id: "ohp", name: "Overhead Press", equipment: "barbell", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 150, cues: "Press standing with abs and glutes tight. Don't arch your back." },
-      { id: "dbrow", name: "Single-arm DB Row", equipment: "dumbbell", weight: 14, sets: 3, min: 8, max: 10, inc: 2, rest: 120, cues: "Pull the DB row toward your hip." },
-      { id: "pulldownB", name: "Close-grip Pulldown / Chin-up", equipment: "machine", weight: 35, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Drive elbows down, pull chest to bar." },
-      { id: "fly", name: "Incline Fly", equipment: "dumbbell", weight: 6, sets: 3, min: 10, max: 12, inc: 2, rest: 90, cues: "Slight bend in elbows, deep stretch at bottom." },
-      { id: "supersetB", name: "Superset: Pushdown & Hammer", equipment: "machine", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "5A Triceps pushdown. 5B Hammer curl." },
-      { id: "facepull", name: "Face Pull", equipment: "machine", weight: 15, sets: 3, min: 15, max: 20, inc: 2.5, rest: 60, cues: "Pull to eye level and rotate hands back." }
+      { id: "ohp", name: "Barbell Overhead Press", equipment: "barbell", weight: 20, sets: 3, min: 6, max: 8, inc: 2.5, rest: 120, cues: "Brace core, press straight up, push head through at lockout." },
+      { id: "pulldownB", name: "Lat Pulldown", equipment: "machine", weight: 25, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Sit upright, pull bar to upper chest, squeeze shoulder blades at the bottom." },
+      { id: "dips", name: "Dips (Chest/Triceps)", equipment: "bodyweight", weight: 0, sets: 3, min: 8, max: 10, inc: 2.5, rest: 90, cues: "Lean forward for chest, upright for triceps, lower until upper arms are parallel." },
+      { id: "facepull", name: "Face Pulls (Cables)", equipment: "machine", weight: 8, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Use rope attachment, pull towards face, externally rotate shoulders, squeeze rear delts." },
+      { id: "latraise", name: "DB Lateral Raise", equipment: "dumbbell", weight: 4, sets: 4, min: 12, max: 15, inc: 1, rest: 60, cues: "Raise DBs to shoulder height, slight elbow bend, lead with elbows." },
+      { id: "curl", name: "DB Bicep Curls", equipment: "dumbbell", weight: 6, sets: 3, min: 10, max: 12, inc: 1, rest: 60, cues: "Keep elbows locked at sides, curl to shoulder, squeeze bicep, controlled lowering." }
     ]
   },
   {
     key: "lowerB", tag: "FRI", short: "LOWER B", name: "Lower Body B", focus: "HINGE & POSTERIOR CHAIN",
     exercises: [
-      { id: "hipthrust", name: "Hip Thrust", equipment: "barbell", weight: 40, sets: 4, min: 8, max: 10, inc: 5, rest: 150, cues: "Squeeze 1 sec at the top of the movement." },
-      { id: "bss", name: "Bulgarian Split Squat", equipment: "dumbbell", weight: 8, sets: 3, min: 8, max: 10, inc: 2, rest: 90, cues: "Rear foot elevated, lean slightly forward." },
-      { id: "legext", name: "Leg Extension", equipment: "machine", weight: 25, sets: 3, min: 12, max: 15, inc: 2.5, rest: 90, cues: "Control movement, squeeze quads at top." },
-      { id: "legcurlB", name: "Seated Leg Curl", equipment: "machine", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Curl legs back, squeeze hamstrings, control weight." },
-      { id: "calfB", name: "Seated Calf Raise", equipment: "machine", weight: 20, sets: 4, min: 12, max: 15, inc: 5, rest: 60, cues: "Pause 2 sec at the bottom of each rep." },
-      { id: "cablecr", name: "Cable Crunch or Plank", equipment: "machine", weight: 15, sets: 2, min: 12, max: 15, inc: 0, rest: 60, cues: "Moderate stack, or 45 sec plank." }
+      { id: "rdl", name: "Romanian Deadlift", equipment: "barbell", weight: 30, sets: 3, min: 6, max: 8, inc: 5, rest: 120, cues: "Hinge at hips, keep back straight, slight knee bend, feel hamstring stretch." },
+      { id: "bss", name: "Bulgarian Split Squat", equipment: "dumbbell", weight: 8, sets: 3, min: 8, max: 10, inc: 2, rest: 90, cues: "Rear foot elevated on bench, lower hips straight down, front knee over ankle." },
+      { id: "legext", name: "Leg Extensions", equipment: "machine", weight: 25, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Control movement, fully extend legs, squeeze quads at top, lower slowly." },
+      { id: "legcurlB", name: "Seated Leg Curls", equipment: "machine", weight: 20, sets: 3, min: 10, max: 12, inc: 2.5, rest: 60, cues: "Adjust pad, secure lap, curl legs back, squeeze hamstrings, control weight." },
+      { id: "calfB", name: "Seated Calf Raises", equipment: "machine", weight: 20, sets: 3, min: 12, max: 15, inc: 5, rest: 60, cues: "Balls of feet on platform, lower heels for full stretch, raise high on toes." },
+      { id: "hlr", name: "Hanging Knee Raise", equipment: "bodyweight", weight: 0, sets: 3, min: 10, max: 15, inc: 0, rest: 60, cues: "Hang from bar, keep upper body still, raise knees to chest, control descent." }
     ]
   },
   {
-    key: "recoveryB", tag: "SAT", short: "REST", name: "Rest Day", focus: "SYSTEM RESET", recovery: true,
+    key: "recoveryB", tag: "SAT", short: "REST", name: "Recovery & Prep", focus: "SYSTEM RESET", recovery: true,
     exercises: [
-      { id: "weighin", name: "Weigh-in", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Weigh yourself after the toilet and before eating. Write it down." },
-      { id: "photos", name: "Progress Photos", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Shirtless, front, side, and back. Same spot, same light." }
+      { id: "walkB", name: "Recovery Walk", equipment: "bodyweight", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "Brisk, conversational pace, outdoor track or neighborhood, focus on circulation." },
+      { id: "stretchB", name: "Light Stretching", equipment: "bodyweight", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Focus on major muscle groups, hold stretches for 30s, breathe deeply." },
+      { id: "mealprep", name: "Meal Prep", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Cook proteins, prep vegetables, portion meals for the week. Stay organized." }
     ]
   },
   {
-    key: "recoveryC", tag: "SUN", short: "REST", name: "Rest Day", focus: "SYSTEM RESET", recovery: true,
+    key: "recoveryC", tag: "SUN", short: "REST", name: "Recovery & Prep", focus: "SYSTEM RESET", recovery: true,
     exercises: [
-      { id: "sleep", name: "Sleep Well", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "No lifting. Sleep well, Monday is a heavy upper day." }
+      { id: "walkC", name: "Recovery Walk", equipment: "bodyweight", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "Brisk, conversational pace, outdoor track or neighborhood, focus on circulation." },
+      { id: "stretchC", name: "Light Stretching", equipment: "bodyweight", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Focus on major muscle groups, hold stretches for 30s, breathe deeply." },
+      { id: "mealprepC", name: "Meal Prep", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "Cook proteins, prep vegetables, portion meals for the week. Stay organized." }
     ]
   }
 ];
