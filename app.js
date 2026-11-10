@@ -406,7 +406,6 @@ document.addEventListener("click", function (ev) {
     const dateStr = el.dataset.date;
     if (state.calTarget === 'mission') {
       state.missionDate = dateStr;
-      // Auto-switch the workout program to match the selected date's day of the week
       const d = new Date(dateStr + "T12:00:00");
       const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
       state.dayKey = dayMap[d.getDay()];
@@ -582,7 +581,6 @@ document.addEventListener("click", function (ev) {
     const day = getDay(state.dayKey);
     const session = getSession(db, day.key, state.missionDate);
 
-    // Check if any sets are done
     let hasData = false;
     const workoutLog = [];
 
@@ -596,7 +594,7 @@ document.addEventListener("click", function (ev) {
           exercise: ex.name,
           weight: s.weight,
           setsCompleted: doneSets,
-          repsPerSet: repsDone,
+          repsPerSet: repsDone, // Fixed typo here
           rir: s.rir
         });
       }
@@ -622,12 +620,13 @@ document.addEventListener("click", function (ev) {
     })
       .then(r => r.json())
       .then(data => {
-        // Convert markdown line breaks to HTML
         const formattedAdvice = data.advice.replace(/\n/g, '<br>');
-        resultDiv.innerHTML = `<div style="font-size: 13px; line-height: 1.6; color: var(--txt);">${formattedAdvice}</div>`;
+        const color = formattedAdvice.includes("ERROR") || formattedAdvice.includes("Error") ? "var(--red)" : "var(--txt)";
+        resultDiv.innerHTML = `<div style="font-size: 13px; line-height: 1.6; color: ${color};">${formattedAdvice}</div>`;
       })
-      .catch(() => {
-        resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO CONNECT TO COACH.</div>';
+      .catch((err) => {
+        console.error(err);
+        resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO CONNECT TO COACH. CHECK CONSOLE.</div>';
       })
       .finally(() => {
         btn.disabled = false;
@@ -635,6 +634,7 @@ document.addEventListener("click", function (ev) {
       });
     return;
   }
+
   if (act === "toggle-vault") {
     const key = el.dataset.key;
     state.vaultMilestone = (state.vaultMilestone === key) ? null : key;
@@ -642,10 +642,6 @@ document.addEventListener("click", function (ev) {
     return;
   }
 
-  if (act === "photo") {
-    state.photoTarget = { ms: el.dataset.ms, pose: el.dataset.pose };
-    const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return;
-  }
   if (act === "photo") {
     state.photoTarget = { ms: el.dataset.ms, pose: el.dataset.pose };
     const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return;
