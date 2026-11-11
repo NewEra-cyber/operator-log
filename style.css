@@ -1622,7 +1622,7 @@ main#view {
     flex: 1;
     overflow: hidden;
     position: relative;
-    touch-action: none;
+    touch-action: pan-y;
     display: grid;
     place-items: center;
     cursor: grab;
