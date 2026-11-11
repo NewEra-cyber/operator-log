@@ -185,7 +185,7 @@ export const MILESTONES = [
 export const POSES = ["front", "side", "back", "chest", "biceps", "triceps", "abs", "legs_front", "legs_back"];
 export const formatPose = (p) => p.replace("_", " ").toUpperCase();
 export const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
-export const BAR_WEIGHT = 20;
+export const BAR_WEIGHT = 0;
 
 export const BLUEPRINTS = [
   { key: "mon", label: "Monday: Upper A", src: "/images/mon.jpg" },

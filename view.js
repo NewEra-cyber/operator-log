@@ -145,7 +145,7 @@ function exCardHTML(db, session, ex) {
       <div class="tools">
         ${ex.equipment === 'barbell' ? `
           <div class="plate-box">
-            <span class="lbl">PLATE CALC · 20KG BAR</span>
+            <span class="lbl">PLATE CALC · PER SIDE (0KG BAR)</span> <!-- <--- Changed -->
             <div class="plates" id="plates-${ex.id}">${plateHTML(platesFor(s.weight))}</div>
           </div>
         ` : ''}
@@ -825,7 +825,7 @@ export function getExState(session, ex, db) {
 
 export function platesFor(total) {
   const t = num(total, 0);
-  if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 20KG" };
+  if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 0KG" }; // <--- Changed
   let perSide = (t - BAR_WEIGHT) / 2;
   const list = [];
   for (let i = 0; i < PLATES.length; i++) {
