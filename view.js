@@ -10,6 +10,7 @@ export function viewMission(db, state) {
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
   const session = getSession(db, day.key, dateKey);
 
+  // Phase 5.4: Smart Deload Predictor
   let isDeload = false;
   let recentRIRs = [];
   Object.keys(db.workouts).forEach(k => {
@@ -25,7 +26,7 @@ export function viewMission(db, state) {
   });
   if (recentRIRs.length > 5) {
     const avgRIR = recentRIRs.reduce((a, b) => a + b, 0) / recentRIRs.length;
-    if (avgRIR <= 0.5) isDeload = true; // CNS is fried
+    if (avgRIR <= 0.5) isDeload = true;
   }
 
   let totalSets = 0, doneSets = 0;
@@ -44,9 +45,32 @@ export function viewMission(db, state) {
 
   const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
 
+  // Phase 6: Next Session Preview
+  const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
+  const nextDayKey = dayMap[(new Date(dateKey + "T12:00:00").getDay() + 1) % 7];
+  const nextDay = TRAINING.find(d => d.key === nextDayKey) || TRAINING[0];
+  const nextSessionHTML = `
+    <div class="card" style="border-left: 3px solid var(--muted); margin-top: 16px;">
+      <div class="kicker mb-2">UP NEXT · ${nextDay.tag}</div>
+      <h3 style="font-size: 16px; color: #fff; margin: 0;">${nextDay.name}</h3>
+      <div class="focus" style="margin-top: 2px;">${nextDay.focus}</div>
+    </div>
+  `;
+
+  // Phase 6: Session Micro-Journal
+  const sessionNotes = db.logs[dateKey]?.sessionNotes || "";
+  const notesHTML = `
+    <div class="card" style="margin-top: 16px;">
+      <div class="kicker mb-4">SESSION MICRO-JOURNAL</div>
+      <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
+      <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
+      <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES</button>
+    </div>
+  `;
+
   return `
     <section class="pad">
-            <div class="day-strip">${pills}</div>
+      <div class="day-strip">${pills}</div>
       
       ${isDeload ? `
         <div class="deload-banner">
@@ -64,14 +88,6 @@ export function viewMission(db, state) {
                 <button class="mono btn-date" data-act="open-injury" style="border-color: var(--red); color: var(--red);">🚑 TWEAK</button>
                 <button class="mono btn-date" data-act="open-calendar" data-target="mission" data-date="${dateKey}">${dateKey} 📅</button>
               </div>
-            </div>
-            <!-- ... -->
-      <div class="card">
-        <div class="row between">
-          <div>
-            <div class="kicker flex-between">
-              ${day.tag} · ${dateKey}
-              <button class="mono btn-date" data-act="open-calendar" data-target="mission" data-date="${dateKey}">${dateKey} 📅</button>
             </div>
             <h2 class="day-title">${esc(day.name)}</h2>
             <div class="focus">${esc(day.focus)}</div>
@@ -99,6 +115,9 @@ export function viewMission(db, state) {
         </button>
         <div id="coachResult" class="ai-result" style="margin-top: 16px;"></div>
       </div>
+
+      ${notesHTML}
+      ${nextSessionHTML}
     </section>
   `;
 }
@@ -130,7 +149,6 @@ function exCardHTML(db, session, ex) {
       ? `<span class="ghost-text">Prev: ${lastWeight}kg × ${lastReps}</span>`
       : "";
 
-    // Phase 4.1: e1RM Calculation
     const currentWeight = num(s.weight, 0);
     const currentReps = num(s.reps[i], 0);
     const e1rm = currentWeight > 0 && currentReps > 0
@@ -182,7 +200,7 @@ function exCardHTML(db, session, ex) {
       <div class="tools">
         ${ex.equipment === 'barbell' ? `
           <div class="plate-box">
-            <span class="lbl">PLATE CALC · PER SIDE (0KG BAR)</span> <!-- <--- Changed -->
+            <span class="lbl">PLATE CALC · PER SIDE (0KG BAR)</span>
             <div class="plates" id="plates-${ex.id}">${plateHTML(platesFor(s.weight))}</div>
           </div>
         ` : ''}
@@ -226,7 +244,6 @@ export function viewRefuel(db, state) {
   const deficit = target - p;
   const waterMl = (log.water || 0) * 500;
 
-  // Phase 4.3: Calculate Protein Streak
   let streak = 0;
   let checkDate = new Date(key + "T12:00:00");
   while (true) {
@@ -234,13 +251,9 @@ export function viewRefuel(db, state) {
     if (dayProtein(db, checkKey) >= target) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
+    } else break;
   }
-  const streakHTML = streak > 0
-    ? `<div class="streak-badge">🔥 ${streak}-DAY PROTEIN STREAK</div>`
-    : "";
+  const streakHTML = streak > 0 ? `<div class="streak-badge">🔥 ${streak}-DAY PROTEIN STREAK</div>` : "";
 
   const now = new Date();
   const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -402,9 +415,7 @@ export function viewRefuel(db, state) {
       </div>
 
       <div class="kicker mb-4 mt-8">QUICK STASH</div>
-      <div class="snack-tray">
-        ${snackTray}
-      </div>
+      <div class="snack-tray">${snackTray}</div>
 
       <div class="card">
         <div class="kicker mb-9">1-TAP STAPLES</div>
@@ -712,7 +723,6 @@ export function viewSystem(db) {
   const bestCount = Object.keys(db.history).length;
   const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
-  // Phase 4.2: Weekly Volume Tonnage Chart
   let maxVolume = 0;
   const volumeData = [];
   for (let i = 6; i >= 0; i--) {
@@ -750,8 +760,19 @@ export function viewSystem(db) {
     `;
   }).join("");
 
+  const lastBackup = db.settings.lastBackup || 0;
+  const daysSinceBackup = Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24));
+  const showBackupWarning = daysSinceBackup > 7;
+
   return `
     <section class="pad">
+      ${showBackupWarning ? `
+        <div class="card" style="border: 1px solid var(--red); background: rgba(255, 75, 75, 0.1); animation: pulse-border-red 2s infinite;">
+          <div class="kicker color-red mb-4">⚠️ BACKUP OVERDUE</div>
+          <div style="font-size: 13px; color: #fff;">It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.</div>
+        </div>
+      ` : ''}
+
       <div class="card">
         <div class="kicker">SYSTEM STATUS</div>
         <h2 class="day-title mt-4">DIAGNOSTICS</h2>
@@ -772,18 +793,20 @@ export function viewSystem(db) {
       </div>
 
       <div class="card">
+        <div class="kicker mb-6">WEEKLY TACTICAL SYNTHESIS</div>
+        <div class="dim small mb-10">Synthesize your 7-day training and nutrition into a tactical report.</div>
+        <button class="act-btn primary" data-act="run-synthesis" id="synthesisBtn" style="border-color: var(--cyan); color: var(--cyan);">🧠 RUN AI DEBRIEF</button>
+        <div id="synthesisResult" style="display:none; margin-top:12px; padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;"></div>
+      </div>
+
+      <div class="card">
         <div class="kicker mb-6">PROTEIN TARGET</div>
         <div class="row between">
           <input id="targetInput" class="load-in mono" type="number" min="20" max="400" value="${num(db.settings.proteinTarget, 105)}" style="width:90px;text-align:center" />
           <button class="act-btn m-0" data-act="save-target" style="width:auto; padding:9px 16px">SAVE</button>
         </div>
       </div>
-      <div class="card">
-        <div class="kicker mb-6">WEEKLY TACTICAL SYNTHESIS</div>
-        <div class="dim small mb-10">Synthesize your 7-day training and nutrition into a tactical report.</div>
-        <button class="act-btn primary" data-act="run-synthesis" id="synthesisBtn" style="border-color: var(--cyan); color: var(--cyan);">🧠 RUN AI DEBRIEF</button>
-        <div id="synthesisResult" style="display:none; margin-top:12px; padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;"></div>
-      </div>
+
       <div class="card">
         <div class="kicker mb-4">BACKUP &amp; RESTORE</div>
         <button class="act-btn primary" data-act="export">⭳ EXPORT JSON BACKUP</button>
@@ -867,7 +890,7 @@ export function getExState(session, ex, db) {
 
 export function platesFor(total) {
   const t = num(total, 0);
-  if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 0KG" }; // <--- Changed
+  if (t <= BAR_WEIGHT) return { list: [], note: "EMPTY BAR · 0KG" };
   let perSide = (t - BAR_WEIGHT) / 2;
   const list = [];
   for (let i = 0; i < PLATES.length; i++) {

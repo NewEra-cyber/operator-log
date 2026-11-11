@@ -3,7 +3,7 @@ import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from '
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES } from './data.js';
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
 
-// === PHASE 1: AUDIO CONTEXT ===
+// === AUDIO CONTEXT ===
 let audioCtx = null;
 function playTone(freq, duration, type = 'sine') {
   if (!audioCtx) {
@@ -180,7 +180,7 @@ function toggleSet(exId, i) {
   if (!wasOn) {
     const best = db.history[exId];
     const allDone = s.sets.every(Boolean);
-    
+
     if (allDone) {
       const w = num(s.weight, 0);
       const topReps = s.reps.map((r) => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
@@ -188,13 +188,21 @@ function toggleSet(exId, i) {
         db.history[exId] = { weight: w, reps: topReps, date: ymd() };
         saveDB(db);
         toast("NEW BEST LOGGED · " + ex.name.toUpperCase(), "green");
+
+        // Haptic PR Celebration & Flash
+        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch (e) { } }
+        const card = document.getElementById(`card-${exId}`);
+        if (card) {
+          card.style.boxShadow = "0 0 30px var(--primary)";
+          setTimeout(() => card.style.boxShadow = "", 1500);
+        }
+
         render();
         startRest(ex.rest);
         return;
       }
     }
-    
-    // Phase 5.1: In-Session Auto-Regulation
+
     const doneSets = s.sets.filter(Boolean).length;
     const isCompound = ["squat", "bench", "rdl", "ohp"].includes(ex.id);
 
@@ -267,6 +275,9 @@ async function handlePhotoFile(file) {
 
 function exportJSON() {
   const db = getDB();
+  db.settings.lastBackup = Date.now();
+  saveDB(db);
+
   const exportData = JSON.parse(JSON.stringify(db));
   if (!exportData.settings.includePhotos) exportData.photos = {};
 
@@ -438,10 +449,21 @@ document.addEventListener("click", function (ev) {
   const act = el.dataset.act;
   if (navigator.vibrate) navigator.vibrate(10);
 
+  if (act === "save-notes") {
+    const text = document.getElementById("sessionNotesInput").value;
+    const dateKey = el.dataset.date;
+    const db = getDB();
+    if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
+    db.logs[dateKey].sessionNotes = text;
+    saveDB(db);
+    toast("SESSION NOTES SAVED", "green");
+    return;
+  }
+
   if (act === "open-warmup") {
     const weight = Number(el.dataset.weight);
     const content = document.getElementById("warmupContent");
-    const bar = 20;
+    const bar = 0;
     const r1 = Math.round((weight * 0.5) / 2.5) * 2.5;
     const r2 = Math.round((weight * 0.7) / 2.5) * 2.5;
     const r3 = Math.round((weight * 0.85) / 2.5) * 2.5;
@@ -640,7 +662,6 @@ document.addEventListener("click", function (ev) {
   }
   if (act === "close-legal") { document.getElementById("legalModal").classList.remove("open"); return; }
 
-  // === PHASE 5: INJURY COMPENSATOR ===
   if (act === "open-injury") {
     const content = document.getElementById("injuryContent");
     content.innerHTML = `
@@ -681,7 +702,6 @@ document.addEventListener("click", function (ev) {
     return;
   }
 
-  // === PHASE 5: WEEKLY SYNTHESIS ===
   if (act === "run-synthesis") {
     const btn = document.getElementById("synthesisBtn");
     const resultDiv = document.getElementById("synthesisResult");
@@ -1102,7 +1122,7 @@ function schedulePrepReminder() {
   if (Notification.permission !== "granted") return;
   const now = new Date();
   const target = new Date();
-  target.setHours(20, 30, 0, 0); // 8:30 PM
+  target.setHours(20, 30, 0, 0);
   if (now > target) return;
   const msUntil = target.getTime() - now.getTime();
   setTimeout(() => {
@@ -1119,7 +1139,6 @@ if ("Notification" in window && Notification.permission === "granted") {
   schedulePrepReminder();
 }
 
-// Split Slider Logic
 document.addEventListener("pointerdown", function (e) {
   const handle = e.target.closest("#splitHandle");
   if (!handle) return;

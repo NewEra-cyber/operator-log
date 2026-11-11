@@ -2502,3 +2502,13 @@ body,
     color: var(--txt);
     white-space: pre-wrap;
 }
+/* Phase 6: Micro Journal */
+textarea#sessionNotesInput {
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+textarea#sessionNotesInput:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+}
