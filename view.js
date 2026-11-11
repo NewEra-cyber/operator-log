@@ -10,6 +10,24 @@ export function viewMission(db, state) {
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
   const session = getSession(db, day.key, dateKey);
 
+  let isDeload = false;
+  let recentRIRs = [];
+  Object.keys(db.workouts).forEach(k => {
+    const d = new Date(k.split("::")[1] + "T12:00:00");
+    if ((new Date() - d) / (1000 * 60 * 60 * 24) <= 14) {
+      const sess = db.workouts[k];
+      if (sess.ex) {
+        Object.values(sess.ex).forEach(ex => {
+          if (ex.rir !== undefined) recentRIRs.push(Number(ex.rir));
+        });
+      }
+    }
+  });
+  if (recentRIRs.length > 5) {
+    const avgRIR = recentRIRs.reduce((a, b) => a + b, 0) / recentRIRs.length;
+    if (avgRIR <= 0.5) isDeload = true; // CNS is fried
+  }
+
   let totalSets = 0, doneSets = 0;
   day.exercises.forEach((ex) => {
     const s = getExState(session, ex, db);
@@ -28,7 +46,26 @@ export function viewMission(db, state) {
 
   return `
     <section class="pad">
-      <div class="day-strip">${pills}</div>
+            <div class="day-strip">${pills}</div>
+      
+      ${isDeload ? `
+        <div class="deload-banner">
+          <div class="kicker color-red mb-2">⚠️ SYSTEMIC FATIGUE DETECTED</div>
+          <div style="font-size: 13px; color: #fff;">TACTICAL DELOAD ACTIVE. Drop all loads by 15% and limit sets to 2 this week.</div>
+        </div>
+      ` : ''}
+
+      <div class="card">
+        <div class="row between">
+          <div>
+            <div class="kicker flex-between">
+              ${day.tag} · ${dateKey}
+              <div class="flex-row">
+                <button class="mono btn-date" data-act="open-injury" style="border-color: var(--red); color: var(--red);">🚑 TWEAK</button>
+                <button class="mono btn-date" data-act="open-calendar" data-target="mission" data-date="${dateKey}">${dateKey} 📅</button>
+              </div>
+            </div>
+            <!-- ... -->
       <div class="card">
         <div class="row between">
           <div>
@@ -741,7 +778,12 @@ export function viewSystem(db) {
           <button class="act-btn m-0" data-act="save-target" style="width:auto; padding:9px 16px">SAVE</button>
         </div>
       </div>
-
+      <div class="card">
+        <div class="kicker mb-6">WEEKLY TACTICAL SYNTHESIS</div>
+        <div class="dim small mb-10">Synthesize your 7-day training and nutrition into a tactical report.</div>
+        <button class="act-btn primary" data-act="run-synthesis" id="synthesisBtn" style="border-color: var(--cyan); color: var(--cyan);">🧠 RUN AI DEBRIEF</button>
+        <div id="synthesisResult" style="display:none; margin-top:12px; padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;"></div>
+      </div>
       <div class="card">
         <div class="kicker mb-4">BACKUP &amp; RESTORE</div>
         <button class="act-btn primary" data-act="export">⭳ EXPORT JSON BACKUP</button>

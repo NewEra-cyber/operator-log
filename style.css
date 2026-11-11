@@ -2375,67 +2375,130 @@ body,
     right: 10px;
     border-right: 2px solid var(--green);
 }
+
 /* Phase 4: Analytics & Charts */
 .streak-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(240, 160, 48, 0.15);
-  border: 1px solid var(--orange);
-  color: var(--orange);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(240, 160, 48, 0.15);
+    border: 1px solid var(--orange);
+    color: var(--orange);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
 }
 
 .e1rm-badge {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--cyan);
-  background: rgba(0, 229, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 4px;
-  border: 1px solid rgba(0, 229, 255, 0.3);
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--cyan);
+    background: rgba(0, 229, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
 }
 
 .volume-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 120px;
-  padding-top: 20px;
-  margin-top: 10px;
-  border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 120px;
+    padding-top: 20px;
+    margin-top: 10px;
+    border-bottom: 1px solid var(--border);
 }
+
 .volume-bar-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  gap: 4px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 4px;
 }
+
 .volume-bar {
-  width: 100%;
-  background: linear-gradient(to top, rgba(0, 229, 255, 0.2), var(--primary));
-  border-radius: 4px 4px 0 0;
-  min-height: 2px;
-  transition: height 0.3s ease;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0, 229, 255, 0.2), var(--primary));
+    border-radius: 4px 4px 0 0;
+    min-height: 2px;
+    transition: height 0.3s ease;
 }
+
 .volume-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--muted);
 }
+
 .volume-val {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--primary);
-  font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Phase 5: Deload & Injury UI */
+.deload-banner {
+    background: rgba(255, 75, 75, 0.1);
+    border: 1px solid var(--red);
+    border-left: 4px solid var(--red);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    animation: pulse-border-red 2s infinite;
+}
+
+@keyframes pulse-border-red {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(255, 75, 75, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(255, 75, 75, 0.5);
+    }
+}
+
+.injury-option {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.injury-option:active {
+    border-color: var(--primary);
+    background: rgba(0, 229, 255, 0.05);
+}
+
+.injury-option h4 {
+    color: #fff;
+    font-size: 15px;
+    margin: 0 0 4px 0;
+}
+
+.injury-option p {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0;
+}
+
+.synthesis-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--txt);
+    white-space: pre-wrap;
 }

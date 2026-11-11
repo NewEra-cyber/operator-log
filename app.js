@@ -180,6 +180,7 @@ function toggleSet(exId, i) {
   if (!wasOn) {
     const best = db.history[exId];
     const allDone = s.sets.every(Boolean);
+    
     if (allDone) {
       const w = num(s.weight, 0);
       const topReps = s.reps.map((r) => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
@@ -192,7 +193,18 @@ function toggleSet(exId, i) {
         return;
       }
     }
+    
+    // Phase 5.1: In-Session Auto-Regulation
+    const doneSets = s.sets.filter(Boolean).length;
+    const isCompound = ["squat", "bench", "rdl", "ohp"].includes(ex.id);
+
+    if (isCompound && s.rir === 0 && doneSets === 1) {
+      toast("EARLY FAILURE: Drop load by 5kg for remaining sets.", "red");
+    } else if (allDone && s.rir === 2 && s.reps.every(r => num(r, 0) >= ex.max)) {
+      toast("CAPACITY DETECTED: Auto-increment staged for next session.", "cyan");
+    }
   }
+
   saveDB(db);
   render();
   if (!wasOn && ex.rest > 0) startRest(ex.rest);
@@ -268,6 +280,7 @@ function exportJSON() {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast("BACKUP EXPORTED", "cyan");
 }
+
 function exportCSV() {
   const db = getDB();
   let csv = "Date,Exercise,Set,Weight (kg),Reps,RIR\n";
@@ -281,7 +294,6 @@ function exportCSV() {
         if (s.sets) {
           s.sets.forEach((done, idx) => {
             if (done) {
-              // Find exercise name from TRAINING if possible
               let exName = exId;
               TRAINING.forEach(d => {
                 const found = d.exercises.find(e => e.id === exId);
@@ -627,6 +639,104 @@ document.addEventListener("click", function (ev) {
     return;
   }
   if (act === "close-legal") { document.getElementById("legalModal").classList.remove("open"); return; }
+
+  // === PHASE 5: INJURY COMPENSATOR ===
+  if (act === "open-injury") {
+    const content = document.getElementById("injuryContent");
+    content.innerHTML = `
+      <div class="kicker mb-6">SELECT AFFECTED AREA</div>
+      <div class="injury-option" data-act="apply-injury" data-type="shoulder">
+        <h4>Shoulder</h4>
+        <p>Swaps OHP to DB Press, drops Bench load by 15%.</p>
+      </div>
+      <div class="injury-option" data-act="apply-injury" data-type="lower_back">
+        <h4>Lower Back</h4>
+        <p>Swaps Barbell RDL to Lying Hamstring Curls.</p>
+      </div>
+      <div class="injury-option" data-act="apply-injury" data-type="knee">
+        <h4>Knee</h4>
+        <p>Swaps Back Squat to Goblet Squats, drops Leg Press load by 20%.</p>
+      </div>
+    `;
+    document.getElementById("injuryModal").classList.add("open");
+    return;
+  }
+  if (act === "close-injury") { document.getElementById("injuryModal").classList.remove("open"); return; }
+
+  if (act === "apply-injury") {
+    const type = el.dataset.type;
+    if (type === "shoulder") {
+      state.swappedExercises["ohp"] = "db_ohp";
+      state.swappedExercises["bench"] = "db_bench";
+      toast("SHOULDER PROTOCOL ACTIVE: OHP swapped, Bench adjusted.", "cyan");
+    } else if (type === "lower_back") {
+      state.swappedExercises["rdl"] = "db_rdl";
+      toast("LOWER BACK PROTOCOL ACTIVE: RDL swapped.", "cyan");
+    } else if (type === "knee") {
+      state.swappedExercises["squat"] = "goblet_squat";
+      toast("KNEE PROTOCOL ACTIVE: Squat swapped.", "cyan");
+    }
+    document.getElementById("injuryModal").classList.remove("open");
+    render();
+    return;
+  }
+
+  // === PHASE 5: WEEKLY SYNTHESIS ===
+  if (act === "run-synthesis") {
+    const btn = document.getElementById("synthesisBtn");
+    const resultDiv = document.getElementById("synthesisResult");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> SYNTHESIZING...';
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = '<div class="mono color-cyan text-center">Analyzing 7-day window...</div>';
+
+    const db = getDB();
+    let tonnage = 0;
+    let proteinHits = 0;
+    let waterTotal = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const dk = addDays(ymd(), -i);
+      if (dayProtein(db, dk) >= (db.settings.proteinTarget || 105)) proteinHits++;
+      waterTotal += (db.logs[dk]?.water || 0);
+
+      Object.keys(db.workouts).forEach(k => {
+        if (k.includes(dk)) {
+          const sess = db.workouts[k];
+          if (sess.ex) {
+            Object.values(sess.ex).forEach(ex => {
+              if (ex.sets) ex.sets.forEach((done, idx) => {
+                if (done) tonnage += (num(ex.weight, 0) * num(ex.reps[idx], 0));
+              });
+            });
+          }
+        }
+      });
+    }
+
+    const weekData = {
+      totalTonnage: Math.round(tonnage),
+      proteinDaysHit: proteinHits,
+      avgWaterLiters: ((waterTotal * 0.5) / 7).toFixed(1),
+      weightDelta: db.weightLog.length > 1 ? (db.weightLog[db.weightLog.length - 1].weight - db.weightLog[db.weightLog.length - 2].weight).toFixed(1) : 0
+    };
+
+    fetch("/api/weekly-synthesis", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weekData })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        const formatted = data.advice.replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>');
+        resultDiv.innerHTML = `<div class="synthesis-text">${formatted}</div>`;
+      })
+      .catch(() => { resultDiv.innerHTML = '<div class="color-red small">Failed to synthesize. Check API key.</div>'; })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '🧠 RUN AI DEBRIEF';
+      });
+    return;
+  }
 
   if (act === "tab") { state.tab = el.dataset.tab; render(); window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" }); return; }
   if (act === "pick-day") { state.dayKey = el.dataset.key; render(); return; }
