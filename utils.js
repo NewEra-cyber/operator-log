@@ -66,7 +66,8 @@ export function compressImage(file, maxDim, quality) {
         ctx.fillRect(0, 0, cw, ch);
         ctx.drawImage(img, 0, 0, cw, ch);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        // Changed to WebP for 30-50% smaller file sizes
+        resolve(canvas.toDataURL("image/webp", quality));
       } catch (err) {
         URL.revokeObjectURL(url);
         reject(err);

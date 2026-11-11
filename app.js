@@ -1,7 +1,26 @@
 import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
 import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
-import { TRAINING, BLUEPRINTS } from './data.js';
+import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST } from './data.js';
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML } from './view.js';
+
+// === PHASE 1: AUDIO CONTEXT ===
+let audioCtx = null;
+function playTone(freq, duration, type = 'sine') {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
 
 const state = {
   tab: "mission",
@@ -19,15 +38,29 @@ const state = {
   bpKey: null,
   calTarget: null,
   calMonth: new Date().getMonth(),
-  calYear: new Date().getFullYear()
+  calYear: new Date().getFullYear(),
+  swappedExercises: {}
 };
 
 function todayDayKey() {
   const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   return map[new Date().getDay()];
 }
+
 function getDay(key) {
-  return TRAINING.filter((d) => d.key === key)[0] || TRAINING[0];
+  let day = TRAINING.filter((d) => d.key === key)[0] || TRAINING[0];
+  if (Object.keys(state.swappedExercises).length > 0) {
+    day = JSON.parse(JSON.stringify(day));
+    day.exercises = day.exercises.map(ex => {
+      const swapId = state.swappedExercises[ex.id];
+      if (swapId && ex.alternates) {
+        const alt = ex.alternates.find(a => a.id === swapId);
+        if (alt) return { ...alt, sets: ex.sets, min: ex.min, max: ex.max, inc: ex.inc, rest: ex.rest, cues: ex.cues, alternates: ex.alternates };
+      }
+      return ex;
+    });
+  }
+  return day;
 }
 
 function render() {
@@ -43,13 +76,8 @@ function render() {
 
   view.innerHTML = html;
 
-  $$("#tabs button").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tab === state.tab);
-  });
-
-  document.querySelectorAll('.progress-bar').forEach(el => {
-    el.style.width = el.dataset.pct + '%';
-  });
+  $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === state.tab));
+  document.querySelectorAll('.progress-bar').forEach(el => el.style.width = el.dataset.pct + '%');
   document.querySelectorAll('.ring-fg').forEach(el => {
     el.style.strokeDasharray = el.dataset.circumference;
     el.style.strokeDashoffset = el.dataset.offset;
@@ -58,15 +86,10 @@ function render() {
 
 let wakeLock = null;
 async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-  } catch (err) { console.log(err); }
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) { console.log(err); }
 }
 function releaseWakeLock() {
-  if (wakeLock !== null) {
-    wakeLock.release();
-    wakeLock = null;
-  }
+  if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
 const rest = { endAt: 0, total: 0, handle: null };
@@ -86,10 +109,13 @@ function startRest(seconds) {
   timerProgress.style.strokeDasharray = circumference;
   timerProgress.style.strokeDashoffset = 0;
   document.querySelectorAll('.rest-preset-btn').forEach(b => b.classList.toggle('on', Number(b.dataset.s) === seconds));
+  playTone(440, 0.1, 'sine');
   tickRest();
   if (rest.handle) clearInterval(rest.handle);
   rest.handle = setInterval(tickRest, 100);
 }
+
+let lastPlayedSecond = null;
 
 function tickRest() {
   const now = Date.now();
@@ -97,6 +123,14 @@ function tickRest() {
   const m = Math.floor(left / 60);
   const s = left % 60;
   document.getElementById("fullscreenClock").textContent = m + ":" + pad2(s);
+  if (left !== lastPlayedSecond) {
+    if (left === 10) {
+      playTone(880, 0.05, 'sine');
+      setTimeout(() => playTone(880, 0.05, 'sine'), 150);
+      setTimeout(() => playTone(880, 0.05, 'sine'), 300);
+    }
+    lastPlayedSecond = left;
+  }
   const elapsed = rest.total - left;
   const percentage = elapsed / rest.total;
   if (timerProgress) timerProgress.style.strokeDashoffset = -(circumference * percentage);
@@ -108,6 +142,7 @@ function finishRest() {
   releaseWakeLock();
   if (document.getElementById("fullscreenClock")) document.getElementById("fullscreenClock").textContent = "GO";
   if (timerProgress) timerProgress.style.strokeDashoffset = -circumference;
+  playTone(150, 0.3, 'triangle');
   if (navigator.vibrate) { try { navigator.vibrate([220, 110, 220, 110, 320]); } catch (e) { } }
   setTimeout(() => { if (timerContainer) timerContainer.classList.remove("show"); }, 2500);
 }
@@ -136,11 +171,9 @@ function toggleSet(exId, i) {
   const day = getDay(state.dayKey);
   const ex = day.exercises.filter((e) => e.id === exId)[0];
   if (!ex) return;
-
   const db = getDB();
   const session = getSession(db, day.key, state.missionDate, true);
   const s = getExState(session, ex, db);
-
   const wasOn = !!s.sets[i];
   s.sets[i] = !wasOn;
 
@@ -160,7 +193,6 @@ function toggleSet(exId, i) {
       }
     }
   }
-
   saveDB(db);
   render();
   if (!wasOn && ex.rest > 0) startRest(ex.rest);
@@ -217,12 +249,16 @@ async function handlePhotoFile(file) {
     console.error(e);
     toast("IMAGE PROCESSING FAILED", "red");
   }
+  document.getElementById("photoModal").classList.remove("open");
   render();
 }
 
 function exportJSON() {
   const db = getDB();
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+  const exportData = JSON.parse(JSON.stringify(db));
+  if (!exportData.settings.includePhotos) exportData.photos = {};
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "operator-log-backup-" + ymd() + ".json";
@@ -353,6 +389,53 @@ document.addEventListener("click", function (ev) {
   const act = el.dataset.act;
   if (navigator.vibrate) navigator.vibrate(10);
 
+  if (act === "open-warmup") {
+    const weight = Number(el.dataset.weight);
+    const content = document.getElementById("warmupContent");
+    const bar = 20;
+    const r1 = Math.round((weight * 0.5) / 2.5) * 2.5;
+    const r2 = Math.round((weight * 0.7) / 2.5) * 2.5;
+    const r3 = Math.round((weight * 0.85) / 2.5) * 2.5;
+
+    content.innerHTML = `
+      <div class="kicker mb-6">WARM-UP LADDER</div>
+      <div class="warmup-row"><span class="warmup-label">Empty Bar</span><span class="warmup-val">${bar} kg × 10 reps</span></div>
+      <div class="warmup-row"><span class="warmup-label">50% Working Load</span><span class="warmup-val">${r1} kg × 5 reps</span></div>
+      <div class="warmup-row"><span class="warmup-label">70% Working Load</span><span class="warmup-val">${r2} kg × 3 reps</span></div>
+      <div class="warmup-row"><span class="warmup-label">Primer (85%)</span><span class="warmup-val">${r3} kg × 1 rep</span></div>
+      <div class="dim small mt-8 text-center">Do not log these. They are for neural priming only.</div>
+    `;
+    document.getElementById("warmupModal").classList.add("open");
+    return;
+  }
+  if (act === "close-warmup") { document.getElementById("warmupModal").classList.remove("open"); return; }
+
+  if (act === "swap-ex") {
+    const exId = el.dataset.ex;
+    const ex = currentEx(exId);
+    const content = document.getElementById("swapContent");
+    const buttons = ex.alternates.map(alt => `<button class="act-btn mb-8" data-act="do-swap" data-original="${exId}" data-swap="${alt.id}">${alt.name}</button>`).join("");
+    content.innerHTML = `
+      <div class="kicker mb-6">SELECT SUBSTITUTE</div>
+      <div class="dim small mb-10">This swap only affects today's session. Your main program remains unchanged.</div>
+      <button class="act-btn primary mb-8" data-act="do-swap" data-original="${exId}" data-swap="${exId}">Revert to Original (${ex.name})</button>
+      ${buttons}
+    `;
+    document.getElementById("swapModal").classList.add("open");
+    return;
+  }
+  if (act === "close-swap") { document.getElementById("swapModal").classList.remove("open"); return; }
+
+  if (act === "do-swap") {
+    const origId = el.dataset.original;
+    const swapId = el.dataset.swap;
+    if (origId === swapId) delete state.swappedExercises[origId];
+    else state.swappedExercises[origId] = swapId;
+    document.getElementById("swapModal").classList.remove("open");
+    render();
+    return;
+  }
+
   if (act === "analyze-physique") {
     const mileA = document.getElementById("aiMileA").value;
     const mileB = document.getElementById("aiMileB").value;
@@ -360,18 +443,14 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     const imgA = (db.photos[mileA] || {})[pose];
     const imgB = (db.photos[mileB] || {})[pose];
-
     if (!imgA || !imgB) { toast("MISSING PHOTOS FOR THIS COMPARISON", "red"); return; }
 
     const resultDiv = document.getElementById("aiAnalysisResult");
     resultDiv.style.display = "block";
     resultDiv.innerHTML = '<div class="mono color-cyan text-center"><span class="spinner"></span> ANALYZING MUSCLE PROGRESS...</div>';
 
-    const base64A = imgA.split(",")[1];
-    const base64B = imgB.split(",")[1];
-
     fetch("/api/analyze-physique", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image1: base64A, image2: base64B, pose })
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image1: imgA.split(",")[1], image2: imgB.split(",")[1], pose })
     })
       .then(r => r.json())
       .then(data => {
@@ -454,7 +533,11 @@ document.addEventListener("click", function (ev) {
     if (!syncId) { toast("SAVE A SYNC CODE FIRST", "red"); return; }
     const statusEl = document.getElementById("syncStatus");
     statusEl.textContent = "STATUS: PUSHING TO CLOUD...";
-    fetch("/api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: syncId, data: db }) })
+
+    const payloadData = JSON.parse(JSON.stringify(db));
+    if (!payloadData.settings.includePhotos) payloadData.photos = {};
+
+    fetch("/api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: syncId, data: payloadData }) })
       .then(r => r.json()).then(res => {
         if (res.success) { statusEl.textContent = "STATUS: SYNCED AT " + new Date().toLocaleTimeString(); toast("DATA PUSHED TO CLOUD", "green"); }
         else throw new Error("Failed");
@@ -580,7 +663,6 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     const day = getDay(state.dayKey);
     const session = getSession(db, day.key, state.missionDate);
-
     let hasData = false;
     const workoutLog = [];
 
@@ -591,43 +673,28 @@ document.addEventListener("click", function (ev) {
         hasData = true;
         const repsDone = s.reps.filter((r, i) => s.sets[i]);
         workoutLog.push({
-          exercise: ex.name,
-          weight: s.weight,
-          setsCompleted: doneSets,
-          repsPerSet: repsDone, // Fixed typo here
-          rir: s.rir
+          exercise: ex.name, weight: s.weight, setsCompleted: doneSets, repsPerSet: repsDone, rir: s.rir
         });
       }
     });
 
-    if (!hasData) {
-      toast("LOG AT LEAST ONE SET BEFORE ASKING THE COACH", "red");
-      return;
-    }
+    if (!hasData) { toast("LOG AT LEAST ONE SET BEFORE ASKING THE COACH", "red"); return; }
 
     const btn = document.getElementById("askCoachBtn");
     const resultDiv = document.getElementById("coachResult");
-
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> ANALYZING...';
     resultDiv.style.display = "block";
     resultDiv.innerHTML = '<div class="mono color-cyan text-center">Consulting the AI Coach...</div>';
 
     fetch("/api/mission-coach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ workoutData: { day: day.name, date: state.missionDate, exercises: workoutLog } })
     })
       .then(r => r.json())
       .then(data => {
-        // Parse markdown bold (**) to HTML tags, and newlines to breaks
-        let formattedAdvice = data.advice
-          .replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>')
-          .replace(/\n/g, '<br>');
-
-        // Check for errors
+        let formattedAdvice = data.advice.replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>').replace(/\n/g, '<br>');
         const color = formattedAdvice.includes("ERROR") || formattedAdvice.includes("Error") ? "var(--red)" : "var(--txt)";
-
         resultDiv.innerHTML = `<div class="coach-text" style="color: ${color};">${formattedAdvice}</div>`;
       })
       .catch((err) => {
@@ -648,10 +715,27 @@ document.addEventListener("click", function (ev) {
     return;
   }
 
-  if (act === "photo") {
-    state.photoTarget = { ms: el.dataset.ms, pose: el.dataset.pose };
-    const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return;
+  if (act === "open-photo-modal") {
+    const ms = el.dataset.ms;
+    const pose = el.dataset.pose;
+    state.photoTarget = { ms, pose };
+    const db = getDB();
+    const msIndex = MILESTONES.findIndex(m => m.k === ms);
+    let ghostSrc = "";
+    if (msIndex > 0) {
+      const prevMs = MILESTONES[msIndex - 1].k;
+      ghostSrc = (db.photos[prevMs] || {})[pose] || "";
+    }
+    const ghostImg = document.getElementById("ghostImg");
+    if (ghostSrc) { ghostImg.src = ghostSrc; ghostImg.style.display = "block"; }
+    else { ghostImg.src = ""; ghostImg.style.display = "none"; }
+
+    document.getElementById("photoModalTitle").textContent = `ALIGNMENT: ${ms.toUpperCase()} ${pose.toUpperCase()}`;
+    document.getElementById("photoModal").classList.add("open");
+    return;
   }
+  if (act === "close-photo-modal") { document.getElementById("photoModal").classList.remove("open"); return; }
+  if (act === "trigger-photo-upload") { const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return; }
 
   if (act === "open-bp") { openLightbox(el.dataset.key); return; }
   if (act === "lb-close") { closeLightbox(); return; }
@@ -674,6 +758,44 @@ document.addEventListener("click", function (ev) {
     return;
   }
 
+  if (act === "toggle-photo-sync") {
+    const db = getDB();
+    db.settings.includePhotos = !db.settings.includePhotos;
+    saveDB(db); render();
+    toast(db.settings.includePhotos ? "PHOTOS INCLUDED" : "PHOTOS EXCLUDED", "cyan");
+    return;
+  }
+
+  if (act === "open-grocery") {
+    const content = document.getElementById("groceryContent");
+    const items = GROCERY_LIST.map((item, idx) => `
+      <div class="grocery-item">
+        <div>
+          <div style="font-weight:600; color:#fff; font-size:14px;">${item.name}</div>
+          <div class="mono small color-muted">${item.qty}</div>
+        </div>
+        <button class="grocery-check" data-idx="${idx}">✓</button>
+      </div>
+    `).join("");
+    content.innerHTML = `
+      <div class="kicker mb-6">MARKET PROCUREMENT</div>
+      <div class="dim small mb-8">Tap to mark items off your list.</div>
+      ${items}
+    `;
+    document.getElementById("groceryModal").classList.add("open");
+    return;
+  }
+  if (act === "close-grocery") { document.getElementById("groceryModal").classList.remove("open"); return; }
+  if (el.classList.contains("grocery-check")) { el.classList.toggle("checked"); return; }
+
+  if (act === "request-notifications") {
+    if (!("Notification" in window)) { toast("Notifications not supported", "red"); return; }
+    Notification.requestPermission().then(perm => {
+      if (perm === "granted") { toast("NOTIFICATIONS ENABLED", "green"); schedulePrepReminder(); }
+      else { toast("NOTIFICATIONS DENIED", "red"); }
+    });
+    return;
+  }
   if (act === "refuel-toggle") { state.refuelView = el.dataset.view; render(); return; }
   if (act === "plan-day") { state.planDay = el.dataset.key; render(); return; }
 });
@@ -692,8 +814,22 @@ document.addEventListener("input", function (ev) {
     if (!ex) return;
     const session = getSession(db, day.key, state.missionDate, true);
     const s = getExState(session, ex, db);
-    s.reps[idx] = num(el.value, 0);
+    const val = num(el.value, 0);
+    s.reps[idx] = val;
     saveDB(db);
+
+    const lastReps = Number(el.dataset.last);
+    const lastWeight = Number(el.dataset.lastWeight);
+    const currentWeight = num(s.weight, 0);
+    const deltaEl = document.getElementById(`delta-${exId}-${idx}`);
+
+    if (deltaEl) {
+      if (lastReps > 0) {
+        if (val > lastReps) deltaEl.innerHTML = `<span class="delta-badge">+${val - lastReps} REP</span>`;
+        else if (val === lastReps && currentWeight > lastWeight) deltaEl.innerHTML = `<span class="delta-badge">+${currentWeight - lastWeight} KG</span>`;
+        else deltaEl.innerHTML = "";
+      }
+    }
     return;
   }
 
@@ -795,6 +931,73 @@ document.getElementById("importInput").addEventListener("change", function (e) {
     if (e.pointerType === "mouse") release(e);
   });
 })();
+
+let waterPressTimer = null;
+document.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest('[data-act="add-water"]');
+  if (!el) return;
+  waterPressTimer = setTimeout(() => {
+    const db = getDB();
+    if (db.logs[state.nutDate]) {
+      db.logs[state.nutDate].water = 0;
+      saveDB(db);
+      render();
+      toast("WATER LOG RESET", "cyan");
+    }
+  }, 800);
+});
+document.addEventListener("pointerup", () => { clearTimeout(waterPressTimer); });
+document.addEventListener("pointercancel", () => { clearTimeout(waterPressTimer); });
+document.addEventListener("pointerleave", () => { clearTimeout(waterPressTimer); });
+
+function schedulePrepReminder() {
+  if (Notification.permission !== "granted") return;
+  const now = new Date();
+  const target = new Date();
+  target.setHours(20, 30, 0, 0); // 8:30 PM
+  if (now > target) return;
+  const msUntil = target.getTime() - now.getTime();
+  setTimeout(() => {
+    const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][tomorrowDate.getDay()];
+    const tomorrowPlan = MEAL_PLAN[tomorrowKey];
+    if (tomorrowPlan && tomorrowPlan.prep) {
+      new Notification("Tactical Prep Alert", { body: tomorrowPlan.prep, icon: "/images/logo.jpg" });
+    }
+  }, msUntil);
+}
+
+if ("Notification" in window && Notification.permission === "granted") {
+  schedulePrepReminder();
+}
+
+// Split Slider Logic
+document.addEventListener("pointerdown", function (e) {
+  const handle = e.target.closest("#splitHandle");
+  if (!handle) return;
+  e.preventDefault();
+
+  const container = document.getElementById("splitSlider");
+  const topImg = document.getElementById("imgTop");
+
+  function move(clientX) {
+    const rect = container.getBoundingClientRect();
+    let x = clientX - rect.left;
+    x = Math.max(0, Math.min(x, rect.width));
+    const pct = (x / rect.width) * 100;
+    handle.style.left = pct + "%";
+    topImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+  }
+
+  function onPointerMove(e) { move(e.clientX); }
+  function onPointerUp() {
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+  }
+
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+});
 
 function tickClock() {
   const d = new Date();

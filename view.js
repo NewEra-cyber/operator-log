@@ -1,5 +1,10 @@
-import { TRAINING, STAPLES, MEAL_PLAN, MILESTONES, POSES, BLUEPRINTS, PLATES, BAR_WEIGHT, formatPose } from './data.js';
+import { TRAINING, STAPLES, MEAL_PLAN, MILESTONES, POSES, BLUEPRINTS, PLATES, BAR_WEIGHT, formatPose, QUICK_STASH, GROCERY_LIST } from './data.js';
 import { esc, fmtDate, dayLetter, num, fmtRest, addDays, ymd, pad2 } from './utils.js';
+
+function getPlanKey(d) {
+  return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+}
+
 export function viewMission(db, state) {
   const dateKey = state.missionDate || ymd();
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
@@ -19,7 +24,6 @@ export function viewMission(db, state) {
     </button>`
   ).join("");
 
-  // This generates the workout cards ONLY ONCE
   const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
 
   return `
@@ -49,7 +53,6 @@ export function viewMission(db, state) {
       
       ${cards}
 
-      <!-- AI COACH SECTION (Only appears once at the bottom) -->
       <div class="card" style="margin-top: 16px; border-left: 3px solid var(--primary);">
         <div class="kicker mb-4">AI TACTICAL COACH</div>
         <div class="small color-muted mb-8">Log your sets and reps above, then ask the coach for next week's progression.</div>
@@ -65,6 +68,15 @@ export function viewMission(db, state) {
 
 function exCardHTML(db, session, ex) {
   const s = getExState(session, ex, db);
+  let lastSession = null;
+  const sessionKeys = Object.keys(db.workouts).sort().reverse();
+  for (let k of sessionKeys) {
+    if (k.includes(ex.id) && db.workouts[k].ex[ex.id]?.sets.some(Boolean)) {
+      lastSession = db.workouts[k].ex[ex.id];
+      break;
+    }
+  }
+
   const best = db.history[ex.id];
   const allDone = s.sets.every(Boolean) && s.sets.length > 0;
   const overload = allDone && s.reps.every((r) => num(r, 0) >= ex.max);
@@ -74,23 +86,44 @@ function exCardHTML(db, session, ex) {
     ? `<div class="best-badge">◈ PREVIOUS BEST <b>${best.weight}KG</b>${best.reps != null ? " × " + best.reps : ""}${best.date ? " · " + esc(best.date) : ""}</div>`
     : "";
 
-  const setsHTML = s.sets.map((on, i) =>
-    `<div class="set-item ${on ? "done" : ""}">
-      <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
-      <input class="reps-in mono" type="number" inputmode="numeric" min="0" max="99" value="${s.reps[i]}" data-act="ex-reps" data-ex="${ex.id}" data-i="${i}" />
-    </div>`
-  ).join("");
+  const setsHTML = s.sets.map((on, i) => {
+    const lastReps = lastSession ? lastSession.reps[i] : null;
+    const lastWeight = lastSession ? lastSession.weight : null;
+    const ghost = lastReps
+      ? `<span class="ghost-text">Prev: ${lastWeight}kg × ${lastReps}</span>`
+      : "";
+
+    return `<div class="set-item ${on ? "done" : ""}">
+      <div class="flex-row">
+        <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
+        <input class="reps-in mono" type="number" inputmode="numeric" min="0" max="99" value="${s.reps[i]}" data-act="ex-reps" data-ex="${ex.id}" data-i="${i}" data-last="${lastReps || 0}" data-last-weight="${lastWeight || 0}" />
+        <span id="delta-${ex.id}-${i}"></span>
+      </div>
+      ${ghost}
+    </div>`;
+  }).join("");
 
   const rirHTML = [2, 1, 0].map((v) =>
     `<button class="${num(s.rir) === v ? "on" : ""}" data-act="set-rir" data-ex="${ex.id}" data-v="${v}">${v}</button>`
   ).join("");
 
+  const swapBtn = ex.alternates && ex.alternates.length > 0
+    ? `<button class="swap-btn" data-act="swap-ex" data-ex="${ex.id}">⇄</button>`
+    : "";
+
+  const warmupBtn = ex.equipment === 'barbell'
+    ? `<button class="mono btn-date" style="margin-left:8px;" data-act="open-warmup" data-ex="${ex.id}" data-weight="${s.weight}">🔥 WARM-UP</button>`
+    : "";
+
   return `
     <article class="ex-card" id="card-${ex.id}">
       <div class="ex-top">
         <div class="ex-id">
-          <h3 class="ex-name" data-act="open-history" data-ex="${ex.id}">${esc(ex.name)}</h3>
-          <div class="ex-meta">${ex.sets} × ${ex.min}–${ex.max}${ex.recovery ? " REPS/MIN" : " REPS"} · REST ${fmtRest(ex.rest)}</div>
+          <h3 class="ex-name" data-act="open-history" data-ex="${ex.id}">${esc(ex.name)} ${swapBtn}</h3>
+          <div class="ex-meta flex-row">
+            <span>${ex.sets} × ${ex.min}–${ex.max}${ex.recovery ? " REPS/MIN" : " REPS"}</span>
+            ${warmupBtn}
+          </div>
         </div>
         <div class="ex-target">
           <span>LOAD</span>
@@ -144,6 +177,58 @@ export function viewRefuel(db, state) {
   const p = meals.reduce((a, m) => a + num(m.p, 0), 0);
   const cal = meals.reduce((a, m) => a + num(m.cal, 0), 0);
   const pct = Math.max(0, Math.min(1, p / target));
+  const deficit = target - p;
+  const waterMl = (log.water || 0) * 500;
+
+  const now = new Date();
+  const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrowKey = getPlanKey(tomorrowDate);
+  const tomorrowPlan = MEAL_PLAN[tomorrowKey];
+  const showPrepAlert = now.getHours() >= 19 && tomorrowPlan && tomorrowPlan.prep;
+
+  const snackTray = QUICK_STASH.map(s => 
+    `<button class="snack-pill" data-act="quick-add" data-name="${esc(s.name)}" data-p="${s.p}" data-cal="${s.cal}">
+      +${s.name} <span>${s.p}g P</span>
+    </button>`
+  ).join("");
+
+  let deficitHTML = "";
+  if (deficit > 0) {
+    let suggestions = [];
+    if (deficit <= 12) {
+      suggestions = [
+        { name: "Milk", p: 8, cal: 150, desc: "1 glass fresh milk" },
+        { name: "Egg", p: 6, cal: 75, desc: "1 hard-boiled egg" }
+      ];
+    } else if (deficit <= 25) {
+      suggestions = [
+        { name: "Eggs", p: 18, cal: 225, desc: "3 eggs scrambled / boiled" },
+        { name: "Ndengu", p: 18, cal: 230, desc: "1 cup cooked ndengu" }
+      ];
+    } else {
+      suggestions = [
+        { name: "Omena", p: 45, cal: 350, desc: "1 plate fried omena" },
+        { name: "Omena + 2 eggs", p: 57, cal: 425, desc: "Omena + 2 eggs combo" }
+      ];
+    }
+
+    const options = suggestions.slice(0, 2).map(s => `
+      <div class="deficit-option">
+        <div>
+          <div style="font-weight:600; font-size:13px; color:#fff;">${s.desc}</div>
+          <div class="mono small color-muted">+${s.p}g P · ${s.cal} kcal</div>
+        </div>
+        <button class="act-btn primary m-0" style="width:auto; padding:6px 12px; font-size:11px;" data-act="quick-add" data-name="${esc(s.name)}" data-p="${s.p}" data-cal="${s.cal}">LOG</button>
+      </div>
+    `).join("");
+
+    deficitHTML = `
+      <div class="card deficit-card">
+        <div class="kicker color-red mb-4">BRIDGE THE DEFICIT · ${Math.round(deficit)}G REMAINING</div>
+        ${options}
+      </div>
+    `;
+  }
 
   const R = 52;
   const C = 2 * Math.PI * R;
@@ -190,6 +275,13 @@ export function viewRefuel(db, state) {
     <section class="pad">
       ${navButtons}
 
+      ${showPrepAlert ? `
+        <div class="card prep-alert">
+          <div class="kicker color-orange mb-4">🌙 PREP ALERT · FOR TOMORROW</div>
+          <div style="font-size: 13px; font-weight: 600; color: #fff;">${tomorrowPlan.prep}</div>
+        </div>
+      ` : ''}
+
       <div class="date-nav date-nav-2col">
         <button data-act="nut-prev" class="w-full">◀ PREV</button>
         <button data-act="nut-next" class="w-full">NEXT ▶</button>
@@ -225,22 +317,30 @@ export function viewRefuel(db, state) {
         </div>
       </div>
 
+      ${deficitHTML}
+
       <button class="mono btn-calendar mb-4" data-act="open-calendar" data-target="nut" data-date="${key}">${fmtDate(key)} 📅</button>
 
       <div class="card">
         <div class="kicker mb-9">WATER INTAKE</div>
         <div class="water-row">
           ${Array.from({ length: 5 }).map((_, i) => {
-    const active = (log.water || 0) > i;
-    return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}">💧</button>`;
-  }).join('')}
+            const active = (log.water || 0) > i;
+            return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
+          }).join('')}
         </div>
+        <div class="water-display">${waterMl} / 2500 ml</div>
       </div>
 
       <div class="card">
         <div class="kicker mb-8">7-DAY PERFORMANCE MATRIX</div>
         <div class="matrix">${matrix}</div>
         <div class="mono stat-label mt-8">GREEN = 105G PROTEIN TARGET ACHIEVED</div>
+      </div>
+
+      <div class="kicker mb-4 mt-8">QUICK STASH</div>
+      <div class="snack-tray">
+        ${snackTray}
       </div>
 
       <div class="card">
@@ -280,37 +380,6 @@ export function viewRefuel(db, state) {
   `;
 }
 
-export function scanResultHTML(state) {
-  const s = state.scan || { status: "idle" };
-  if (s.status === "loading") {
-    return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
-      <div class="dim small">Sending to plate-vision. Non-food items will be rejected.</div></div>`;
-  }
-  if (s.status === "reject") {
-    return `<div class="scan-result bad"><h4>✕ NON-FOOD DETECTED</h4>
-      <div class="dim small">${esc((s.data && s.data.breakdown) || "Rejected: not a food item.")}</div>
-      <div class="mono color-red mt-8 small">0G PROTEIN LOGGED</div>
-      <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
-  }
-  if (s.status === "error") {
-    return `<div class="scan-result bad"><h4>⚠ SCAN FAILED</h4>
-      <div class="dim small">${esc(s.message || "Vision service unavailable. Enter manually.")}</div>
-      <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
-  }
-  if (s.status === "ok") {
-    const d = s.data || {};
-    return `<div class="scan-result ok">
-      <h4>✓ ${esc(d.name || "Meal Detected")}</h4>
-      ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid rgba(63,178,127,0.3);" />` : ''}
-      <div class="scan-macros"><span class="p">${num(d.p, 0)}g P</span><span class="c">${num(d.cal, 0)} KCAL</span></div>
-      <div class="dim small">${esc(d.breakdown || "")}</div>
-      <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
-      <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
-    </div>`;
-  }
-  return "";
-}
-
 function viewMealPlan(state) {
   const day = MEAL_PLAN[state.planDay] || MEAL_PLAN.mon;
   const dayPills = Object.keys(MEAL_PLAN).map((k) => {
@@ -336,6 +405,10 @@ function viewMealPlan(state) {
 
   return `
     <div class="mt-10">
+      <button class="scan-btn mb-12" data-act="open-grocery" style="background: var(--card); color: var(--primary); border: 1px solid var(--primary);">
+        🛒 GENERATE WEEKLY GROCERY LIST
+      </button>
+
       <div class="card" style="border-left: 3px solid var(--primary); background: rgba(0, 229, 255, 0.05);">
         <div class="kicker color-orange mb-4">RULES FOR THE WHOLE WEEK</div>
         <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6;">
@@ -376,13 +449,43 @@ function viewMealPlan(state) {
   `;
 }
 
+export function scanResultHTML(state) {
+  const s = state.scan || { status: "idle" };
+  if (s.status === "loading") {
+    return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
+      <div class="dim small">Sending to plate-vision. Non-food items will be rejected.</div></div>`;
+  }
+  if (s.status === "reject") {
+    return `<div class="scan-result bad"><h4>✕ NON-FOOD DETECTED</h4>
+      <div class="dim small">${esc((s.data && s.data.breakdown) || "Rejected: not a food item.")}</div>
+      <div class="mono color-red mt-8 small">0G PROTEIN LOGGED</div>
+      <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
+  }
+  if (s.status === "error") {
+    return `<div class="scan-result bad"><h4>⚠ SCAN FAILED</h4>
+      <div class="dim small">${esc(s.message || "Vision service unavailable. Enter manually.")}</div>
+      <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
+  }
+  if (s.status === "ok") {
+    const d = s.data || {};
+    return `<div class="scan-result ok">
+      <h4>✓ ${esc(d.name || "Meal Detected")}</h4>
+      ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid rgba(63,178,127,0.3);" />` : ''}
+      <div class="scan-macros"><span class="p">${num(d.p, 0)}g P</span><span class="c">${num(d.cal, 0)} KCAL</span></div>
+      <div class="dim small">${esc(d.breakdown || "")}</div>
+      <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
+      <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
+    </div>`;
+  }
+  return "";
+}
+
 export function viewVault(db, state) {
   const blocks = MILESTONES.map((m) => {
     const p = db.photos[m.k] || {};
     const photoCount = POSES.filter(pose => p[pose]).length;
     const isOpen = state.vaultMilestone === m.k;
 
-    // If the folder is closed, show the folder card
     if (!isOpen) {
       return `
         <div class="card folder-card" data-act="toggle-vault" data-key="${m.k}">
@@ -403,9 +506,8 @@ export function viewVault(db, state) {
       `;
     }
 
-    // If the folder is open, show the photo grid
     const slots = POSES.map((pose) =>
-      `<button class="photo-slot" data-act="photo" data-ms="${m.k}" data-pose="${pose}">
+      `<button class="photo-slot" data-act="open-photo-modal" data-ms="${m.k}" data-pose="${pose}">
         ${p[pose] ? `<img src="${p[pose]}" alt="${m.label} ${pose}" loading="lazy" />` : `<span class="ph-empty"><span>+</span><em>${formatPose(pose)}</em></span>`}
       </button>`
     ).join("");
@@ -427,8 +529,31 @@ export function viewVault(db, state) {
   const poseOpts = POSES.map((p) =>
     `<option value="${p}"${state.cmpPose === p ? " selected" : ""}>${formatPose(p)}</option>`
   ).join("");
-  const imgA = (db.photos[state.cmpA] || {})[state.cmpPose];
-  const imgB = (db.photos[state.cmpB] || {})[state.cmpPose];
+
+  const imgA = (db.photos[state.cmpA] || {})[state.cmpPose] || "";
+  const imgB = (db.photos[state.cmpB] || {})[state.cmpPose] || "";
+
+  let weightRateHTML = "";
+  if (db.weightLog && db.weightLog.length > 0) {
+    const currentWeight = db.weightLog[db.weightLog.length - 1].weight;
+    const twoWeeksAgoStr = addDays(ymd(), -14);
+    const pastLog = db.weightLog.filter(w => w.date <= twoWeeksAgoStr).pop();
+    const pastWeight = pastLog ? pastLog.weight : currentWeight;
+    const rate = ((currentWeight - pastWeight) / 2).toFixed(1);
+    const squatPR = db.history["squat"] ? db.history["squat"].weight : 0;
+    const benchPR = db.history["bench"] ? db.history["bench"].weight : 0;
+
+    weightRateHTML = `
+      <div class="mono stat-line" style="border-bottom:0; padding-top:8px;">
+        <span>2-WEEK RATE</span>
+        <b class="${rate >= 0 ? 'ok' : 'bad'}">${rate > 0 ? '+' : ''}${rate} kg/wk</b>
+      </div>
+      <div class="mono small color-muted flex-between" style="margin-top:4px;">
+        <span>Squat PR: ${squatPR}kg</span>
+        <span>Bench PR: ${benchPR}kg</span>
+      </div>
+    `;
+  }
 
   return `
     <section class="pad">
@@ -442,10 +567,8 @@ export function viewVault(db, state) {
         ${blocks}
       </div>
 
-      <!-- ... keep the rest of the viewVault (Body Weight Tracker, AI Analyzer, Side-by-Side) exactly the same ... -->
-      
       <div class="card">
-        <div class="kicker mb-9">BODY WEIGHT TRACKER</div>
+        <div class="kicker mb-9">BODY WEIGHT & PROGRESSION CORRELATOR</div>
         <div class="row between mb-12">
           <div class="mono color-orange stat-pct">
             ${db.weightLog && db.weightLog.length > 0 ? db.weightLog[db.weightLog.length - 1].weight : '--'}
@@ -456,6 +579,7 @@ export function viewVault(db, state) {
             <button data-act="save-weight" class="weight-btn">LOG</button>
           </div>
         </div>
+        ${weightRateHTML}
       </div>
 
       <div class="card">
@@ -470,21 +594,21 @@ export function viewVault(db, state) {
       </div>
 
       <div class="card">
-        <div class="kicker mb-9">SIDE-BY-SIDE COMPARISON</div>
-        <div class="sel-row">
+        <div class="kicker mb-9">SPLIT-SLIDER COMPARISON</div>
+        <div class="sel-row" style="margin-bottom: 12px;">
           <select data-act="cmp-a">${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpA === m.k ? " selected" : ""}>${m.label}</option>`).join("")}</select>
           <select data-act="cmp-pose">${poseOpts}</select>
           <select data-act="cmp-b">${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpB === m.k ? " selected" : ""}>${m.label}</option>`).join("")}</select>
         </div>
-        <div class="cmp-grid">
-          <div class="cmp-slot">
-            ${imgA ? `<img src="${imgA}" alt="A" />` : `<span class="ph-empty"><em>NO IMAGE</em></span>`}
-            <div class="tag">${state.cmpA.toUpperCase()} · ${state.cmpPose.toUpperCase()}</div>
-          </div>
-          <div class="cmp-slot">
-            ${imgB ? `<img src="${imgB}" alt="B" />` : `<span class="ph-empty"><em>NO IMAGE</em></span>`}
-            <div class="tag">${state.cmpB.toUpperCase()} · ${state.cmpPose.toUpperCase()}</div>
-          </div>
+        
+        <div class="split-container" id="splitSlider">
+          ${imgA ? `<img src="${imgA}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
+          ${imgB ? `<img src="${imgB}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
+          
+          <div class="split-label label-before">${state.cmpA.toUpperCase()} (BEFORE)</div>
+          <div class="split-label label-after">${state.cmpB.toUpperCase()} (AFTER)</div>
+          
+          ${imgA && imgB ? `<div class="split-handle" id="splitHandle" style="left: 50%;"></div>` : ''}
         </div>
       </div>
     </section>
@@ -523,7 +647,6 @@ export function viewSystem(db) {
   const sessionCount = Object.keys(db.workouts).length;
   const photoCount = Object.keys(db.photos).reduce((a, k) => a + POSES.filter((p) => (db.photos[k] || {})[p]).length, 0);
   const bestCount = Object.keys(db.history).length;
-
   const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
   return `
@@ -567,6 +690,20 @@ export function viewSystem(db) {
           <button class="act-btn color-green m-0" data-act="sync-pull" style="flex:1; border-color:var(--green);">⭳ PULL & MERGE</button>
         </div>
         <div id="syncStatus" class="mono small mt-8 text-center">STATUS: ${db.settings.syncId ? 'READY' : 'NOT CONFIGURED'}</div>
+      </div>
+
+      <div class="card">
+        <div class="kicker mb-6">NOTIFICATIONS</div>
+        <div class="dim small mb-10">Get an alert at 8:30 PM if you need to prep food for the next day.</div>
+        <button class="act-btn primary" data-act="request-notifications">🔔 ENABLE PUSH REMINDERS</button>
+      </div>
+
+      <div class="card">
+        <div class="kicker mb-6">BACKUP SETTINGS</div>
+        <div class="dim small mb-10">Include heavy progress photos in your JSON exports and Cloud Sync.</div>
+        <button class="act-btn ${db.settings.includePhotos ? 'primary' : ''}" data-act="toggle-photo-sync">
+          ${db.settings.includePhotos ? '✓ PHOTOS INCLUDED IN SYNC' : '✕ EXCLUDE PHOTOS (FAST SYNC)'}
+        </button>
       </div>
 
       <div class="card">
