@@ -5,12 +5,51 @@ function getPlanKey(d) {
   return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
 }
 
+// Helper: Map exercise IDs to muscle groups for the Radar
+function getMuscleGroup(exId) {
+  if (["bench", "incdb", "cablefly", "dips"].includes(exId)) return "Chest";
+  if (["row", "rowB", "pulldown", "pulldownB", "pullup"].includes(exId)) return "Back";
+  if (["squat", "legpress", "legext", "lunge", "bss"].includes(exId)) return "Quads";
+  if (["rdl", "legcurlA", "legcurlB"].includes(exId)) return "Hamstrings";
+  if (["ohp", "latraise", "facepull", "reardelt"].includes(exId)) return "Delts";
+  if (["curl", "curlB", "hammer", "supersetA"].includes(exId)) return "Arms";
+  if (["calfA", "calfB"].includes(exId)) return "Calves";
+  if (["cablecr", "hlr", "plank"].includes(exId)) return "Core";
+  return "Other";
+}
+
+// Helper: Generate SVG Sparkline
+function generateSparkline(data) {
+  if (data.length < 2) return "";
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const width = 50;
+  const height = 16;
+  const step = width / (data.length - 1);
+  
+  let pathD = "";
+  data.forEach((val, i) => {
+    const x = i * step;
+    const y = height - ((val - min) / range) * height;
+    pathD += (i === 0 ? "M" : "L") + x + "," + y + " ";
+  });
+
+  const isUp = data[data.length - 1] >= data[0];
+  return `
+    <div class="sparkline-container">
+      <svg class="sparkline ${isUp ? 'up' : 'flat'}" viewBox="0 0 ${width} ${height}">
+        <path d="${pathD}" />
+      </svg>
+    </div>
+  `;
+}
+
 export function viewMission(db, state) {
   const dateKey = state.missionDate || ymd();
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
   const session = getSession(db, day.key, dateKey);
 
-  // Phase 5.4: Smart Deload Predictor
   let isDeload = false;
   let recentRIRs = [];
   Object.keys(db.workouts).forEach(k => {
@@ -45,29 +84,10 @@ export function viewMission(db, state) {
 
   const cards = day.exercises.map((ex) => exCardHTML(db, session, ex)).join("");
 
-  // Phase 6: Next Session Preview
   const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   const nextDayKey = dayMap[(new Date(dateKey + "T12:00:00").getDay() + 1) % 7];
   const nextDay = TRAINING.find(d => d.key === nextDayKey) || TRAINING[0];
-  const nextSessionHTML = `
-    <div class="card" style="border-left: 3px solid var(--muted); margin-top: 16px;">
-      <div class="kicker mb-2">UP NEXT · ${nextDay.tag}</div>
-      <h3 style="font-size: 16px; color: #fff; margin: 0;">${nextDay.name}</h3>
-      <div class="focus" style="margin-top: 2px;">${nextDay.focus}</div>
-    </div>
-  `;
-
-  // Phase 6: Session Micro-Journal
-  const sessionNotes = db.logs[dateKey]?.sessionNotes || "";
-  const notesHTML = `
-    <div class="card" style="margin-top: 16px;">
-      <div class="kicker mb-4">SESSION MICRO-JOURNAL</div>
-      <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
-      <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
-      <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES</button>
-    </div>
-  `;
-
+  
   return `
     <section class="pad">
       <div class="day-strip">${pills}</div>
@@ -116,8 +136,18 @@ export function viewMission(db, state) {
         <div id="coachResult" class="ai-result" style="margin-top: 16px;"></div>
       </div>
 
-      ${notesHTML}
-      ${nextSessionHTML}
+      <div class="card" style="margin-top: 16px;">
+        <div class="kicker mb-4">SESSION MICRO-JOURNAL</div>
+        <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
+        <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(db.logs[dateKey]?.sessionNotes || "")}</textarea>
+        <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES</button>
+      </div>
+
+      <div class="card" style="border-left: 3px solid var(--muted); margin-top: 16px;">
+        <div class="kicker mb-2">UP NEXT · ${nextDay.tag}</div>
+        <h3 style="font-size: 16px; color: #fff; margin: 0;">${nextDay.name}</h3>
+        <div class="focus" style="margin-top: 2px;">${nextDay.focus}</div>
+      </div>
     </section>
   `;
 }
@@ -125,13 +155,23 @@ export function viewMission(db, state) {
 function exCardHTML(db, session, ex) {
   const s = getExState(session, ex, db);
   let lastSession = null;
-  const sessionKeys = Object.keys(db.workouts).sort().reverse();
+  
+  // Phase 6.1: Sparkline Data
+  let historyPoints = [];
+  const sessionKeys = Object.keys(db.workouts).sort();
   for (let k of sessionKeys) {
     if (k.includes(ex.id) && db.workouts[k].ex[ex.id]?.sets.some(Boolean)) {
       lastSession = db.workouts[k].ex[ex.id];
-      break;
+      // Calculate e1RM for sparkline
+      const w = num(lastSession.weight, 0);
+      const topReps = lastSession.reps.map(r => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
+      if (w > 0 && topReps > 0) {
+        historyPoints.push(Math.round(w * (1 + (topReps / 30))));
+      }
     }
   }
+  // Get last 6 points for the sparkline
+  const sparklineHTML = generateSparkline(historyPoints.slice(-6));
 
   const best = db.history[ex.id];
   const allDone = s.sets.every(Boolean) && s.sets.length > 0;
@@ -183,7 +223,9 @@ function exCardHTML(db, session, ex) {
     <article class="ex-card" id="card-${ex.id}">
       <div class="ex-top">
         <div class="ex-id">
-          <h3 class="ex-name" data-act="open-history" data-ex="${ex.id}">${esc(ex.name)} ${swapBtn}</h3>
+          <h3 class="ex-name" data-act="open-history" data-ex="${ex.id}">
+            ${esc(ex.name)} ${swapBtn} ${sparklineHTML}
+          </h3>
           <div class="ex-meta flex-row">
             <span>${ex.sets} × ${ex.min}–${ex.max}${ex.recovery ? " REPS/MIN" : " REPS"}</span>
             ${warmupBtn}
@@ -401,9 +443,9 @@ export function viewRefuel(db, state) {
         <div class="kicker mb-9">WATER INTAKE</div>
         <div class="water-row">
           ${Array.from({ length: 5 }).map((_, i) => {
-    const active = (log.water || 0) > i;
-    return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
-  }).join('')}
+            const active = (log.water || 0) > i;
+            return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
+          }).join('')}
         </div>
         <div class="water-display">${waterMl} / 2500 ml</div>
       </div>
@@ -689,7 +731,79 @@ export function viewVault(db, state) {
   `;
 }
 
-export function viewBlueprint() {
+export function viewBlueprint(db, state) {
+  // Phase 6.2: Muscle Volume Radar
+  const volumeMap = { "Chest": 0, "Back": 0, "Quads": 0, "Hamstrings": 0, "Delts": 0, "Arms": 0, "Calves": 0, "Core": 0 };
+  const startOfWeek = addDays(ymd(), -new Date().getDay() + 1); // Monday
+  
+  Object.keys(db.workouts).forEach(k => {
+    const dateStr = k.split("::")[1] || "";
+    if (dateStr >= startOfWeek) {
+      const sess = db.workouts[k];
+      if (sess.ex) {
+        Object.keys(sess.ex).forEach(exId => {
+          const s = sess.ex[exId];
+          if (s.sets) {
+            const done = s.sets.filter(Boolean).length;
+            const group = getMuscleGroup(exId);
+            if (volumeMap[group] !== undefined) volumeMap[group] += done;
+            else volumeMap["Other"] = (volumeMap["Other"] || 0) + done;
+          }
+        });
+      }
+    }
+  });
+
+  const radarBars = Object.keys(volumeMap).map(group => {
+    const sets = volumeMap[group];
+    if (sets === 0) return "";
+    const pct = Math.min((sets / 20) * 100, 100); // 20 sets = 100% bar
+    let colorClass = "optimal";
+    if (sets < 10) colorClass = "under";
+    return `
+      <div class="radar-row">
+        <div class="radar-label">${group}</div>
+        <div class="radar-bar-bg"><div class="radar-bar-fill ${colorClass}" style="width: ${pct}%;"></div></div>
+        <div class="radar-val">${sets} sets</div>
+      </div>
+    `;
+  }).join("");
+
+  // Phase 6.3: Volume vs Protein Equilibrium
+  let maxVol = 0;
+  const eqData = [];
+  for (let i = 6; i >= 0; i--) {
+    const dk = addDays(ymd(), -i);
+    let dayVol = 0;
+    Object.keys(db.workouts).forEach(k => {
+      if (k.includes(dk)) {
+        const sess = db.workouts[k];
+        if (sess.ex) {
+          Object.values(sess.ex).forEach(ex => {
+            if (ex.sets) ex.sets.forEach((done, idx) => {
+              if (done) dayVol += (num(ex.weight, 0) * num(ex.reps[idx], 0));
+            });
+          });
+        }
+      }
+    });
+    const target = num(db.settings.proteinTarget, 105) || 105;
+    const hit = dayProtein(db, dk) >= target;
+    eqData.push({ label: dayLetter(dk), vol: dayVol, hit });
+    if (dayVol > maxVol) maxVol = dayVol;
+  }
+
+  const eqCols = eqData.map(d => {
+    const h = maxVol > 0 ? (d.vol / maxVol) * 100 : 0;
+    return `
+      <div class="eq-col">
+        <div class="eq-vol-bar" style="height: ${h}%;"></div>
+        <div class="eq-protein-dot ${d.hit ? 'hit' : ''}"></div>
+        <div class="mono" style="font-size: 9px; color: var(--muted);">${d.label}</div>
+      </div>
+    `;
+  }).join("");
+
   const cards = BLUEPRINTS.map((bp) =>
     `<button class="bp-card ${bp.full ? 'full-width' : ''}" data-act="open-bp" data-key="${bp.key}">
       <img class="bp-img" src="${bp.src}" alt="${esc(bp.label)}" loading="lazy" />
@@ -700,10 +814,29 @@ export function viewBlueprint() {
   return `
     <section class="pad">
       <div class="card">
-        <div class="kicker">OPERATOR BLUEPRINT DECK</div>
-        <h2 class="day-title mt-4">VISUAL TRAINING CARDS</h2>
-        <div class="dim small mt-5">Tap any card to open the zoomable full-screen viewer.</div>
+        <div class="kicker">OPERATOR VISUAL INTEL</div>
+        <h2 class="day-title mt-4">TACTICAL DECK</h2>
+        <div class="dim small mt-5">Analyze your weekly volume distribution and nutritional consistency.</div>
       </div>
+
+      <div class="card">
+        <div class="kicker mb-4">MUSCLE GROUP VOLUME RADAR (WEEK)</div>
+        ${radarBars}
+        <div class="mono small color-muted mt-8" style="font-size: 9px;">OPTIMAL RANGE: 10-20 HARD SETS PER MUSCLE GROUP</div>
+      </div>
+
+      <div class="card">
+        <div class="kicker mb-4">VOLUME vs PROTEIN EQUILIBRIUM</div>
+        <div class="flex-row between" style="margin-bottom: 8px;">
+          <span class="mono small color-cyan">BAR = VOLUME (KG)</span>
+          <span class="mono small color-green">DOT = PROTEIN HIT</span>
+        </div>
+        <div class="equilibrium-grid" style="height: 80px; align-items: flex-end;">
+          ${eqCols}
+        </div>
+      </div>
+
+      <div class="kicker mt-16 mb-4">BLUEPRINT ARCHIVE</div>
       <div class="bp-grid">${cards}</div>
     </section>
   `;
@@ -783,6 +916,7 @@ export function viewSystem(db) {
         <div class="sys-row"><span class="dim">PERSONAL BESTS</span><span class="v">${bestCount}</span></div>
         <div class="sys-row"><span class="dim">VAULT PHOTOS</span><span class="v">${photoCount}</span></div>
         <div class="sys-row"><span class="dim">SERVICE WORKER</span><span class="v">${swState}</span></div>
+        <button class="act-btn danger mt-10" data-act="prune-db" style="border-color: var(--orange); color: var(--orange);">🧹 PRUNE STALE DATA (SAVES SPACE)</button>
       </div>
 
       <div class="card">

@@ -2502,13 +2502,159 @@ body,
     color: var(--txt);
     white-space: pre-wrap;
 }
+
 /* Phase 6: Micro Journal */
 textarea#sessionNotesInput {
-  font-family: var(--font-mono);
-  outline: none;
-  transition: border-color 0.2s ease;
+    font-family: var(--font-mono);
+    outline: none;
+    transition: border-color 0.2s ease;
 }
+
 textarea#sessionNotesInput:focus {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+/* Phase 6.1: Sparklines */
+.sparkline-container {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+.sparkline {
+    width: 50px;
+    height: 16px;
+    overflow: visible;
+}
+
+.sparkline path {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sparkline.up path {
+    stroke: var(--primary);
+    filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.5));
+}
+
+.sparkline.flat path {
+    stroke: var(--muted);
+}
+
+/* Phase 6.2: Volume Radar */
+.radar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.radar-label {
+    width: 80px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.radar-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.radar-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.radar-bar-fill.optimal {
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(63, 178, 127, 0.4);
+}
+
+.radar-bar-fill.under {
+    background: var(--orange);
+}
+
+.radar-val {
+    width: 40px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Phase 6.3: Protein & Volume Matrix */
+.equilibrium-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.eq-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.eq-vol-bar {
+    width: 100%;
+    background: var(--cyan);
+    border-radius: 2px;
+    min-height: 2px;
+    opacity: 0.6;
+}
+
+.eq-protein-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.eq-protein-dot.hit {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+}
+
+/* Phase 6.4: Blueprint Exercise List */
+.lb-ex-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.lb-ex-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lb-ex-item h4 {
+    color: #fff;
+    font-size: 14px;
+    margin: 0 0 4px 0;
+}
+
+.lb-ex-item p {
+    color: var(--muted);
+    font-size: 11px;
+    margin: 0;
 }

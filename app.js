@@ -3,7 +3,7 @@ import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from '
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES } from './data.js';
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
 
-// === AUDIO CONTEXT ===
+// === PHASE 1: AUDIO CONTEXT ===
 let audioCtx = null;
 function playTone(freq, duration, type = 'sine') {
   if (!audioCtx) {
@@ -180,7 +180,7 @@ function toggleSet(exId, i) {
   if (!wasOn) {
     const best = db.history[exId];
     const allDone = s.sets.every(Boolean);
-
+    
     if (allDone) {
       const w = num(s.weight, 0);
       const topReps = s.reps.map((r) => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
@@ -188,13 +188,12 @@ function toggleSet(exId, i) {
         db.history[exId] = { weight: w, reps: topReps, date: ymd() };
         saveDB(db);
         toast("NEW BEST LOGGED · " + ex.name.toUpperCase(), "green");
-
-        // Haptic PR Celebration & Flash
-        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch (e) { } }
+        
+        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch(e){} }
         const card = document.getElementById(`card-${exId}`);
         if (card) {
-          card.style.boxShadow = "0 0 30px var(--primary)";
-          setTimeout(() => card.style.boxShadow = "", 1500);
+           card.style.boxShadow = "0 0 30px var(--primary)";
+           setTimeout(() => card.style.boxShadow = "", 1500);
         }
 
         render();
@@ -202,7 +201,7 @@ function toggleSet(exId, i) {
         return;
       }
     }
-
+    
     const doneSets = s.sets.filter(Boolean).length;
     const isCompound = ["squat", "bench", "rdl", "ohp"].includes(ex.id);
 
@@ -432,7 +431,38 @@ function openLightbox(key) {
   if (!bp) return;
   state.bpKey = key;
   document.getElementById("lbTitle").textContent = bp.label.toUpperCase();
-  document.getElementById("lbContent").innerHTML = `<img src="${bp.src}" alt="${esc(bp.label)}" />`;
+  
+  // Phase 6.4: Inject Interactive Blueprint Hotspots
+  let exercisesHTML = "";
+  let dayKey = key;
+  if (key === "weekend") dayKey = "recoveryB";
+  if (key === "overview") {
+    exercisesHTML = `<div class="lb-ex-list"><div class="dim text-center small">This is the complete weekly overview. Tap individual days in Mission to log.</div></div>`;
+  } else {
+    const dayData = TRAINING.find(d => d.key === dayKey);
+    if (dayData) {
+      exercisesHTML = `<div class="lb-ex-list">
+        <div class="kicker mb-2">EXERCISES FOR THIS DAY</div>
+        ${dayData.exercises.map(ex => `
+          <div class="lb-ex-item">
+            <div>
+              <h4>${esc(ex.name)}</h4>
+              <p>${ex.sets} sets × ${ex.min}-${ex.max} reps</p>
+            </div>
+            <button class="act-btn primary m-0" style="width:auto; padding:6px 12px; font-size:11px;" data-act="jump-to-workout" data-day="${dayKey}">LOG NOW</button>
+          </div>
+        `).join('')}
+      </div>`;
+    }
+  }
+
+  document.getElementById("lbContent").innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+      <img src="${bp.src}" alt="${esc(bp.label)}" style="max-height:60vh; object-fit:contain;" />
+      ${exercisesHTML}
+    </div>
+  `;
+  
   lb.scale = 1; lb.x = 0; lb.y = 0;
   applyLB();
   document.getElementById("lightbox").classList.add("open");
@@ -449,6 +479,16 @@ document.addEventListener("click", function (ev) {
   const act = el.dataset.act;
   if (navigator.vibrate) navigator.vibrate(10);
 
+  if (act === "jump-to-workout") {
+    state.tab = "mission";
+    state.dayKey = el.dataset.day;
+    state.missionDate = ymd(); // jump to today
+    closeLightbox();
+    render();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return;
+  }
+
   if (act === "save-notes") {
     const text = document.getElementById("sessionNotesInput").value;
     const dateKey = el.dataset.date;
@@ -457,6 +497,36 @@ document.addEventListener("click", function (ev) {
     db.logs[dateKey].sessionNotes = text;
     saveDB(db);
     toast("SESSION NOTES SAVED", "green");
+    return;
+  }
+
+  if (act === "prune-db") {
+    if (!window.confirm("PRUNE STALE DATA? This deletes food photos older than 30 days and empty workout logs. Your core history and Vault photos are untouched.")) return;
+    const db = getDB();
+    let pruned = 0;
+    
+    // Prune old meal photos
+    const cutoff = addDays(ymd(), -30);
+    Object.keys(db.logs).forEach(k => {
+      if (k < cutoff) {
+        db.logs[k].meals.forEach(m => {
+          if (m.img) { m.img = null; pruned++; }
+        });
+      }
+    });
+
+    // Prune empty workouts
+    Object.keys(db.workouts).forEach(k => {
+      const sess = db.workouts[k];
+      if (!sess.ex || Object.keys(sess.ex).length === 0) {
+        delete db.workouts[k];
+        pruned++;
+      }
+    });
+
+    saveDB(db);
+    render();
+    toast("DB PRUNED · " + pruned + " ITEMS REMOVED", "cyan");
     return;
   }
 
