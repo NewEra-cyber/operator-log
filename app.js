@@ -123,6 +123,7 @@ function tickRest() {
   const m = Math.floor(left / 60);
   const s = left % 60;
   document.getElementById("fullscreenClock").textContent = m + ":" + pad2(s);
+
   if (left !== lastPlayedSecond) {
     if (left === 10) {
       playTone(880, 0.05, 'sine');
@@ -131,9 +132,26 @@ function tickRest() {
     }
     lastPlayedSecond = left;
   }
+
   const elapsed = rest.total - left;
   const percentage = elapsed / rest.total;
-  if (timerProgress) timerProgress.style.strokeDashoffset = -(circumference * percentage);
+
+  if (timerProgress) {
+    timerProgress.style.strokeDashoffset = -(circumference * percentage);
+
+    // TACTICAL TIMER COLORS
+    if (percentage < 0.5) {
+      timerProgress.style.stroke = "var(--red)"; // Depleted (0-50%)
+      timerProgress.style.filter = "drop-shadow(0 0 12px var(--red))";
+    } else if (percentage < 0.85) {
+      timerProgress.style.stroke = "var(--orange)"; // Resynthesizing (50-85%)
+      timerProgress.style.filter = "drop-shadow(0 0 12px var(--orange))";
+    } else {
+      timerProgress.style.stroke = "var(--primary)"; // Ready to lift (85-100%)
+      timerProgress.style.filter = "drop-shadow(0 0 15px var(--primary))";
+    }
+  }
+
   if (left <= 0) finishRest();
 }
 
@@ -180,7 +198,7 @@ function toggleSet(exId, i) {
   if (!wasOn) {
     const best = db.history[exId];
     const allDone = s.sets.every(Boolean);
-    
+
     if (allDone) {
       const w = num(s.weight, 0);
       const topReps = s.reps.map((r) => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
@@ -188,12 +206,12 @@ function toggleSet(exId, i) {
         db.history[exId] = { weight: w, reps: topReps, date: ymd() };
         saveDB(db);
         toast("NEW BEST LOGGED · " + ex.name.toUpperCase(), "green");
-        
-        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch(e){} }
+
+        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch (e) { } }
         const card = document.getElementById(`card-${exId}`);
         if (card) {
-           card.style.boxShadow = "0 0 30px var(--primary)";
-           setTimeout(() => card.style.boxShadow = "", 1500);
+          card.style.boxShadow = "0 0 30px var(--primary)";
+          setTimeout(() => card.style.boxShadow = "", 1500);
         }
 
         render();
@@ -201,7 +219,7 @@ function toggleSet(exId, i) {
         return;
       }
     }
-    
+
     const doneSets = s.sets.filter(Boolean).length;
     const isCompound = ["squat", "bench", "rdl", "ohp"].includes(ex.id);
 
@@ -431,7 +449,7 @@ function openLightbox(key) {
   if (!bp) return;
   state.bpKey = key;
   document.getElementById("lbTitle").textContent = bp.label.toUpperCase();
-  
+
   // Phase 6.4: Inject Interactive Blueprint Hotspots
   let exercisesHTML = "";
   let dayKey = key;
@@ -462,7 +480,7 @@ function openLightbox(key) {
       ${exercisesHTML}
     </div>
   `;
-  
+
   lb.scale = 1; lb.x = 0; lb.y = 0;
   applyLB();
   document.getElementById("lightbox").classList.add("open");
@@ -477,7 +495,8 @@ document.addEventListener("click", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
   const act = el.dataset.act;
-  if (navigator.vibrate) navigator.vibrate(10);
+  if (!wasOn && navigator.vibrate) { try { navigator.vibrate([15, 30, 15]); } catch (e) { } }
+
 
   if (act === "jump-to-workout") {
     state.tab = "mission";
@@ -504,7 +523,7 @@ document.addEventListener("click", function (ev) {
     if (!window.confirm("PRUNE STALE DATA? This deletes food photos older than 30 days and empty workout logs. Your core history and Vault photos are untouched.")) return;
     const db = getDB();
     let pruned = 0;
-    
+
     // Prune old meal photos
     const cutoff = addDays(ymd(), -30);
     Object.keys(db.logs).forEach(k => {

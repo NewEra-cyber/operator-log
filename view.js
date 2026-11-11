@@ -252,7 +252,7 @@ function exCardHTML(db, session, ex) {
         </div>
       </div>
       <div class="sets" id="sets-${ex.id}">${setsHTML}</div>
-      <div class="overload ${overload ? 'show' : ''}" id="ovl-${ex.id}">
+            <div class="overload ${overload ? 'show' : ''}" id="ovl-${ex.id}">
         ⚠ OVERLOAD DETECTED — ALL SETS AT ${ex.max} REPS. UNLOCK <b>${ex.inc > 0 ? target + "KG" : "PROGRESSION"}</b> NEXT WEEK.
       </div>
     </article>
