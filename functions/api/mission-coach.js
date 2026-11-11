@@ -7,7 +7,7 @@ export async function onRequest(context) {
     }
 
     if (!apiKey) {
-        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY missing." }), { 
+        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing." }), { 
             status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
         });
     }
@@ -28,7 +28,8 @@ export async function onRequest(context) {
                     1. Be ruthlessly concise. Maximum 15 words per sentence.
                     2. Use exactly 3 sections: "ASSESSMENT:", "NEXT WEEK:", "FOCUS:".
                     3. Use ALL CAPS for the section titles.
-                    4. NO markdown headers (no #). NO asterisks (**). Just plain text with line breaks.`
+                    4. NO markdown headers (no #). NO asterisks (**). Just plain text with line breaks.
+                    5. CRITICAL: The weights logged by the user are ALWAYS in KILOGRAMS (kg). You MUST use kg in your advice. NEVER use pounds (lbs).`
                 },
                 { role: "user", content: JSON.stringify(workoutData) }
             ]
@@ -41,7 +42,6 @@ export async function onRequest(context) {
         });
 
         if (!res.ok) {
-            const errorText = await res.text();
             return new Response(JSON.stringify({ advice: `Groq API Error (${res.status})` }), { 
                 status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
             });

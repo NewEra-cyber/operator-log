@@ -9,7 +9,7 @@ export async function onRequest(context) {
         const { weekData } = await req.json();
         
         const payload = {
-            model: "qwen/qwen3.8-27b", // Reliable Groq model
+            model: "qwen/qwen3.8-27b",
             temperature: 0.3,
             messages: [
                 {
@@ -20,7 +20,8 @@ Provide EXACTLY 3 bullet points using this format:
 - **Refuel Discipline:** [1 sentence on protein hits/misses and water]
 - **Directive for Next Week:** [1 tactical command on what to focus on]
 
-Keep it aggressive, brief, and highly analytical. Do NOT use markdown headers, just the 3 bullet points.`
+Keep it aggressive, brief, and highly analytical. Do NOT use markdown headers, just the 3 bullet points.
+CRITICAL: Tonnage is in KILOGRAMS (kg). You MUST use kg for any weight references. NEVER use pounds (lbs).`
                 },
                 { role: "user", content: JSON.stringify(weekData) }
             ]
