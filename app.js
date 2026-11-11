@@ -141,13 +141,13 @@ function tickRest() {
 
     // TACTICAL TIMER COLORS
     if (percentage < 0.5) {
-      timerProgress.style.stroke = "var(--red)"; // Depleted (0-50%)
+      timerProgress.style.stroke = "var(--red)";
       timerProgress.style.filter = "drop-shadow(0 0 12px var(--red))";
     } else if (percentage < 0.85) {
-      timerProgress.style.stroke = "var(--orange)"; // Resynthesizing (50-85%)
+      timerProgress.style.stroke = "var(--orange)";
       timerProgress.style.filter = "drop-shadow(0 0 12px var(--orange))";
     } else {
-      timerProgress.style.stroke = "var(--primary)"; // Ready to lift (85-100%)
+      timerProgress.style.stroke = "var(--primary)";
       timerProgress.style.filter = "drop-shadow(0 0 15px var(--primary))";
     }
   }
@@ -450,7 +450,6 @@ function openLightbox(key) {
   state.bpKey = key;
   document.getElementById("lbTitle").textContent = bp.label.toUpperCase();
 
-  // Phase 6.4: Inject Interactive Blueprint Hotspots
   let exercisesHTML = "";
   let dayKey = key;
   if (key === "weekend") dayKey = "recoveryB";
@@ -495,13 +494,12 @@ document.addEventListener("click", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
   const act = el.dataset.act;
-  if (!wasOn && navigator.vibrate) { try { navigator.vibrate([15, 30, 15]); } catch (e) { } }
-
+  if (navigator.vibrate) navigator.vibrate(10); // Safe haptic tick
 
   if (act === "jump-to-workout") {
     state.tab = "mission";
     state.dayKey = el.dataset.day;
-    state.missionDate = ymd(); // jump to today
+    state.missionDate = ymd();
     closeLightbox();
     render();
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -524,7 +522,6 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     let pruned = 0;
 
-    // Prune old meal photos
     const cutoff = addDays(ymd(), -30);
     Object.keys(db.logs).forEach(k => {
       if (k < cutoff) {
@@ -534,7 +531,6 @@ document.addEventListener("click", function (ev) {
       }
     });
 
-    // Prune empty workouts
     Object.keys(db.workouts).forEach(k => {
       const sess = db.workouts[k];
       if (!sess.ex || Object.keys(sess.ex).length === 0) {
