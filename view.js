@@ -27,7 +27,7 @@ function generateSparkline(data) {
   const width = 50;
   const height = 16;
   const step = width / (data.length - 1);
-  
+
   let pathD = "";
   data.forEach((val, i) => {
     const x = i * step;
@@ -87,7 +87,7 @@ export function viewMission(db, state) {
   const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   const nextDayKey = dayMap[(new Date(dateKey + "T12:00:00").getDay() + 1) % 7];
   const nextDay = TRAINING.find(d => d.key === nextDayKey) || TRAINING[0];
-  
+
   return `
     <section class="pad">
       <div class="day-strip">${pills}</div>
@@ -155,7 +155,7 @@ export function viewMission(db, state) {
 function exCardHTML(db, session, ex) {
   const s = getExState(session, ex, db);
   let lastSession = null;
-  
+
   // Phase 6.1: Sparkline Data
   let historyPoints = [];
   const sessionKeys = Object.keys(db.workouts).sort();
@@ -443,9 +443,9 @@ export function viewRefuel(db, state) {
         <div class="kicker mb-9">WATER INTAKE</div>
         <div class="water-row">
           ${Array.from({ length: 5 }).map((_, i) => {
-            const active = (log.water || 0) > i;
-            return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
-          }).join('')}
+    const active = (log.water || 0) > i;
+    return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
+  }).join('')}
         </div>
         <div class="water-display">${waterMl} / 2500 ml</div>
       </div>
@@ -735,7 +735,7 @@ export function viewBlueprint(db, state) {
   // Phase 6.2: Muscle Volume Radar
   const volumeMap = { "Chest": 0, "Back": 0, "Quads": 0, "Hamstrings": 0, "Delts": 0, "Arms": 0, "Calves": 0, "Core": 0 };
   const startOfWeek = addDays(ymd(), -new Date().getDay() + 1); // Monday
-  
+
   Object.keys(db.workouts).forEach(k => {
     const dateStr = k.split("::")[1] || "";
     if (dateStr >= startOfWeek) {
@@ -856,6 +856,23 @@ export function viewSystem(db) {
   const bestCount = Object.keys(db.history).length;
   const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
+  // --- FIXED BACKUP LOGIC ---
+  const lastBackup = db.settings.lastBackup || 0;
+  let showBackupWarning = false;
+  let backupMessage = "";
+
+  if (lastBackup === 0) {
+    showBackupWarning = true;
+    backupMessage = "You have never exported a backup. Export now to prevent data loss.";
+  } else {
+    const daysSinceBackup = Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24));
+    if (daysSinceBackup > 7) {
+      showBackupWarning = true;
+      backupMessage = `It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.`;
+    }
+  }
+  // --------------------------
+
   let maxVolume = 0;
   const volumeData = [];
   for (let i = 6; i >= 0; i--) {
@@ -893,16 +910,12 @@ export function viewSystem(db) {
     `;
   }).join("");
 
-  const lastBackup = db.settings.lastBackup || 0;
-  const daysSinceBackup = Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24));
-  const showBackupWarning = daysSinceBackup > 7;
-
   return `
     <section class="pad">
       ${showBackupWarning ? `
         <div class="card" style="border: 1px solid var(--red); background: rgba(255, 75, 75, 0.1); animation: pulse-border-red 2s infinite;">
           <div class="kicker color-red mb-4">⚠️ BACKUP OVERDUE</div>
-          <div style="font-size: 13px; color: #fff;">It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.</div>
+          <div style="font-size: 13px; color: #fff;">${backupMessage}</div>
         </div>
       ` : ''}
 
