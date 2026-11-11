@@ -93,6 +93,14 @@ function exCardHTML(db, session, ex) {
       ? `<span class="ghost-text">Prev: ${lastWeight}kg × ${lastReps}</span>`
       : "";
 
+    // Phase 4.1: e1RM Calculation
+    const currentWeight = num(s.weight, 0);
+    const currentReps = num(s.reps[i], 0);
+    const e1rm = currentWeight > 0 && currentReps > 0
+      ? Math.round(currentWeight * (1 + (currentReps / 30)))
+      : 0;
+    const e1rmHTML = e1rm > 0 ? `<div class="e1rm-badge">e1RM: ~${e1rm}kg</div>` : "";
+
     return `<div class="set-item ${on ? "done" : ""}">
       <div class="flex-row">
         <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
@@ -100,6 +108,7 @@ function exCardHTML(db, session, ex) {
         <span id="delta-${ex.id}-${i}"></span>
       </div>
       ${ghost}
+      ${e1rmHTML}
     </div>`;
   }).join("");
 
@@ -180,13 +189,29 @@ export function viewRefuel(db, state) {
   const deficit = target - p;
   const waterMl = (log.water || 0) * 500;
 
+  // Phase 4.3: Calculate Protein Streak
+  let streak = 0;
+  let checkDate = new Date(key + "T12:00:00");
+  while (true) {
+    const checkKey = ymd(checkDate);
+    if (dayProtein(db, checkKey) >= target) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  const streakHTML = streak > 0
+    ? `<div class="streak-badge">🔥 ${streak}-DAY PROTEIN STREAK</div>`
+    : "";
+
   const now = new Date();
   const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const tomorrowKey = getPlanKey(tomorrowDate);
   const tomorrowPlan = MEAL_PLAN[tomorrowKey];
   const showPrepAlert = now.getHours() >= 19 && tomorrowPlan && tomorrowPlan.prep;
 
-  const snackTray = QUICK_STASH.map(s => 
+  const snackTray = QUICK_STASH.map(s =>
     `<button class="snack-pill" data-act="quick-add" data-name="${esc(s.name)}" data-p="${s.p}" data-cal="${s.cal}">
       +${s.name} <span>${s.p}g P</span>
     </button>`
@@ -274,6 +299,7 @@ export function viewRefuel(db, state) {
   return `
     <section class="pad">
       ${navButtons}
+      ${streakHTML}
 
       ${showPrepAlert ? `
         <div class="card prep-alert">
@@ -325,9 +351,9 @@ export function viewRefuel(db, state) {
         <div class="kicker mb-9">WATER INTAKE</div>
         <div class="water-row">
           ${Array.from({ length: 5 }).map((_, i) => {
-            const active = (log.water || 0) > i;
-            return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
-          }).join('')}
+    const active = (log.water || 0) > i;
+    return `<button data-act="add-water" data-i="${i + 1}" class="water-btn ${active ? '' : 'inactive'}" style="user-select: none; -webkit-user-select: none;">💧</button>`;
+  }).join('')}
         </div>
         <div class="water-display">${waterMl} / 2500 ml</div>
       </div>
@@ -649,6 +675,44 @@ export function viewSystem(db) {
   const bestCount = Object.keys(db.history).length;
   const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
+  // Phase 4.2: Weekly Volume Tonnage Chart
+  let maxVolume = 0;
+  const volumeData = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dk = ymd(d);
+    let dayVol = 0;
+    Object.keys(db.workouts).forEach(k => {
+      if (k.includes(dk)) {
+        const session = db.workouts[k];
+        if (session.ex) {
+          Object.keys(session.ex).forEach(exId => {
+            const s = session.ex[exId];
+            if (s.sets) {
+              s.sets.forEach((done, idx) => {
+                if (done) dayVol += (num(s.weight, 0) * num(s.reps[idx], 0));
+              });
+            }
+          });
+        }
+      }
+    });
+    volumeData.push({ label: dayLetter(dk), val: dayVol });
+    if (dayVol > maxVolume) maxVolume = dayVol;
+  }
+
+  const volumeBars = volumeData.map(v => {
+    const heightPct = maxVolume > 0 ? (v.val / maxVolume) * 100 : 0;
+    return `
+      <div class="volume-bar-wrapper">
+        <div class="volume-val">${v.val > 0 ? Math.round(v.val) : ''}</div>
+        <div class="volume-bar" style="height: ${heightPct}%;"></div>
+        <div class="volume-label">${v.label}</div>
+      </div>
+    `;
+  }).join("");
+
   return `
     <section class="pad">
       <div class="card">
@@ -664,6 +728,13 @@ export function viewSystem(db) {
       </div>
 
       <div class="card">
+        <div class="kicker mb-4">7-DAY VOLUME TONNAGE (KG)</div>
+        <div class="volume-chart">
+          ${volumeBars}
+        </div>
+      </div>
+
+      <div class="card">
         <div class="kicker mb-6">PROTEIN TARGET</div>
         <div class="row between">
           <input id="targetInput" class="load-in mono" type="number" min="20" max="400" value="${num(db.settings.proteinTarget, 105)}" style="width:90px;text-align:center" />
@@ -674,6 +745,7 @@ export function viewSystem(db) {
       <div class="card">
         <div class="kicker mb-4">BACKUP &amp; RESTORE</div>
         <button class="act-btn primary" data-act="export">⭳ EXPORT JSON BACKUP</button>
+        <button class="act-btn" data-act="export-csv" style="border-color: var(--orange); color: var(--orange);">📊 EXPORT WORKOUT LOGS (CSV)</button>
         <button class="act-btn" data-act="import">⭱ IMPORT JSON BACKUP</button>
         <div class="dim small mt-10">Import runs a full multi-key migration — legacy v1/v2 backups are automatically upgraded.</div>
       </div>

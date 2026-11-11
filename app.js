@@ -1,7 +1,7 @@
 import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
 import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
-import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST } from './data.js';
-import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML } from './view.js';
+import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES } from './data.js';
+import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
 
 // === PHASE 1: AUDIO CONTEXT ===
 let audioCtx = null;
@@ -267,6 +267,43 @@ function exportJSON() {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast("BACKUP EXPORTED", "cyan");
+}
+function exportCSV() {
+  const db = getDB();
+  let csv = "Date,Exercise,Set,Weight (kg),Reps,RIR\n";
+
+  Object.keys(db.workouts).forEach(k => {
+    const dateStr = k.split("::")[1] || k;
+    const session = db.workouts[k];
+    if (session.ex) {
+      Object.keys(session.ex).forEach(exId => {
+        const s = session.ex[exId];
+        if (s.sets) {
+          s.sets.forEach((done, idx) => {
+            if (done) {
+              // Find exercise name from TRAINING if possible
+              let exName = exId;
+              TRAINING.forEach(d => {
+                const found = d.exercises.find(e => e.id === exId);
+                if (found) exName = found.name;
+              });
+              csv += `"${dateStr}","${exName}",${idx + 1},${s.weight},${s.reps[idx]},${s.rir}\n`;
+            }
+          });
+        }
+      });
+    }
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "operator-log-workouts-" + ymd() + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("CSV EXPORTED", "cyan");
 }
 
 async function importJSON(file) {
@@ -750,6 +787,7 @@ document.addEventListener("click", function (ev) {
     saveDB(db); render(); toast("TARGET UPDATED · " + db.settings.proteinTarget + "G", "green"); return;
   }
   if (act === "export") { exportJSON(); return; }
+  if (act === "export-csv") { exportCSV(); return; }
   if (act === "import") { const inp = document.getElementById("importInput"); inp.value = ""; inp.click(); return; }
 
   if (act === "reset") {

@@ -2375,3 +2375,67 @@ body,
     right: 10px;
     border-right: 2px solid var(--green);
 }
+/* Phase 4: Analytics & Charts */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(240, 160, 48, 0.15);
+  border: 1px solid var(--orange);
+  color: var(--orange);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.e1rm-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+}
+
+.volume-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-top: 20px;
+  margin-top: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.volume-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+.volume-bar {
+  width: 100%;
+  background: linear-gradient(to top, rgba(0, 229, 255, 0.2), var(--primary));
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+.volume-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+}
+.volume-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--primary);
+  font-weight: 700;
+}
