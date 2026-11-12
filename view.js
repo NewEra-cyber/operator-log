@@ -98,7 +98,7 @@ export function viewMission(db, state) {
         ${hasNotes ? '<span class="mono small color-green">✓ SAVED</span>' : ''}
       </div>
       <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
-      <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
+      <textarea id="sessionNotesInput" data-date="${dateKey}" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
       <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES FOR ${dateKey}</button>
     </div>
   `;

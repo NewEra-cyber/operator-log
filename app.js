@@ -513,8 +513,6 @@ document.addEventListener("click", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = text;
     saveDB(db);
-
-    // Re-render so the green "SAVED" badge appears instantly
     render();
     toast("NOTES SAVED FOR " + dateKey, "green");
     return;
@@ -1073,6 +1071,26 @@ document.addEventListener("input", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
   const act = el.dataset.act;
+  // Phase 6: Auto-Save Session Notes
+  if (el.id === "sessionNotesInput") {
+    const dateKey = el.dataset.date;
+    const db = getDB();
+    if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
+    db.logs[dateKey].sessionNotes = el.value;
+    saveDB(db);
+
+    // Update the UI border to green instantly without a full re-render (so you don't lose focus)
+    const card = el.closest('.card');
+    if (card && el.value.trim().length > 0) {
+      card.style.borderLeft = "3px solid var(--green)";
+      const savedBadge = card.querySelector('.color-green');
+      if (!savedBadge) {
+        const kickerDiv = card.querySelector('.flex-between');
+        if (kickerDiv) kickerDiv.innerHTML += '<span class="mono small color-green">✓ SAVED</span>';
+      }
+    }
+    return;
+  }
 
   if (act === "ex-reps") {
     const exId = el.dataset.ex;
