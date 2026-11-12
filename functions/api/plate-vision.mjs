@@ -2,7 +2,7 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.8-27b"; // Active Groq vision model
+const MODEL = "qwen/qwen3.8-27b"; 
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
@@ -10,20 +10,21 @@ const SYSTEM_INSTRUCTION = `
 You are an elite nutritionist AI. Your ONLY job is to identify the Kenyan foods on the plate and estimate their weight in grams. 
 
 *** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
+- **Ugali**: Look for a SOLID, CUT BLOCK or DOME of white maize meal. It holds its shape rigidly. It does NOT look like a loose pile.
+- **White Rice**: Look for a LOOSE PILE of individual, fluffy grains. It flows and shifts.
 - **Ndengu (Green Grams)**: Look for SMALL, round, yellowish-green or olive-green seeds. They are much smaller than beans and usually served as a thick, uniform stew.
 - **Maharagwe (Beans)**: Look for LARGER, kidney-shaped, reddish-brown or pinto beans. They are distinctly bigger than green grams.
 - **Njahi**: Look for distinctly BLACK, medium-sized beans.
 - **Githeri**: Look for a mixture of whole maize kernels (large, yellow/white) and beans.
-- **White Rice**: Plain, white, fluffy grains. (Do NOT call it Wali wa Nazi unless you clearly see a thick, yellow/brown coconut sauce).
+- **Wali wa Nazi**: Only call it this if you clearly see a thick, yellow/brown coconut sauce covering the rice.
 - **Indomie**: Yellow, long, curly instant noodles.
-- **Ugali**: Solid white block of maize meal.
 - **Omena**: Small silver dried fish.
-- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
 
 *** WEIGHT ESTIMATION ***
-Look at the plate, spoon, or hand in the image to gauge size. 
+Look at the plate, spoon, or hand to gauge size. 
 - A standard dinner plate is ~10 inches.
 - A large mound of rice covering 1/4 of the plate is ~200-250g.
+- A standard block of Ugali is ~200-250g.
 - A standard cup of stewed legumes (Ndengu/Beans) is ~200g.
 - A piece of meat the size of a fist is ~150g.
 
@@ -33,8 +34,8 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "White Rice", "weight_g": 250},
-    {"name": "Ndengu (Green Grams)", "weight_g": 150}
+    {"name": "Ugali", "weight_g": 200},
+    {"name": "Sukuma Wiki", "weight_g": 100}
   ]
 }
 
@@ -42,18 +43,15 @@ If the image is clearly NOT food, return:
 {"is_food": false, "name": "Non-food", "items": []}
 `.trim();
 
-// EXHAUSTIVE KENYAN MACRO DATABASE (per 100g)
 const MACRO_DB = {
   // STAPLES & CARBS
   "ugali": { p: 2.5, cal: 120 },
-  "sukuma wiki": { p: 2.0, cal: 53 },
-  "githeri": { p: 4.0, cal: 127 },
+  "white rice": { p: 2.5, cal: 130 },
+  "wali wa nazi": { p: 2.5, cal: 175 },
   "chapati": { p: 7.5, cal: 325 },
   "mukimo": { p: 2.8, cal: 132 },
   "irio": { p: 2.4, cal: 124 },
   "matoke": { p: 1.3, cal: 97 },
-  "wali wa nazi": { p: 2.5, cal: 175 },
-  "white rice": { p: 2.5, cal: 130 },
   "pilau": { p: 5.3, cal: 160 },
   "biryani": { p: 6.3, cal: 157 },
   "kachumbari": { p: 1.0, cal: 35 },
@@ -61,6 +59,9 @@ const MACRO_DB = {
   "chips mayai": { p: 5.1, cal: 186 },
   "kimanga": { p: 3.0, cal: 140 },
   "muthokoi": { p: 3.7, cal: 120 },
+  "indomie": { p: 10.5, cal: 450 },
+  "spaghetti": { p: 5.0, cal: 150 },
+  "chips": { p: 3.0, cal: 300 },
 
   // PROTEINS & MEATS
   "nyama choma": { p: 22.0, cal: 192 },
@@ -74,16 +75,16 @@ const MACRO_DB = {
   "mbuzi wet fry": { p: 18.0, cal: 184 },
   "kamande": { p: 5.8, cal: 96 },
   "ndengu": { p: 6.3, cal: 100 },
-  "green grams": { p: 6.3, cal: 100 }, // Added alias
+  "green grams": { p: 6.3, cal: 100 },
   "maharagwe ya nazi": { p: 5.4, cal: 121 },
   "maharagwe": { p: 5.5, cal: 120 },
   "beans": { p: 5.5, cal: 120 },
   "njahi": { p: 5.8, cal: 104 },
-  "mayai boiro": { p: 12.0, cal: 170 },
   "egg": { p: 12.0, cal: 140 },
   "eggs": { p: 12.0, cal: 140 },
 
   // VEGETABLES & SOUPS
+  "sukuma wiki": { p: 2.0, cal: 53 },
   "managu": { p: 3.3, cal: 80 },
   "terere": { p: 2.7, cal: 43 },
   "sagaa": { p: 3.3, cal: 47 },
@@ -94,8 +95,9 @@ const MACRO_DB = {
   "supu ya ndewe": { p: 5.0, cal: 60 },
   "cabbage": { p: 1.3, cal: 50 },
   "mchicha": { p: 2.0, cal: 33 },
+  "githeri": { p: 4.0, cal: 127 },
 
-  // BREAKFAST, SNACKS & STREET FOOD
+  // BREAKFAST & SNACKS
   "mandazi": { p: 8.0, cal: 440 },
   "mahamri": { p: 8.0, cal: 480 },
   "nduma": { p: 2.0, cal: 93 },
@@ -106,27 +108,20 @@ const MACRO_DB = {
   "samosa": { p: 10.0, cal: 320 },
   "kaimati": { p: 4.0, cal: 360 },
   "mkate wa sinia": { p: 3.0, cal: 190 },
-  "maandazi ya pasua": { p: 7.3, cal: 246 },
   "chapo-smokie": { p: 6.5, cal: 205 },
-  "boflo": { p: 8.3, cal: 350 },
   "bread": { p: 8.3, cal: 266 },
   "biscuits": { p: 5.0, cal: 450 },
-  "indomie": { p: 10.5, cal: 450 },
-  "spaghetti": { p: 5.0, cal: 150 },
-  "chips": { p: 3.0, cal: 300 },
+  "groundnuts": { p: 26.0, cal: 567 },
 
-  // FRUITS & DRINKS
+  // DRINKS & FRUITS
   "chai ya maziwa": { p: 1.6, cal: 48 },
   "maziwa lala": { p: 3.2, cal: 60 },
   "uji": { p: 1.7, cal: 60 },
   "mangoes": { p: 0.7, cal: 87 },
   "avocado": { p: 2.0, cal: 160 },
   "passion fruit": { p: 2.0, cal: 70 },
-  "ukwaju juice": { p: 0.2, cal: 44 },
   "milk": { p: 3.2, cal: 60 },
-  "groundnuts": { p: 26.0, cal: 567 },
-  "banana": { p: 1.0, cal: 90 },
-  "greens": { p: 2.0, cal: 50 } // Generic fallback
+  "banana": { p: 1.0, cal: 90 }
 };
 
 function json(body, status = 200) {
@@ -156,25 +151,12 @@ function extractJSON(text) {
   try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
 }
 
-function fetchWithTimeout(url, opts, ms) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
-}
-
 export async function onRequest(context) {
   const req = context.request;
   const apiKey = context.env.GROQ_API_KEY;
 
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-    });
+    return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
   }
 
   if (req.method !== "POST") return json(reject("Rejected: POST required."), 405);
@@ -194,7 +176,7 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.0, // Zero temperature for strict adherence
+    temperature: 0.0, 
     max_tokens: 300,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
@@ -209,22 +191,19 @@ export async function onRequest(context) {
   };
 
   try {
-    const res = await fetchWithTimeout(
-      GROQ_URL,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + apiKey,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify(payload),
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + apiKey,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
       },
-      TIMEOUT_MS
-    );
+      body: JSON.stringify(payload),
+    });
 
     if (!res.ok) {
       const errorText = await res.text();
+      console.error("[plate-vision] Groq error:", errorText);
       return json(reject(`Vision service error (${res.status}): ${errorText.substring(0, 50)}`), 200);
     }
 
@@ -236,7 +215,7 @@ export async function onRequest(context) {
       return json(reject("Rejected: vision model returned no usable data."));
     }
 
-    // === JAVASCRIPT DOES THE MATH ===
+    // JAVASCRIPT DOES THE MATH
     let totalP = 0;
     let totalCal = 0;
     let breakdownParts = [];
@@ -246,7 +225,6 @@ export async function onRequest(context) {
       const nameLower = item.name.toLowerCase();
       let matchedKey = Object.keys(MACRO_DB).find(k => nameLower.includes(k));
       
-      // Default to a generic profile if completely unknown
       let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
       
       const weight = Number(item.weight_g) || 0;
