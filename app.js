@@ -243,15 +243,22 @@ async function handleFoodFile(file) {
     const dataUrl = await compressImage(file, 800, 0.65);
     const base64 = dataUrl.split(",")[1];
     const thumbnail = await compressImage(file, 100, 0.5);
+
     const res = await fetch("/api/plate-vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: base64 }) });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
+
     if (data && data.error && data.is_food !== true) {
       state.scan = { status: "error", message: (data.breakdown || "Vision service unavailable.") };
     } else if (!data || data.is_food !== true) {
       state.scan = { status: "reject", data: data || {} };
     } else {
-      state.scan = { status: "ok", data: data, img: thumbnail };
+      // SAFETY NET: If the AI identifies 3+ items, it's confused. Force manual verification.
+      if (data.items && data.items.length >= 3) {
+        state.scan = { status: "verify", data: data, img: thumbnail };
+      } else {
+        state.scan = { status: "ok", data: data, img: thumbnail };
+      }
     }
   } catch (err) {
     console.error("[plate-vision]", err);
@@ -503,6 +510,47 @@ document.addEventListener("click", function (ev) {
     closeLightbox();
     render();
     window.scrollTo({ top: 0, behavior: "instant" });
+    return;
+  }
+  if (act === "remove-scanned-item") {
+    const idx = Number(el.dataset.idx);
+    if (state.scan && state.scan.data && state.scan.data.items) {
+      state.scan.data.items.splice(idx, 1);
+
+      // Recalculate math
+      let totalP = 0;
+      let totalCal = 0;
+      let names = [];
+      let breakdown = [];
+
+      state.scan.data.items.forEach(item => {
+        const n = item.name.toLowerCase();
+        // Quick hack: match against the MACRO_DB logic already in your file
+        let p = 5, c = 150;
+        if (n.includes("ugali")) { p = 2.5; c = 120; }
+        else if (n.includes("egg")) { p = 12; c = 140; }
+        else if (n.includes("sukuma") || n.includes("greens")) { p = 2; c = 53; }
+        else if (n.includes("omena")) { p = 53; c = 350; }
+        else if (n.includes("rice")) { p = 2.5; c = 130; }
+        else if (n.includes("beans") || n.includes("maharagwe")) { p = 5.5; c = 120; }
+
+        const w = Number(item.weight_g) || 0;
+        totalP += (w / 100) * p;
+        totalCal += (w / 100) * c;
+        names.push(item.name);
+        breakdown.push(`${w}g ${item.name}`);
+      });
+
+      state.scan.data.name = names.join(" & ");
+      state.scan.data.p = Math.round(totalP * 10) / 10;
+      state.scan.data.cal = Math.round(totalCal);
+      state.scan.data.breakdown = breakdown.join(" | ");
+
+      if (state.scan.data.items.length === 0) {
+        state.scan = { status: "idle" };
+      }
+      render();
+    }
     return;
   }
 

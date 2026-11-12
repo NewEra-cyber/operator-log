@@ -575,6 +575,7 @@ function viewMealPlan(state) {
 
 export function scanResultHTML(state) {
   const s = state.scan || { status: "idle" };
+
   if (s.status === "loading") {
     return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
       <div class="dim small">Sending to plate-vision. Non-food items will be rejected.</div></div>`;
@@ -590,6 +591,31 @@ export function scanResultHTML(state) {
       <div class="dim small">${esc(s.message || "Vision service unavailable. Enter manually.")}</div>
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
+
+  // SAFETY NET: If AI returned 3+ items, show the checklist
+  if (s.status === "verify") {
+    const d = s.data || {};
+    const itemsHTML = (d.items || []).map((item, i) => `
+      <div class="flex-between" style="padding: 8px 0; border-bottom: 1px dashed var(--border);">
+        <div>
+          <div style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</div>
+          <div class="mono small color-muted">${item.weight_g}g</div>
+        </div>
+        <button class="del" data-act="remove-scanned-item" data-idx="${i}">✕</button>
+      </div>
+    `).join("");
+
+    return `<div class="scan-result load" style="border-color: var(--orange);">
+      <h4 style="color: var(--orange);">⚠ COMPLEX PLATE DETECTED</h4>
+      <div class="dim small mb-8">The AI detected multiple items. Review and remove anything that looks wrong.</div>
+      <div style="margin-bottom: 12px;">
+        ${itemsHTML}
+      </div>
+      <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
+      <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
+    </div>`;
+  }
+
   if (s.status === "ok") {
     const d = s.data || {};
     return `<div class="scan-result ok">

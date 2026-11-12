@@ -10,24 +10,24 @@ const SYSTEM_INSTRUCTION = `
 You are an elite nutritionist AI. Your ONLY job is to identify the Kenyan foods on the plate and estimate their weight in grams. 
 
 *** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
-- **Ugali**: Look for a SOLID, CUT BLOCK or DOME of white maize meal. It holds its shape rigidly.
-- **White Rice**: Look for a LOOSE PILE of individual, fluffy grains. It flows and shifts.
+- **Ugali**: A SOLID, CUT BLOCK or DOME of white maize meal. It holds its shape rigidly. It does NOT look like a loose pile.
+- **White Rice**: A LOOSE PILE of individual, fluffy grains. It flows and shifts.
+- **Scrambled Eggs**: Look for a yellow, fluffy, curdled texture. They are often mixed with diced tomatoes and onions. They do NOT look like round beans.
+- **Maharagwe (Beans)**: Look for LARGER, kidney-shaped, reddish-brown beans. 
 - **Ndengu (Green Grams)**: Look for SMALL, round, yellowish-green seeds.
-- **Maharagwe (Beans)**: Look for LARGER, kidney-shaped, reddish-brown beans.
-- **Njahi**: Look for distinctly BLACK beans.
-- **Githeri**: Look for whole maize kernels mixed with beans.
-- **Wali wa Nazi**: Only call it this if you clearly see a thick, yellow/brown coconut sauce.
-- **Indomie**: Yellow, long, curly instant noodles.
+- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. They look soft and wet, but are clearly leaves, NOT a liquid sauce.
+- **Githeri**: Whole maize kernels mixed with beans.
 - **Omena**: Small silver dried fish.
 
 *** WEIGHT ESTIMATION & DENSITY ANCHORS (CRITICAL) ***
-Do NOT guess weight based on how full the bowl is. Dense foods weigh more than they look, and fluffy foods weigh less.
+Do NOT guess weight based on how full the bowl is.
 - **A standard dinner plate** is ~10 inches.
-- **Ugali**: 1 standard block/serving is ~200g. Do not exceed 250g unless the block is visibly massive.
-- **Rice**: 1 cup (a large scoop) is ~150g-200g.
-- **Stews (Omena/Beans/Ndengu)**: A standard bowl of stew is ~250g total. 
-- **CRITICAL OMENA RULE**: Dried Omena is extremely dense. A massive-looking bowl of Omena stew usually only contains **50g to 75g of DRY Omena**. If the bowl is full to the brim, cap the Omena estimate at **80g max**. Do NOT guess 150g+ for a single bowl.
-- **Gravy/Sauce**: If the food is swimming in a milky/tomato sauce, estimate the sauce separately as "Stew Gravy" at ~100g per bowl.
+- **Ugali**: 1 standard block/serving is ~200g-250g.
+- **Scrambled Eggs**: 2-3 eggs scrambled is ~150g.
+- **Vegetables (Sukuma/Managu)**: A large handful is ~100g.
+- **Stews (Omena/Beans)**: A standard bowl is ~250g total. 
+- **CRITICAL OMENA RULE**: Dried Omena is extremely dense. Cap a single bowl at 80g of dry Omena.
+- **NO "STEW GRAVY"**: Do not invent "Stew Gravy" unless it is a distinct liquid soup. If there is just oil/tomato residue from the eggs, ignore it.
 
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories. Just list the items and their estimated weights in grams.
@@ -35,8 +35,9 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "Omena", "weight_g": 60},
-    {"name": "Stew Gravy", "weight_g": 100}
+    {"name": "Ugali", "weight_g": 250},
+    {"name": "Scrambled Eggs", "weight_g": 150},
+    {"name": "Sukuma Wiki", "weight_g": 100}
   ]
 }
 
@@ -83,6 +84,7 @@ const MACRO_DB = {
   "njahi": { p: 5.8, cal: 104 },
   "egg": { p: 12.0, cal: 140 },
   "eggs": { p: 12.0, cal: 140 },
+  "scrambled eggs": { p: 12.0, cal: 140 }, // Added
 
   // VEGETABLES & SOUPS
   "sukuma wiki": { p: 2.0, cal: 53 },
@@ -97,7 +99,7 @@ const MACRO_DB = {
   "cabbage": { p: 1.3, cal: 50 },
   "mchicha": { p: 2.0, cal: 33 },
   "githeri": { p: 4.0, cal: 127 },
-  "stew gravy": { p: 2.0, cal: 150 }, // Added gravy fallback
+  "greens": { p: 2.0, cal: 53 },
 
   // BREAKFAST & SNACKS
   "mandazi": { p: 8.0, cal: 440 },
@@ -225,7 +227,8 @@ export async function onRequest(context) {
 
     parsed.items.forEach(item => {
       const nameLower = item.name.toLowerCase();
-      let matchedKey = Object.keys(MACRO_DB).find(k => nameLower.includes(k));
+      // Use a smarter matcher that looks for the longest matching key
+      let matchedKey = Object.keys(MACRO_DB).sort((a, b) => b.length - a.length).find(k => nameLower.includes(k));
       
       let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
       
