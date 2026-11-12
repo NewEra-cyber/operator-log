@@ -915,6 +915,10 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     const day = getDay(state.dayKey);
     const session = getSession(db, day.key, state.missionDate);
+
+    // NEW: Grab the session notes
+    const sessionNotes = db.logs[state.missionDate]?.sessionNotes || "";
+
     let hasData = false;
     const workoutLog = [];
 
@@ -939,10 +943,19 @@ document.addEventListener("click", function (ev) {
     resultDiv.style.display = "block";
     resultDiv.innerHTML = '<div class="mono color-cyan text-center">Consulting the AI Coach...</div>';
 
+    // UPDATED: Include sessionNotes in the payload
     fetch("/api/mission-coach", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workoutData: { day: day.name, date: state.missionDate, exercises: workoutLog } })
+      body: JSON.stringify({
+        workoutData: {
+          day: day.name,
+          date: state.missionDate,
+          exercises: workoutLog,
+          sessionNotes: sessionNotes
+        }
+      })
     })
+
       .then(r => r.json())
       .then(data => {
         let formattedAdvice = data.advice.replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>').replace(/\n/g, '<br>');

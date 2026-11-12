@@ -7,8 +7,8 @@ export async function onRequest(context) {
     }
 
     if (!apiKey) {
-        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing." }), { 
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+        return new Response(JSON.stringify({ advice: "ERROR: GROQ_API_KEY is missing." }), {
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
     }
 
@@ -21,7 +21,7 @@ export async function onRequest(context) {
             temperature: 0.2,
             messages: [
                 {
-                    role: "system", 
+                    role: "system",
                     content: `You are an elite, tactical strength coach. Analyze the user's workout log.
                     
                     RULES:
@@ -29,7 +29,8 @@ export async function onRequest(context) {
                     2. Use exactly 3 sections: "ASSESSMENT:", "NEXT WEEK:", "FOCUS:".
                     3. Use ALL CAPS for the section titles.
                     4. NO markdown headers (no #). NO asterisks (**). Just plain text with line breaks.
-                    5. CRITICAL: The weights logged by the user are ALWAYS in KILOGRAMS (kg). You MUST use kg in your advice. NEVER use pounds (lbs).`
+                    5. CRITICAL: The weights logged by the user are ALWAYS in KILOGRAMS (kg). NEVER use pounds (lbs).
+                    6. CRITICAL: The user provides "sessionNotes" (a micro-journal). You MUST read these notes carefully. If the user mentions pain, tweaks, fatigue, or form breakdowns, you must prioritize that in your assessment and adjust next week's advice to prevent injury.`
                 },
                 { role: "user", content: JSON.stringify(workoutData) }
             ]
@@ -42,21 +43,21 @@ export async function onRequest(context) {
         });
 
         if (!res.ok) {
-            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status})` }), { 
-                status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+            return new Response(JSON.stringify({ advice: `Groq API Error (${res.status})` }), {
+                status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
             });
         }
 
         const data = await res.json();
         const advice = data.choices[0].message.content;
-        
-        return new Response(JSON.stringify({ advice }), { 
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+
+        return new Response(JSON.stringify({ advice }), {
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
 
     } catch (err) {
-        return new Response(JSON.stringify({ advice: `System Error: ${err.message}` }), { 
-            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+        return new Response(JSON.stringify({ advice: `System Error: ${err.message}` }), {
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
     }
 }
