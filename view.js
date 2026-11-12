@@ -5,7 +5,6 @@ function getPlanKey(d) {
   return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
 }
 
-// Helper: Map exercise IDs to muscle groups for the Radar
 function getMuscleGroup(exId) {
   if (["bench", "incdb", "cablefly", "dips"].includes(exId)) return "Chest";
   if (["row", "rowB", "pulldown", "pulldownB", "pullup"].includes(exId)) return "Back";
@@ -18,7 +17,6 @@ function getMuscleGroup(exId) {
   return "Other";
 }
 
-// Helper: Generate SVG Sparkline
 function generateSparkline(data) {
   if (data.length < 2) return "";
   const max = Math.max(...data);
@@ -50,6 +48,7 @@ export function viewMission(db, state) {
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
   const session = getSession(db, day.key, dateKey);
 
+  // Phase 5.4: Smart Deload Predictor
   let isDeload = false;
   let recentRIRs = [];
   Object.keys(db.workouts).forEach(k => {
@@ -87,6 +86,22 @@ export function viewMission(db, state) {
   const dayMap = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   const nextDayKey = dayMap[(new Date(dateKey + "T12:00:00").getDay() + 1) % 7];
   const nextDay = TRAINING.find(d => d.key === nextDayKey) || TRAINING[0];
+
+  // Phase 6: Session Micro-Journal (Date-Aware)
+  const sessionNotes = db.logs[dateKey]?.sessionNotes || "";
+  const hasNotes = sessionNotes.trim().length > 0;
+
+  const notesHTML = `
+    <div class="card" style="margin-top: 16px; ${hasNotes ? 'border-left: 3px solid var(--green);' : ''}">
+      <div class="flex-between mb-4">
+        <div class="kicker">SESSION MICRO-JOURNAL</div>
+        ${hasNotes ? '<span class="mono small color-green">✓ SAVED</span>' : ''}
+      </div>
+      <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
+      <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
+      <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES FOR ${dateKey}</button>
+    </div>
+  `;
 
   return `
     <section class="pad">
@@ -136,12 +151,7 @@ export function viewMission(db, state) {
         <div id="coachResult" class="ai-result" style="margin-top: 16px;"></div>
       </div>
 
-      <div class="card" style="margin-top: 16px;">
-        <div class="kicker mb-4">SESSION MICRO-JOURNAL</div>
-        <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
-        <textarea id="sessionNotesInput" class="manual w-full" style="height: 80px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(db.logs[dateKey]?.sessionNotes || "")}</textarea>
-        <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES</button>
-      </div>
+      ${notesHTML}
 
       <div class="card" style="border-left: 3px solid var(--muted); margin-top: 16px;">
         <div class="kicker mb-2">UP NEXT · ${nextDay.tag}</div>
@@ -162,7 +172,6 @@ function exCardHTML(db, session, ex) {
   for (let k of sessionKeys) {
     if (k.includes(ex.id) && db.workouts[k].ex[ex.id]?.sets.some(Boolean)) {
       lastSession = db.workouts[k].ex[ex.id];
-      // Calculate e1RM for sparkline
       const w = num(lastSession.weight, 0);
       const topReps = lastSession.reps.map(r => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
       if (w > 0 && topReps > 0) {
@@ -170,7 +179,6 @@ function exCardHTML(db, session, ex) {
       }
     }
   }
-  // Get last 6 points for the sparkline
   const sparklineHTML = generateSparkline(historyPoints.slice(-6));
 
   const best = db.history[ex.id];
@@ -252,7 +260,7 @@ function exCardHTML(db, session, ex) {
         </div>
       </div>
       <div class="sets" id="sets-${ex.id}">${setsHTML}</div>
-            <div class="overload ${overload ? 'show' : ''}" id="ovl-${ex.id}">
+      <div class="overload ${overload ? 'show' : ''}" id="ovl-${ex.id}">
         ⚠ OVERLOAD DETECTED — ALL SETS AT ${ex.max} REPS. UNLOCK <b>${ex.inc > 0 ? target + "KG" : "PROGRESSION"}</b> NEXT WEEK.
       </div>
     </article>
@@ -732,9 +740,8 @@ export function viewVault(db, state) {
 }
 
 export function viewBlueprint(db, state) {
-  // Phase 6.2: Muscle Volume Radar
   const volumeMap = { "Chest": 0, "Back": 0, "Quads": 0, "Hamstrings": 0, "Delts": 0, "Arms": 0, "Calves": 0, "Core": 0 };
-  const startOfWeek = addDays(ymd(), -new Date().getDay() + 1); // Monday
+  const startOfWeek = addDays(ymd(), -new Date().getDay() + 1);
 
   Object.keys(db.workouts).forEach(k => {
     const dateStr = k.split("::")[1] || "";
@@ -757,7 +764,7 @@ export function viewBlueprint(db, state) {
   const radarBars = Object.keys(volumeMap).map(group => {
     const sets = volumeMap[group];
     if (sets === 0) return "";
-    const pct = Math.min((sets / 20) * 100, 100); // 20 sets = 100% bar
+    const pct = Math.min((sets / 20) * 100, 100);
     let colorClass = "optimal";
     if (sets < 10) colorClass = "under";
     return `
@@ -769,7 +776,6 @@ export function viewBlueprint(db, state) {
     `;
   }).join("");
 
-  // Phase 6.3: Volume vs Protein Equilibrium
   let maxVol = 0;
   const eqData = [];
   for (let i = 6; i >= 0; i--) {
@@ -856,7 +862,6 @@ export function viewSystem(db) {
   const bestCount = Object.keys(db.history).length;
   const swState = ("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "ACTIVE" : (("serviceWorker" in navigator) ? "REGISTERED" : "UNSUPPORTED");
 
-  // --- FIXED BACKUP LOGIC ---
   const lastBackup = db.settings.lastBackup || 0;
   let showBackupWarning = false;
   let backupMessage = "";
@@ -871,7 +876,6 @@ export function viewSystem(db) {
       backupMessage = `It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.`;
     }
   }
-  // --------------------------
 
   let maxVolume = 0;
   const volumeData = [];

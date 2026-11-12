@@ -513,7 +513,10 @@ document.addEventListener("click", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = text;
     saveDB(db);
-    toast("SESSION NOTES SAVED", "green");
+
+    // Re-render so the green "SAVED" badge appears instantly
+    render();
+    toast("NOTES SAVED FOR " + dateKey, "green");
     return;
   }
 
