@@ -190,6 +190,11 @@ export function mergeDBs(local, remote) {
       remoteMeals.forEach(m => mealMap.set(m.id, m));
       merged.logs[date].meals = Array.from(mealMap.values());
       merged.logs[date].water = Math.max(merged.logs[date].water || 0, remote.logs[date].water || 0);
+
+      // FIX: Force remote session notes to overwrite local (Cloud is master for notes)
+      if (remote.logs[date].sessionNotes) {
+        merged.logs[date].sessionNotes = remote.logs[date].sessionNotes;
+      }
     }
   });
 
