@@ -2,32 +2,36 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.8-27b"; 
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
-You are an elite nutritionist AI. Your ONLY job is to identify the Kenyan foods on the plate and estimate their weight in grams. 
+You are an elite nutritionist AI. Your job is to identify Kenyan foods and packaged drinks, and estimate their weight/volume.
 
-*** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
-- **Ugali**: A SOLID, CUT BLOCK or DOME of white maize meal. It holds its shape rigidly. It does NOT look like a loose pile.
-- **White Rice**: A LOOSE PILE of individual, fluffy grains. It flows and shifts.
-- **Scrambled Eggs**: Look for a yellow, fluffy, curdled texture. They are often mixed with diced tomatoes and onions. They do NOT look like round beans.
-- **Maharagwe (Beans)**: Look for LARGER, kidney-shaped, reddish-brown beans. 
-- **Ndengu (Green Grams)**: Look for SMALL, round, yellowish-green seeds.
-- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. They look soft and wet, but are clearly leaves, NOT a liquid sauce.
-- **Githeri**: Whole maize kernels mixed with beans.
+*** PACKAGED PRODUCTS & DRINKS (CRITICAL) ***
+- If the image shows a PACKET, BOTTLE, or BRANDED WRAPPER (e.g., milk packets, juice boxes, yoghurt), you MUST read the label.
+- Do NOT reject packaged items as "trash". They are valid food/drink items.
+- If you see a milk packet (e.g., "Mountain Fresh Long Life Milk 200ml"), return it as "Milk" with a weight of 200g (since 1ml of milk ≈ 1g).
+
+*** VISUAL DISAMBIGUATION RULES ***
+- **Ugali**: A SOLID, CUT BLOCK or DOME of white maize meal. 
+- **White Rice**: A LOOSE PILE of individual, fluffy grains. 
+- **Scrambled Eggs**: Look for a yellow, fluffy, curdled texture mixed with tomatoes/onions.
+- **Maharagwe (Beans)**: LARGER, kidney-shaped, reddish-brown beans. 
+- **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
+- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
 - **Omena**: Small silver dried fish.
+- **Milk (Packet)**: Blue/white plastic packet. Standard size is 200ml or 500ml.
 
-*** WEIGHT ESTIMATION & DENSITY ANCHORS (CRITICAL) ***
-Do NOT guess weight based on how full the bowl is.
+*** WEIGHT ESTIMATION & DENSITY ANCHORS ***
 - **A standard dinner plate** is ~10 inches.
 - **Ugali**: 1 standard block/serving is ~200g-250g.
 - **Scrambled Eggs**: 2-3 eggs scrambled is ~150g.
 - **Vegetables (Sukuma/Managu)**: A large handful is ~100g.
-- **Stews (Omena/Beans)**: A standard bowl is ~250g total. 
-- **CRITICAL OMENA RULE**: Dried Omena is extremely dense. Cap a single bowl at 80g of dry Omena.
-- **NO "STEW GRAVY"**: Do not invent "Stew Gravy" unless it is a distinct liquid soup. If there is just oil/tomato residue from the eggs, ignore it.
+- **Stews**: A standard bowl is ~250g total. 
+- **Omena**: Cap a single bowl at 80g of dry Omena.
+- **Milk Packets**: 200ml = 200g.
 
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories. Just list the items and their estimated weights in grams.
@@ -35,13 +39,11 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "Ugali", "weight_g": 250},
-    {"name": "Scrambled Eggs", "weight_g": 150},
-    {"name": "Sukuma Wiki", "weight_g": 100}
+    {"name": "Milk", "weight_g": 200}
   ]
 }
 
-If the image is clearly NOT food, return:
+If the image is clearly NOT food (e.g., a car, a person, a blank wall), return:
 {"is_food": false, "name": "Non-food", "items": []}
 `.trim();
 
@@ -84,7 +86,7 @@ const MACRO_DB = {
   "njahi": { p: 5.8, cal: 104 },
   "egg": { p: 12.0, cal: 140 },
   "eggs": { p: 12.0, cal: 140 },
-  "scrambled eggs": { p: 12.0, cal: 140 }, // Added
+  "scrambled eggs": { p: 12.0, cal: 140 },
 
   // VEGETABLES & SOUPS
   "sukuma wiki": { p: 2.0, cal: 53 },
@@ -180,14 +182,14 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.0, 
+    temperature: 0.0,
     max_tokens: 300,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
         role: "user",
         content: [
-          { type: "text", text: "Identify the foods and estimate their weights in grams. Output ONLY the strict JSON." },
+          { type: "text", text: "Identify the foods/drinks and estimate their weights in grams. Output ONLY the strict JSON." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
@@ -219,7 +221,6 @@ export async function onRequest(context) {
       return json(reject("Rejected: vision model returned no usable data."));
     }
 
-    // JAVASCRIPT DOES THE MATH
     let totalP = 0;
     let totalCal = 0;
     let breakdownParts = [];
@@ -227,19 +228,18 @@ export async function onRequest(context) {
 
     parsed.items.forEach(item => {
       const nameLower = item.name.toLowerCase();
-      // Use a smarter matcher that looks for the longest matching key
       let matchedKey = Object.keys(MACRO_DB).sort((a, b) => b.length - a.length).find(k => nameLower.includes(k));
-      
-      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
-      
+
+      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 };
+
       const weight = Number(item.weight_g) || 0;
       if (weight > 0) {
         const itemP = (weight / 100) * macros.p;
         const itemCal = (weight / 100) * macros.cal;
-        
+
         totalP += itemP;
         totalCal += itemCal;
-        
+
         itemNames.push(item.name);
         breakdownParts.push(`${weight}g ${item.name}: ${itemP.toFixed(1)}g P, ${Math.round(itemCal)} kcal`);
       }
