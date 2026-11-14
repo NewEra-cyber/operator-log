@@ -8,9 +8,10 @@ export async function onRequest(context) {
         const { image1, image2, pose } = await req.json();
         if (!image1 || !image2) throw new Error("Missing images");
 
+        // Switching to the active Groq vision model
         const payload = {
-            model: "meta-llama/llama-3.2-11b-vision-preview",
-            temperature: 0.2,
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            temperature: 0.1, // Lower temperature for strict JSON output
             max_tokens: 500,
             messages: [
                 {
@@ -48,14 +49,22 @@ export async function onRequest(context) {
             body: JSON.stringify(payload)
         });
 
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Groq Vision Error:", errorText);
+            return new Response(JSON.stringify({ error: `Groq API Error (${res.status}): ${errorText.substring(0, 100)}` }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+
         const data = await res.json();
         let rawContent = data.choices[0].message.content;
+        
+        // Clean up markdown code blocks if the AI adds them
         rawContent = rawContent.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
 
         const parsed = JSON.parse(rawContent);
         return new Response(JSON.stringify(parsed), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err) {
         console.error("Physique AI Error:", err);
-        return new Response(JSON.stringify({ error: "Failed to analyze images" }), { status: 200 });
+        return new Response(JSON.stringify({ error: `System Error: ${err.message}` }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 }

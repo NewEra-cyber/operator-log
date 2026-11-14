@@ -673,7 +673,8 @@ document.addEventListener("click", function (ev) {
       })
       .catch(err => {
         console.error(err);
-        resultDiv.innerHTML = '<div class="mono color-red small">FAILED TO ANALYZE. TRY AGAIN.</div>';
+        // Show the actual error message from the backend
+        resultDiv.innerHTML = `<div class="mono color-red small">FAILED TO ANALYZE:<br>${err.message}</div>`;
       });
     return;
   }
