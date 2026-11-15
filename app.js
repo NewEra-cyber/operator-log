@@ -82,12 +82,21 @@ async function startLiveCamera() {
   const video = document.getElementById("cameraStream");
   const ghostImg = document.getElementById("cameraGhostImg");
   const ghostSrc = state.photoTarget ? (POSE_REFERENCES[state.photoTarget.pose] || "") : "";
+
   if (ghostImg) {
     if (ghostSrc) { ghostImg.src = ghostSrc; ghostImg.style.display = "block"; }
     else { ghostImg.removeAttribute("src"); ghostImg.style.display = "none"; }
   }
+
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    // CHANGED: Request high resolution (1920x1080) from the environment camera
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
     video.srcObject = videoStream;
     document.getElementById("cameraChoiceModal").classList.remove("open");
     document.getElementById("liveCameraModal").classList.add("open");
@@ -113,17 +122,17 @@ function captureLivePhoto() {
   }
 
   const canvas = document.createElement("canvas");
+  // Use the native video resolution (often 1080p or 4K depending on device)
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
 
-  // Draw the current video frame to the canvas
+  // Draw the frame at full resolution
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // Use synchronous Base64 conversion
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+  // Use HIGH QUALITY JPEG (0.92 = 92% quality)
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
-  // Convert DataURL to Blob synchronously via atob
   const byteString = atob(dataUrl.split(',')[1]);
   const ab = new ArrayBuffer(byteString.length);
   const ia = new Uint8Array(ab);
@@ -133,13 +142,9 @@ function captureLivePhoto() {
   const blob = new Blob([ab], { type: "image/jpeg" });
   const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
 
-  // Show a quick toast so the user knows it worked
-  toast("CAPTURING...", "cyan");
+  toast("CAPTURING HD...", "cyan");
 
-  // Pass the captured file to your existing handler!
   handlePhotoFile(file);
-
-  // Stop the camera AFTER processing the file
   stopLiveCamera();
 }
 function todayDayKey() {
@@ -396,11 +401,12 @@ async function handlePhotoFile(file) {
   const target = state.photoTarget;
   state.photoTarget = null;
   try {
-    const dataUrl = await compressImage(file, 620, 0.62);
+    // CHANGED: Bumped from 620px @ 0.62 quality to 1080px @ 0.85 quality
+    const dataUrl = await compressImage(file, 1080, 0.85);
     const db = getDB();
     if (!db.photos[target.ms] || typeof db.photos[target.ms] !== "object") db.photos[target.ms] = {};
     db.photos[target.ms][target.pose] = dataUrl;
-    if (saveDB(db)) toast("PHOTO SAVED · " + target.ms.toUpperCase() + " " + formatPose(target.pose), "green");
+    if (saveDB(db)) toast("HD PHOTO SAVED · " + target.ms.toUpperCase() + " " + formatPose(target.pose), "green");
   } catch (e) {
     console.error(e);
     toast("IMAGE PROCESSING FAILED", "red");
