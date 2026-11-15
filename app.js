@@ -138,7 +138,7 @@ function tickRest() {
 
   if (timerProgress) {
     timerProgress.style.strokeDashoffset = -(circumference * percentage);
-    
+
     // TACTICAL TIMER COLORS
     if (percentage < 0.5) {
       timerProgress.style.stroke = "var(--red)";
@@ -198,7 +198,7 @@ function toggleSet(exId, i) {
   if (!wasOn) {
     const best = db.history[exId];
     const allDone = s.sets.every(Boolean);
-    
+
     if (allDone) {
       const w = num(s.weight, 0);
       const topReps = s.reps.map((r) => num(r, 0)).reduce((a, b) => Math.max(a, b), 0);
@@ -206,12 +206,12 @@ function toggleSet(exId, i) {
         db.history[exId] = { weight: w, reps: topReps, date: ymd() };
         saveDB(db);
         toast("NEW BEST LOGGED · " + ex.name.toUpperCase(), "green");
-        
-        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch(e){} }
+
+        if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch (e) { } }
         const card = document.getElementById(`card-${exId}`);
         if (card) {
-           card.style.boxShadow = "0 0 30px var(--primary)";
-           setTimeout(() => card.style.boxShadow = "", 1500);
+          card.style.boxShadow = "0 0 30px var(--primary)";
+          setTimeout(() => card.style.boxShadow = "", 1500);
         }
 
         render();
@@ -219,7 +219,7 @@ function toggleSet(exId, i) {
         return;
       }
     }
-    
+
     const doneSets = s.sets.filter(Boolean).length;
     const isCompound = ["squat", "bench", "rdl", "ohp"].includes(ex.id);
 
@@ -246,23 +246,26 @@ async function handleFoodFile(file) {
     const res = await fetch("/api/plate-vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: base64 }) });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    
+
     if (data && data.error && data.is_food !== true) {
       state.scan = { status: "error", message: (data.breakdown || "Vision service unavailable.") };
     } else if (!data || data.is_food !== true) {
       state.scan = { status: "reject", data: data || {} };
     } else {
       // SAFETY NET: Trigger checklist for complex plates OR packaged goods
-      const hasDuplicates = data.items.some(item => 
-        item.name.toLowerCase().includes("packet") || 
+      // Added check to ensure data.items exists and is an array before checking
+      const hasItems = data.items && Array.isArray(data.items) && data.items.length > 0;
+
+      const hasDuplicates = hasItems ? data.items.some(item =>
+        item.name.toLowerCase().includes("packet") ||
         item.name.toLowerCase().includes("biscuit") ||
         item.name.toLowerCase().includes("milk")
-      );
+      ) : false;
 
-      if (data.items.length >= 3 || hasDuplicates) {
-         state.scan = { status: "verify", data: data, img: thumbnail };
+      if (hasItems && (data.items.length >= 3 || hasDuplicates)) {
+        state.scan = { status: "verify", data: data, img: thumbnail };
       } else {
-         state.scan = { status: "ok", data: data, img: thumbnail };
+        state.scan = { status: "ok", data: data, img: thumbnail };
       }
     }
   } catch (err) {
@@ -461,7 +464,7 @@ function openLightbox(key) {
   if (!bp) return;
   state.bpKey = key;
   document.getElementById("lbTitle").textContent = bp.label.toUpperCase();
-  
+
   let exercisesHTML = "";
   let dayKey = key;
   if (key === "weekend") dayKey = "recoveryB";
@@ -491,7 +494,7 @@ function openLightbox(key) {
       ${exercisesHTML}
     </div>
   `;
-  
+
   lb.scale = 1; lb.x = 0; lb.y = 0;
   applyLB();
   document.getElementById("lightbox").classList.add("open");
@@ -517,38 +520,38 @@ document.addEventListener("click", function (ev) {
     window.scrollTo({ top: 0, behavior: "instant" });
     return;
   }
-  
+
   if (act === "remove-scanned-item") {
     const idx = Number(el.dataset.idx);
     if (state.scan && state.scan.data && state.scan.data.items) {
       state.scan.data.items.splice(idx, 1);
-      
+
       let totalP = 0;
       let totalCal = 0;
       let names = [];
       let breakdown = [];
-      
+
       state.scan.data.items.forEach(item => {
         const n = item.name.toLowerCase();
-        let p = 5, c = 150; 
+        let p = 5, c = 150;
         if (n.includes("biscuit")) { p = 6.6; c = 500; }
         else if (n.includes("ugali")) { p = 2.5; c = 120; }
         else if (n.includes("egg")) { p = 12; c = 140; }
         else if (n.includes("omena")) { p = 53; c = 350; }
         else if (n.includes("milk")) { p = 3.2; c = 60; }
-        
+
         const w = Number(item.weight_g) || 0;
         totalP += (w / 100) * p;
         totalCal += (w / 100) * c;
         names.push(item.name);
         breakdown.push(`${w}g ${item.name}`);
       });
-      
+
       state.scan.data.name = names.join(" & ");
       state.scan.data.p = Math.round(totalP * 10) / 10;
       state.scan.data.cal = Math.round(totalCal);
       state.scan.data.breakdown = breakdown.join(" | ");
-      
+
       if (state.scan.data.items.length === 0) {
         state.scan = { status: "idle" };
       }
@@ -564,7 +567,7 @@ document.addEventListener("click", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = text;
     saveDB(db);
-    render(); 
+    render();
     toast("NOTES SAVED FOR " + dateKey, "green");
     return;
   }
@@ -573,7 +576,7 @@ document.addEventListener("click", function (ev) {
     if (!window.confirm("PRUNE STALE DATA? This deletes food photos older than 30 days and empty workout logs. Your core history and Vault photos are untouched.")) return;
     const db = getDB();
     let pruned = 0;
-    
+
     const cutoff = addDays(ymd(), -30);
     Object.keys(db.logs).forEach(k => {
       if (k < cutoff) {
@@ -967,9 +970,9 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     const day = getDay(state.dayKey);
     const session = getSession(db, day.key, state.missionDate);
-    
+
     const sessionNotes = db.logs[state.missionDate]?.sessionNotes || "";
-    
+
     let hasData = false;
     const workoutLog = [];
 
@@ -996,13 +999,13 @@ document.addEventListener("click", function (ev) {
 
     fetch("/api/mission-coach", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        workoutData: { 
-          day: day.name, 
-          date: state.missionDate, 
+      body: JSON.stringify({
+        workoutData: {
+          day: day.name,
+          date: state.missionDate,
           exercises: workoutLog,
           sessionNotes: sessionNotes
-        } 
+        }
       })
     })
       .then(r => r.json())
@@ -1126,7 +1129,7 @@ document.addEventListener("input", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = el.value;
     saveDB(db);
-    
+
     const card = el.closest('.card');
     if (card && el.value.trim().length > 0) {
       card.style.borderLeft = "3px solid var(--green)";
@@ -1138,7 +1141,7 @@ document.addEventListener("input", function (ev) {
     }
     return;
   }
-  
+
   if (act === "ex-reps") {
     const exId = el.dataset.ex;
     const idx = Number(el.dataset.i);
@@ -1184,32 +1187,32 @@ document.addEventListener("input", function (ev) {
     const idx = Number(el.dataset.idx);
     if (state.scan && state.scan.data && state.scan.data.items[idx]) {
       state.scan.data.items[idx].weight_g = Number(el.value) || 0;
-      
+
       let totalP = 0;
       let totalCal = 0;
       let names = [];
       let breakdown = [];
-      
+
       state.scan.data.items.forEach(item => {
         const n = item.name.toLowerCase();
-        let p = 5, c = 150; 
+        let p = 5, c = 150;
         if (n.includes("biscuit")) { p = 6.6; c = 500; }
         else if (n.includes("ugali")) { p = 2.5; c = 120; }
         else if (n.includes("egg")) { p = 12; c = 140; }
         else if (n.includes("omena")) { p = 53; c = 350; }
         else if (n.includes("milk")) { p = 3.2; c = 60; }
-        
+
         const w = Number(item.weight_g) || 0;
         totalP += (w / 100) * p;
         totalCal += (w / 100) * c;
         names.push(item.name);
         breakdown.push(`${w}g ${item.name}`);
       });
-      
+
       state.scan.data.p = Math.round(totalP * 10) / 10;
       state.scan.data.cal = Math.round(totalCal);
       state.scan.data.breakdown = breakdown.join(" | ");
-      
+
       const totalDiv = document.getElementById("scan-total-display");
       if (totalDiv) totalDiv.innerHTML = `${state.scan.data.p}g P &nbsp; ${state.scan.data.cal} KCAL`;
     }
