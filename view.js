@@ -1,4 +1,4 @@
-import { TRAINING, STAPLES, MEAL_PLAN, MILESTONES, POSES, BLUEPRINTS, PLATES, BAR_WEIGHT, formatPose, QUICK_STASH, GROCERY_LIST } from './data.js';
+import { TRAINING, STAPLES, MEAL_PLAN, MILESTONES, POSES, BLUEPRINTS, PLATES, BAR_WEIGHT, formatPose, QUICK_STASH, GROCERY_LIST, POSE_REFERENCES } from './data.js';
 import { esc, fmtDate, dayLetter, num, fmtRest, addDays, ymd, pad2 } from './utils.js';
 
 function getPlanKey(d) {
@@ -683,9 +683,16 @@ export function viewVault(db, state) {
     `<option value="${p}"${state.cmpPose === p ? " selected" : ""}>${formatPose(p)}</option>`
   ).join("");
 
-  const imgA = (db.photos[state.cmpA] || {})[state.cmpPose] || "";
-  const imgB = (db.photos[state.cmpB] || {})[state.cmpPose] || "";
+  // Custom helper to get image, falling back to POSE_REFERENCES
+  const getPhoto = (milestone) => {
+    if (milestone === "reference") {
+      return POSE_REFERENCES[state.cmpPose] || "";
+    }
+    return (db.photos[milestone] || {})[state.cmpPose] || "";
+  };
 
+  const imgA = getPhoto(state.cmpA);
+  const imgB = getPhoto(state.cmpB);
   let weightRateHTML = "";
   if (db.weightLog && db.weightLog.length > 0) {
     const currentWeight = db.weightLog[db.weightLog.length - 1].weight;
@@ -749,18 +756,24 @@ export function viewVault(db, state) {
       <div class="card">
         <div class="kicker mb-9">SPLIT-SLIDER COMPARISON</div>
         <div class="sel-row" style="margin-bottom: 12px;">
-          <select data-act="cmp-a">${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpA === m.k ? " selected" : ""}>${m.label}</option>`).join("")}</select>
+                    <select data-act="cmp-a">
+            <option value="reference"${state.cmpA === "reference" ? " selected" : ""}>REFERENCE IMAGE</option>
+            ${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpA === m.k ? " selected" : ""}>${m.label}</option>`).join("")}
+          </select>
           <select data-act="cmp-pose">${poseOpts}</select>
-          <select data-act="cmp-b">${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpB === m.k ? " selected" : ""}>${m.label}</option>`).join("")}</select>
+          <select data-act="cmp-b">
+            <option value="reference"${state.cmpB === "reference" ? " selected" : ""}>REFERENCE IMAGE</option>
+            ${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpB === m.k ? " selected" : ""}>${m.label}</option>`).join("")}
+          </select>
         </div>
         
         <div class="split-container" id="splitSlider">
           ${imgA ? `<img src="${imgA}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           ${imgB ? `<img src="${imgB}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           
-          <div class="split-label label-before">${state.cmpA.toUpperCase()} (BEFORE)</div>
-          <div class="split-label label-after">${state.cmpB.toUpperCase()} (AFTER)</div>
-          
+                    <div class="split-label label-before">${state.cmpA === "reference" ? "REFERENCE" : state.cmpA.toUpperCase()} (BEFORE)</div>
+          <div class="split-label label-after">${state.cmpB === "reference" ? "REFERENCE" : state.cmpB.toUpperCase()} (AFTER)</div>
+
           ${imgA && imgB ? `<div class="split-handle" id="splitHandle" style="left: 50%;"></div>` : ''}
         </div>
       </div>

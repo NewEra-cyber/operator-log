@@ -186,7 +186,7 @@ export const POSES = [
   "most_muscular_front",
   "front_double_biceps",
   "abs_thighs",
-  "side_double_thighs",
+  "side_double_biceps", // Changed from side_double_thighs if that's what you want
   "side_triceps",
   "back_double_biceps",
   "rear_relaxed"
