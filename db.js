@@ -100,6 +100,7 @@ export function migrate(raw) {
   const s = raw.settings || raw.config || raw.prefs || {};
   db.settings.proteinTarget = num(s.proteinTarget != null ? s.proteinTarget : raw.proteinTarget, 105) || 105;
   db.settings.operator = s.operator || s.name || "OPERATOR";
+  db.settings.includePhotos = s.includePhotos !== false; // Defaults to true unless explicitly set to false
   if (raw.proteinTarget && !s.proteinTarget) db.settings.proteinTarget = num(raw.proteinTarget, 105) || 105;
 
   const rawLogs = raw.logs || raw.nutrition || raw.meals || raw.food || raw.diary || {};
