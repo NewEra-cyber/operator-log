@@ -649,7 +649,9 @@ export function viewVault(db, state) {
               </div>
             </div>
             <div class="text-right">
-              <div class="mono color-cyan font-bold" style="font-size: 14px;">${photoCount}/9</div>
+              <!-- === CHANGED === /9 -> /${POSES.length} -->
+              <div class="mono color-cyan font-bold" style="font-size: 14px;">${photoCount}/${POSES.length}</div>
+              <!-- === END CHANGED === -->
               <div class="small color-muted">PHOTOS</div>
             </div>
           </div>

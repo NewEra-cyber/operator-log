@@ -180,8 +180,46 @@ export const MILESTONES = [
   { k: "w8", label: "WEEK 8", sub: "FINAL" }
 ];
 
-export const POSES = ["front", "side", "back", "chest", "biceps", "triceps", "abs", "legs_front", "legs_back"];
-export const formatPose = (p) => p.replace("_", " ").toUpperCase();
+// === CHANGED === New 8-pose bodybuilding structure + reference images
+export const POSES = [
+  "front_relaxed",
+  "most_muscular_front",
+  "front_double_biceps",
+  "abs_thighs",
+  "side_double_thighs",
+  "side_triceps",
+  "back_double_biceps",
+  "rear_relaxed"
+];
+
+export const formatPose = (p) => {
+  const map = {
+    "front_relaxed": "FRONT RELAXED",
+    "most_muscular_front": "MOST MUSCULAR (FRONT)",
+    "front_double_biceps": "FRONT DOUBLE BICEPS",
+    "abs_thighs": "ABS & THIGHS",
+    "side_double_thighs": "SIDE DOUBLE THIGHS",
+    "side_triceps": "SIDE TRICEPS",
+    "back_double_biceps": "BACK DOUBLE BICEPS",
+    "rear_relaxed": "REAR RELAXED"
+  };
+  return map[p] || String(p).replace(/_/g, " ").toUpperCase();
+};
+
+export const POSE_REFERENCES = {
+  "front_relaxed": "/images/front_relaxed.png",
+  "most_muscular_front": "/images/most_muscular_front.png",
+  "front_double_biceps": "/images/front_double_biceps.png",
+  "abs_thighs": "/images/abs_thighs.png",
+  "side_double_thighs": "/images/side_double_thighs.png",
+  "side_triceps": "/images/side_triceps.png",
+  "back_double_biceps": "/images/back_double_biceps.png",
+  "rear_relaxed": "/images/rear_relaxed.png"
+};
+
+export const POSE_OVERVIEW = "/images/pose_overview.jpg";
+// === END CHANGED ===
+
 export const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 export const BAR_WEIGHT = 0;
 

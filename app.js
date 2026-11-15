@@ -1,6 +1,8 @@
 import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
 import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
-import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES } from './data.js';
+// === CHANGED === added POSES, formatPose, POSE_REFERENCES to import
+import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES, POSES, formatPose, POSE_REFERENCES } from './data.js';
+// === END CHANGED ===
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
 
 // === AUDIO CONTEXT ===
@@ -34,7 +36,9 @@ const state = {
   vaultMilestone: null,
   cmpA: "w0",
   cmpB: "w8",
-  cmpPose: "front",
+  // === CHANGED === default cmpPose updated to a valid new pose key
+  cmpPose: "front_relaxed",
+  // === END CHANGED ===
   bpKey: null,
   calTarget: null,
   calMonth: new Date().getMonth(),
@@ -70,6 +74,55 @@ function triggerAutoSync() {
       })
       .catch(err => console.error("[Auto-Sync] Failed", err));
   }, 3000); // 3-second debounce
+}
+// === CAMERA ENGINE ===
+let videoStream = null;
+// === CHANGED === startLiveCamera now sets the ghost reference image (guarded)
+async function startLiveCamera() {
+  const video = document.getElementById("cameraStream");
+  const ghostImg = document.getElementById("cameraGhostImg");
+  const ghostSrc = state.photoTarget ? (POSE_REFERENCES[state.photoTarget.pose] || "") : "";
+  if (ghostImg) {
+    if (ghostSrc) { ghostImg.src = ghostSrc; ghostImg.style.display = "block"; }
+    else { ghostImg.removeAttribute("src"); ghostImg.style.display = "none"; }
+  }
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = videoStream;
+    document.getElementById("cameraChoiceModal").classList.remove("open");
+    document.getElementById("liveCameraModal").classList.add("open");
+  } catch (err) {
+    toast("CAMERA ACCESS DENIED OR UNAVAILABLE", "red");
+  }
+}
+// === END CHANGED ===
+
+function stopLiveCamera() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  document.getElementById("liveCameraModal").classList.remove("open");
+}
+
+function captureLivePhoto() {
+  const video = document.getElementById("cameraStream");
+  if (!video || !video.videoWidth) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+  // Convert Base64 to a Blob, then to a File object
+  fetch(dataUrl).then(res => res.blob()).then(blob => {
+    const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+    handlePhotoFile(file); // Pass the captured file to your existing handler!
+    stopLiveCamera();
+  });
 }
 function todayDayKey() {
   const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
@@ -329,7 +382,7 @@ async function handlePhotoFile(file) {
     const db = getDB();
     if (!db.photos[target.ms] || typeof db.photos[target.ms] !== "object") db.photos[target.ms] = {};
     db.photos[target.ms][target.pose] = dataUrl;
-    if (saveDB(db)) toast("PHOTO SAVED · " + target.ms.toUpperCase() + " " + target.pose.toUpperCase(), "green");
+    if (saveDB(db)) toast("PHOTO SAVED · " + target.ms.toUpperCase() + " " + formatPose(target.pose), "green");
   } catch (e) {
     console.error(e);
     toast("IMAGE PROCESSING FAILED", "red");
@@ -543,6 +596,19 @@ document.addEventListener("click", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
   const act = el.dataset.act;
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  // === NEW CAMERA HANDLERS ===
+  if (act === "close-camera-choice") { document.getElementById("cameraChoiceModal").classList.remove("open"); return; }
+  if (act === "open-live-camera") { startLiveCamera(); return; }
+  if (act === "close-live-camera") { stopLiveCamera(); return; }
+  if (act === "capture-photo") { captureLivePhoto(); return; }
+
+  if (act === "open-file-picker") {
+    document.getElementById("cameraChoiceModal").classList.remove("open");
+    const inp = document.getElementById("photoInput"); inp.value = ""; inp.click();
+    return;
+  }
   if (navigator.vibrate) navigator.vibrate(10); // Safe haptic tick
 
   if (act === "jump-to-workout") {
@@ -1069,25 +1135,29 @@ document.addEventListener("click", function (ev) {
     return;
   }
 
+  // === CHANGED === open-photo-modal now uses POSE_REFERENCES instead of previous week photo
   if (act === "open-photo-modal") {
     const ms = el.dataset.ms;
     const pose = el.dataset.pose;
     state.photoTarget = { ms, pose };
-    const db = getDB();
-    const msIndex = MILESTONES.findIndex(m => m.k === ms);
-    let ghostSrc = "";
-    if (msIndex > 0) {
-      const prevMs = MILESTONES[msIndex - 1].k;
-      ghostSrc = (db.photos[prevMs] || {})[pose] || "";
-    }
-    const ghostImg = document.getElementById("ghostImg");
-    if (ghostSrc) { ghostImg.src = ghostSrc; ghostImg.style.display = "block"; }
-    else { ghostImg.src = ""; ghostImg.style.display = "none"; }
 
-    document.getElementById("photoModalTitle").textContent = `ALIGNMENT: ${ms.toUpperCase()} ${pose.toUpperCase()}`;
-    document.getElementById("photoModal").classList.add("open");
+    const ghostSrc = POSE_REFERENCES[pose] || "";
+    const ghostImg = document.getElementById("ghostImg");
+    if (ghostImg) {
+      if (ghostSrc) { ghostImg.src = ghostSrc; ghostImg.style.display = "block"; }
+      else { ghostImg.removeAttribute("src"); ghostImg.style.display = "none"; }
+    }
+
+    document.getElementById("photoModalTitle").textContent = `ALIGNMENT: ${ms.toUpperCase()} ${formatPose(pose)}`;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      document.getElementById("cameraChoiceModal").classList.add("open");
+    } else {
+      const inp = document.getElementById("photoInput"); inp.value = ""; inp.click();
+    }
     return;
   }
+  // === END CHANGED ===
   if (act === "close-photo-modal") { document.getElementById("photoModal").classList.remove("open"); return; }
   if (act === "trigger-photo-upload") { const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return; }
 
@@ -1411,6 +1481,17 @@ document.addEventListener("pointerdown", function (e) {
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
 });
+
+// === CHANGED === ghost opacity slider wiring (guarded, no crash if elements missing)
+(function initGhostOpacitySlider() {
+  const slider = document.getElementById("ghostOpacitySlider");
+  const ghostImg = document.getElementById("cameraGhostImg");
+  if (!slider || !ghostImg) return;
+  slider.addEventListener("input", function (e) {
+    ghostImg.style.opacity = String(Number(e.target.value) / 100);
+  });
+})();
+// === END CHANGED ===
 
 function tickClock() {
   const d = new Date();
