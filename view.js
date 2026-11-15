@@ -48,7 +48,6 @@ export function viewMission(db, state) {
   const day = TRAINING.filter((d) => d.key === state.dayKey)[0] || TRAINING[0];
   const session = getSession(db, day.key, dateKey);
 
-  // Phase 5.4: Smart Deload Predictor
   let isDeload = false;
   let recentRIRs = [];
   Object.keys(db.workouts).forEach(k => {
@@ -87,7 +86,6 @@ export function viewMission(db, state) {
   const nextDayKey = dayMap[(new Date(dateKey + "T12:00:00").getDay() + 1) % 7];
   const nextDay = TRAINING.find(d => d.key === nextDayKey) || TRAINING[0];
 
-  // Phase 6: Session Micro-Journal (Date-Aware)
   const sessionNotes = db.logs[dateKey]?.sessionNotes || "";
   const hasNotes = sessionNotes.trim().length > 0;
 
@@ -98,7 +96,7 @@ export function viewMission(db, state) {
         ${hasNotes ? '<span class="mono small color-green">✓ SAVED</span>' : ''}
       </div>
       <div class="small color-muted mb-8">Log how this session felt (form cues, energy, tweaks).</div>
-      <textarea id="sessionNotesInput" data-date="${dateKey}" class="manual w-full" rows="4" style="height: auto; min-height: 100px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
+      <textarea id="sessionNotesInput" data-date="${dateKey}" class="manual w-full" style="height: 100px; resize: vertical; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--txt); font-size: 14px; padding: 10px; border-radius: 8px; outline: none;" placeholder="e.g. Felt strong, shoulder tight on OHP...">${esc(sessionNotes)}</textarea>
       <button class="act-btn primary mt-8" data-act="save-notes" data-date="${dateKey}">SAVE NOTES FOR ${dateKey}</button>
     </div>
   `;
@@ -166,7 +164,6 @@ function exCardHTML(db, session, ex) {
   const s = getExState(session, ex, db);
   let lastSession = null;
 
-  // Phase 6.1: Sparkline Data
   let historyPoints = [];
   const sessionKeys = Object.keys(db.workouts).sort();
   for (let k of sessionKeys) {
@@ -592,24 +589,28 @@ export function scanResultHTML(state) {
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
 
-  // SAFETY NET: If AI returned 3+ items, show the checklist
   if (s.status === "verify") {
     const d = s.data || {};
     const itemsHTML = (d.items || []).map((item, i) => `
       <div class="flex-between" style="padding: 8px 0; border-bottom: 1px dashed var(--border);">
-        <div>
+        <div style="flex: 1;">
           <div style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</div>
-          <div class="mono small color-muted">${item.weight_g}g</div>
+          <div class="flex-row" style="margin-top: 4px;">
+            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 60px; background: #0a0e12; border: 1px solid var(--border); color: var(--primary); padding: 4px; border-radius: 4px; font-size: 12px;" /> <span class="mono small color-muted">grams</span>
+          </div>
         </div>
         <button class="del" data-act="remove-scanned-item" data-idx="${i}">✕</button>
       </div>
     `).join("");
 
     return `<div class="scan-result load" style="border-color: var(--orange);">
-      <h4 style="color: var(--orange);">⚠ COMPLEX PLATE DETECTED</h4>
-      <div class="dim small mb-8">The AI detected multiple items. Review and remove anything that looks wrong.</div>
+      <h4 style="color: var(--orange);">⚠ REVIEW SCANNED ITEMS</h4>
+      <div class="dim small mb-8">The AI may have misjudged the quantity. Adjust the weight or remove wrong items.</div>
       <div style="margin-bottom: 12px;">
         ${itemsHTML}
+      </div>
+      <div id="scan-total-display" class="mono color-cyan font-bold mb-8" style="font-size: 16px;">
+        ${num(d.p, 0)}g P &nbsp; ${num(d.cal, 0)} KCAL
       </div>
       <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
       <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
