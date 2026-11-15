@@ -41,7 +41,36 @@ const state = {
   calYear: new Date().getFullYear(),
   swappedExercises: {}
 };
+// === AUTO-SYNC ENGINE ===
+let syncTimeout = null;
+function triggerAutoSync() {
+  const db = getDB();
+  const syncId = db.settings.syncId;
+  if (!syncId) return; // Don't sync if no code is set
 
+  if (syncTimeout) clearTimeout(syncTimeout);
+
+  syncTimeout = setTimeout(() => {
+    // Show a subtle indicator if you want, or just do it silently
+    console.log("[Auto-Sync] Pushing to cloud...");
+
+    const payloadData = JSON.parse(JSON.stringify(db));
+    if (!payloadData.settings.includePhotos) payloadData.photos = {};
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: syncId, data: payloadData })
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          console.log("[Auto-Sync] Success");
+        }
+      })
+      .catch(err => console.error("[Auto-Sync] Failed", err));
+  }, 3000); // 3-second debounce
+}
 function todayDayKey() {
   const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   return map[new Date().getDay()];
@@ -182,6 +211,7 @@ function withSession(mutator) {
   const session = getSession(db, day.key, state.missionDate, true);
   mutator(db, session, day);
   saveDB(db);
+  triggerAutoSync();
   return { db, session, day };
 }
 
@@ -205,6 +235,7 @@ function toggleSet(exId, i) {
       if (w > 0 && (!best || w > best.weight)) {
         db.history[exId] = { weight: w, reps: topReps, date: ymd() };
         saveDB(db);
+        triggerAutoSync();
         toast("NEW BEST LOGGED · " + ex.name.toUpperCase(), "green");
 
         if (navigator.vibrate) { try { navigator.vibrate([100, 50, 100, 50, 300, 100, 300]); } catch (e) { } }
@@ -231,6 +262,7 @@ function toggleSet(exId, i) {
   }
 
   saveDB(db);
+  triggerAutoSync();
   render();
   if (!wasOn && ex.rest > 0) startRest(ex.rest);
 }
@@ -284,6 +316,7 @@ function addMealToDB(name, p, cal, breakdown, img) {
     id: uid(), name: String(name || "Meal").slice(0, 90), p: num(p, 0), cal: num(cal, 0), breakdown: String(breakdown || "").slice(0, 240), img: img || null, at: Date.now()
   });
   saveDB(db);
+  triggerAutoSync();
   return db;
 }
 
@@ -309,6 +342,7 @@ function exportJSON() {
   const db = getDB();
   db.settings.lastBackup = Date.now();
   saveDB(db);
+  triggerAutoSync();
 
   const exportData = JSON.parse(JSON.stringify(db));
   if (!exportData.settings.includePhotos) exportData.photos = {};
@@ -567,6 +601,7 @@ document.addEventListener("click", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = text;
     saveDB(db);
+    triggerAutoSync();
     render();
     toast("NOTES SAVED FOR " + dateKey, "green");
     return;
@@ -595,6 +630,7 @@ document.addEventListener("click", function (ev) {
     });
 
     saveDB(db);
+    triggerAutoSync();
     render();
     toast("DB PRUNED · " + pruned + " ITEMS REMOVED", "cyan");
     return;
@@ -713,7 +749,7 @@ document.addEventListener("click", function (ev) {
     if (!db.logs[state.nutDate]) db.logs[state.nutDate] = { meals: [] };
     const current = db.logs[state.nutDate].water || 0;
     db.logs[state.nutDate].water = (current === count) ? count - 1 : count;
-    saveDB(db); render(); return;
+    saveDB(db); triggerAutoSync(); render(); return;
   }
   if (act === "save-favorite") {
     const n = document.getElementById("mName");
@@ -722,7 +758,7 @@ document.addEventListener("click", function (ev) {
     if (!n || !n.value.trim()) { toast("ENTER A MEAL NAME FIRST", "red"); return; }
     const db = getDB();
     db.favorites.push({ name: n.value.trim(), p: num(p.value, 0), cal: num(c.value, 0) });
-    saveDB(db); render(); toast("SAVED TO FAVORITES", "green"); return;
+    saveDB(db); triggerAutoSync(); render(); toast("SAVED TO FAVORITES", "green"); return;
   }
   if (act === "save-weight") {
     const w = document.getElementById("weightInput");
@@ -730,7 +766,7 @@ document.addEventListener("click", function (ev) {
     const db = getDB();
     if (!db.weightLog) db.weightLog = [];
     db.weightLog.push({ date: ymd(), weight: num(w.value, 0) });
-    saveDB(db); render(); toast("WEIGHT LOGGED", "green"); return;
+    saveDB(db); triggerAutoSync(); render(); toast("WEIGHT LOGGED", "green"); return;
   }
 
   if (act === "save-sync") {
@@ -929,6 +965,7 @@ document.addEventListener("click", function (ev) {
     if (log && Array.isArray(log.meals)) {
       log.meals = log.meals.filter((m) => m.id !== id);
       saveDB(db);
+      triggerAutoSync();
     }
     render();
     return;
@@ -1129,6 +1166,7 @@ document.addEventListener("input", function (ev) {
     if (!db.logs[dateKey]) db.logs[dateKey] = { meals: [] };
     db.logs[dateKey].sessionNotes = el.value;
     saveDB(db);
+    triggerAutoSync();
 
     const card = el.closest('.card');
     if (card && el.value.trim().length > 0) {
@@ -1154,6 +1192,7 @@ document.addEventListener("input", function (ev) {
     const val = num(el.value, 0);
     s.reps[idx] = val;
     saveDB(db);
+    triggerAutoSync();
 
     const lastReps = Number(el.dataset.last);
     const lastWeight = Number(el.dataset.lastWeight);
@@ -1180,6 +1219,7 @@ document.addEventListener("input", function (ev) {
     const s = getExState(session, ex, db);
     s.weight = num(el.value, 0);
     saveDB(db);
+    triggerAutoSync();
     return;
   }
 
@@ -1314,6 +1354,7 @@ document.addEventListener("pointerdown", (e) => {
     if (db.logs[state.nutDate]) {
       db.logs[state.nutDate].water = 0;
       saveDB(db);
+      triggerAutoSync();
       render();
       toast("WATER LOG RESET", "cyan");
     }
@@ -1379,6 +1420,23 @@ function tickClock() {
 
 async function boot() {
   await initDB();
+  const db = getDB();
+  // AUTO-PULL ON BOOT
+  if (db.settings.syncId) {
+    try {
+      console.log("[Auto-Pull] Checking cloud for updates...");
+      const res = await fetch("/api/sync?id=" + encodeURIComponent(db.settings.syncId));
+      const remoteData = await res.json();
+
+      if (Object.keys(remoteData).length > 0) {
+        const mergedDB = mergeDBs(db, remoteData);
+        saveDB(mergedDB);
+        console.log("[Auto-Pull] Merged remote data");
+      }
+    } catch (err) {
+      console.warn("[Auto-Pull] Offline or failed, using local data.");
+    }
+  }
   const urlParams = new URLSearchParams(window.location.search);
   const urlTab = urlParams.get('tab');
   if (urlTab && ["mission", "refuel", "vault", "blueprint", "system"].includes(urlTab)) state.tab = urlTab;
