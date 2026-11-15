@@ -2,16 +2,16 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.8-27b";
+const MODEL = "qwen/qwen3.8-27b"; 
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
 You are an elite nutritionist AI. Your job is to identify Kenyan foods and packaged snacks, and estimate their weight/volume.
 
-*** PACKAGED PRODUCTS & DUPLICATES (CRITICAL) ***
-- If you see MULTIPLE IDENTICAL packages (like 2 packets of biscuits), combine them into ONE item. For example: "Lemon Cream Biscuits (2 packets)".
-- Do NOT list the same item 4 times. Combine the weight.
+*** PACKAGED PRODUCTS & PACKET COUNTING (CRITICAL) ***
+- If you see a person's hand holding a single packet, the quantity is **1 packet**.
+- Do NOT count the pictures of food printed on the wrapper as physical items. If a wrapper shows 2 biscuits, that is just the packaging design. It is still 1 packet.
 - A standard small biscuit packet (like Novita 4pcs) is ~30g.
 - A standard milk packet is 200g.
 
@@ -36,7 +36,7 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "Lemon Cream Biscuits (2 packets)", "weight_g": 60}
+    {"name": "Lemon Cream Biscuits", "weight_g": 30}
   ]
 }
 
@@ -113,7 +113,7 @@ const MACRO_DB = {
   "mkate wa sinia": { p: 3.0, cal: 190 },
   "chapo-smokie": { p: 6.5, cal: 205 },
   "bread": { p: 8.3, cal: 266 },
-  "biscuits": { p: 6.6, cal: 500 }, // Adjusted for cream biscuits
+  "biscuits": { p: 6.6, cal: 500 },
   "lemon cream biscuits": { p: 6.6, cal: 500 },
   "groundnuts": { p: 26.0, cal: 567 },
 
@@ -180,7 +180,7 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.0,
+    temperature: 0.0, 
     max_tokens: 300,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
@@ -227,17 +227,17 @@ export async function onRequest(context) {
     parsed.items.forEach(item => {
       const nameLower = item.name.toLowerCase();
       let matchedKey = Object.keys(MACRO_DB).sort((a, b) => b.length - a.length).find(k => nameLower.includes(k));
-
-      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 };
-
+      
+      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
+      
       const weight = Number(item.weight_g) || 0;
       if (weight > 0) {
         const itemP = (weight / 100) * macros.p;
         const itemCal = (weight / 100) * macros.cal;
-
+        
         totalP += itemP;
         totalCal += itemCal;
-
+        
         itemNames.push(item.name);
         breakdownParts.push(`${weight}g ${item.name}: ${itemP.toFixed(1)}g P, ${Math.round(itemCal)} kcal`);
       }
