@@ -8,10 +8,10 @@ export async function onRequest(context) {
         const { image1, image2, pose } = await req.json();
         if (!image1 || !image2) throw new Error("Missing images");
 
-        // Switching to the active Groq vision model
+        // Using the active Groq multimodal model
         const payload = {
-            model: "meta-llama/llama-4-scout-17b-16e-instruct",
-            temperature: 0.1, // Lower temperature for strict JSON output
+            model: "qwen/qwen3.8-27b",
+            temperature: 0.1,
             max_tokens: 500,
             messages: [
                 {
