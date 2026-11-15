@@ -893,14 +893,17 @@ export function viewSystem(db) {
   let showBackupWarning = false;
   let backupMessage = "";
 
-  if (lastBackup === 0) {
-    showBackupWarning = true;
-    backupMessage = "You have never exported a backup. Export now to prevent data loss.";
-  } else {
-    const daysSinceBackup = Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24));
-    if (daysSinceBackup > 7) {
+  // Only show the red banner if they don't have a Sync Code set
+  if (!db.settings.syncId) {
+    if (lastBackup === 0) {
       showBackupWarning = true;
-      backupMessage = `It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.`;
+      backupMessage = "You have never exported a backup. Export now to prevent data loss.";
+    } else {
+      const daysSinceBackup = Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24));
+      if (daysSinceBackup > 7) {
+        showBackupWarning = true;
+        backupMessage = `It has been ${daysSinceBackup} days since your last JSON export. Export now to prevent data loss.`;
+      }
     }
   }
 
