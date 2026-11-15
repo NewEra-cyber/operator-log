@@ -107,22 +107,40 @@ function stopLiveCamera() {
 
 function captureLivePhoto() {
   const video = document.getElementById("cameraStream");
-  if (!video || !video.videoWidth) return;
+  if (!video || !video.videoWidth) {
+    toast("CAMERA NOT READY YET", "red");
+    return;
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
+
+  // Draw the current video frame to the canvas
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+  // Use synchronous Base64 conversion
   const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-  // Convert Base64 to a Blob, then to a File object
-  fetch(dataUrl).then(res => res.blob()).then(blob => {
-    const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
-    handlePhotoFile(file); // Pass the captured file to your existing handler!
-    stopLiveCamera();
-  });
+  // Convert DataURL to Blob synchronously via atob
+  const byteString = atob(dataUrl.split(',')[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  const blob = new Blob([ab], { type: "image/jpeg" });
+  const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+
+  // Show a quick toast so the user knows it worked
+  toast("CAPTURING...", "cyan");
+
+  // Pass the captured file to your existing handler!
+  handlePhotoFile(file);
+
+  // Stop the camera AFTER processing the file
+  stopLiveCamera();
 }
 function todayDayKey() {
   const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
