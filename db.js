@@ -83,7 +83,7 @@ export function blankDB() {
   return {
     version: 3,
     created: Date.now(),
-    settings: { proteinTarget: 105, operator: "OPERATOR", syncId: "", includePhotos: false },
+    settings: { proteinTarget: 105, operator: "OPERATOR", syncId: "", includePhotos: true },
     logs: {},
     workouts: {},
     history: {},
