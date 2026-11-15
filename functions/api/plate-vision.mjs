@@ -7,31 +7,28 @@ const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
-You are an elite nutritionist AI. Your job is to identify Kenyan foods and packaged drinks, and estimate their weight/volume.
+You are an elite nutritionist AI. Your job is to identify Kenyan foods and packaged snacks, and estimate their weight/volume.
 
-*** PACKAGED PRODUCTS & DRINKS (CRITICAL) ***
-- If the image shows a PACKET, BOTTLE, or BRANDED WRAPPER (e.g., milk packets, juice boxes, yoghurt), you MUST read the label.
-- Do NOT reject packaged items as "trash". They are valid food/drink items.
-- If you see a milk packet (e.g., "Mountain Fresh Long Life Milk 200ml"), return it as "Milk" with a weight of 200g (since 1ml of milk ≈ 1g).
+*** PACKAGED PRODUCTS & DUPLICATES (CRITICAL) ***
+- If you see MULTIPLE IDENTICAL packages (like 2 packets of biscuits), combine them into ONE item. For example: "Lemon Cream Biscuits (2 packets)".
+- Do NOT list the same item 4 times. Combine the weight.
+- A standard small biscuit packet (like Novita 4pcs) is ~30g.
+- A standard milk packet is 200g.
 
 *** VISUAL DISAMBIGUATION RULES ***
-- **Ugali**: A SOLID, CUT BLOCK or DOME of white maize meal. 
-- **White Rice**: A LOOSE PILE of individual, fluffy grains. 
-- **Scrambled Eggs**: Look for a yellow, fluffy, curdled texture mixed with tomatoes/onions.
-- **Maharagwe (Beans)**: LARGER, kidney-shaped, reddish-brown beans. 
+- **Ugali**: A SOLID, CUT BLOCK of white maize meal. 
+- **White Rice**: A LOOSE PILE of individual grains. 
+- **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
+- **Maharagwe (Beans)**: LARGER, kidney-shaped beans. 
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
 - **Omena**: Small silver dried fish.
-- **Milk (Packet)**: Blue/white plastic packet. Standard size is 200ml or 500ml.
 
-*** WEIGHT ESTIMATION & DENSITY ANCHORS ***
+*** WEIGHT ESTIMATION ***
 - **A standard dinner plate** is ~10 inches.
-- **Ugali**: 1 standard block/serving is ~200g-250g.
-- **Scrambled Eggs**: 2-3 eggs scrambled is ~150g.
-- **Vegetables (Sukuma/Managu)**: A large handful is ~100g.
-- **Stews**: A standard bowl is ~250g total. 
-- **Omena**: Cap a single bowl at 80g of dry Omena.
-- **Milk Packets**: 200ml = 200g.
+- **Ugali**: 1 block is ~200g-250g.
+- **Scrambled Eggs**: 2-3 eggs is ~150g.
+- **Biscuit packets**: 1 small packet = 30g.
 
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories. Just list the items and their estimated weights in grams.
@@ -39,11 +36,11 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "Milk", "weight_g": 200}
+    {"name": "Lemon Cream Biscuits (2 packets)", "weight_g": 60}
   ]
 }
 
-If the image is clearly NOT food (e.g., a car, a person, a blank wall), return:
+If the image is clearly NOT food, return:
 {"is_food": false, "name": "Non-food", "items": []}
 `.trim();
 
@@ -116,7 +113,8 @@ const MACRO_DB = {
   "mkate wa sinia": { p: 3.0, cal: 190 },
   "chapo-smokie": { p: 6.5, cal: 205 },
   "bread": { p: 8.3, cal: 266 },
-  "biscuits": { p: 5.0, cal: 450 },
+  "biscuits": { p: 6.6, cal: 500 }, // Adjusted for cream biscuits
+  "lemon cream biscuits": { p: 6.6, cal: 500 },
   "groundnuts": { p: 26.0, cal: 567 },
 
   // DRINKS & FRUITS
