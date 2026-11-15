@@ -211,7 +211,7 @@ export const POSE_REFERENCES = {
   "most_muscular_front": "/images/most_muscular_front.png",
   "front_double_biceps": "/images/front_double_biceps.png",
   "abs_thighs": "/images/abs_thighs.png",
-  "side_double_thighs": "/images/side_double_thighs.png",
+  "side_double_thighs": "/images/side_double_biceps.png",
   "side_triceps": "/images/side_triceps.png",
   "back_double_biceps": "/images/back_double_biceps.png",
   "rear_relaxed": "/images/rear_relaxed.png"
