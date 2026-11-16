@@ -14,14 +14,11 @@ const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
 You are an elite nutritionist AI. Your job is to identify foods, state HOW they are prepared, and estimate their weight in grams AS SERVED ON THE PLATE.
 
-*** PREPARATION RULES (CRITICAL) ***
-Always put the preparation in the item name, using ONLY these forms where they apply:
-- "Omena stew": omena cooked with tomato/onion/sauce (glossy, saucy, brown/red). THIS IS THE COMMON CASE.
-- "Omena (dry)": dry-fried / crispy omena with NO sauce, or raw dried omena.
-- "Spaghetti (boiled)": plain pasta, no visible oil or vegetables.
-- "Spaghetti (fried)": pasta stir-fried/sautéed, glossy, mixed with tomato/onion/greens.
-- "Pilau", "White rice", "Ugali", etc. for the other foods below.
-Never describe a stewed dish as dry. Weights are COOKED weights as served, never dry/uncooked weights.
+*** NAMING RULE (CRITICAL) ***
+Each item's "name" MUST be copied EXACTLY from this list. Never invent a name:
+{{FOOD_LIST}}
+If nothing on the list fits, use "unknown" (the user will pick the food). Do not guess a near match.
+Preparation matters: "omena stew" = omena cooked in tomato/onion sauce (the COMMON case); "omena dry" = dry-fried/crispy, no sauce. "spaghetti fried" = stir-fried, glossy, mixed with veg; "spaghetti boiled" = plain. Weights are COOKED weights as served.
 
 *** VISUAL DISAMBIGUATION RULES ***
 - **Ugali**: A SOLID, CUT BLOCK of white maize meal.
@@ -46,8 +43,8 @@ Return ONLY a JSON object. Do NOT calculate protein or calories.
 {
   "is_food": true,
   "items": [
-    {"name": "Spaghetti (fried)", "weight_g": 250},
-    {"name": "Omena stew", "weight_g": 110}
+    {"name": "spaghetti fried", "weight_g": 250},
+    {"name": "omena stew", "weight_g": 110}
   ]
 }
 
@@ -167,6 +164,15 @@ function resolveMacros(name) {
   return { key: null, p: 5.0, cal: 150 }; // generic fallback, flagged to the client
 }
 
+// Food list shown to the model AND sent to the client (swap dropdown). One source of truth.
+const prettyName = (k) => k.replace(/\b\w/g, (c) => c.toUpperCase());
+function buildCatalog() {
+  return Object.keys(MACRO_DB)
+    .filter((k) => k !== "egg")
+    .sort()
+    .map((k) => ({ key: k, name: prettyName(k), p100: MACRO_DB[k].p, cal100: MACRO_DB[k].cal }));
+}
+
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -222,7 +228,7 @@ export async function onRequest(context) {
     temperature: 0.0,
     max_tokens: 400,
     messages: [
-      { role: "system", content: SYSTEM_INSTRUCTION },
+      { role: "system", content: SYSTEM_INSTRUCTION.replace("{{FOOD_LIST}}", buildCatalog().map((c) => c.key).join(", ")) },
       {
         role: "user",
         content: [
@@ -270,7 +276,8 @@ export async function onRequest(context) {
 
       const m = resolveMacros(name);
       items.push({
-        name,
+        key: m.key,
+        name: m.key ? prettyName(m.key) : name,
         weight_g: Math.round(weight),
         p100: m.p,
         cal100: m.cal,
@@ -292,6 +299,7 @@ export async function onRequest(context) {
       cal: Math.round(totalCal),
       breakdown: items.map((i) => `${i.weight_g}g ${i.name}: ${i.p.toFixed(1)}g P, ${i.cal} kcal`).join(" | "),
       items,
+      catalog: buildCatalog(),
     }, 200);
 
   } catch (err) {

@@ -1323,6 +1323,18 @@ document.addEventListener("change", function (ev) {
   if (act === "cmp-a") { state.cmpA = el.value; render(); return; }
   if (act === "cmp-b") { state.cmpB = el.value; render(); return; }
   if (act === "cmp-pose") { state.cmpPose = el.value; render(); return; }
+  if (act === "swap-scanned-item") {
+    const idx = Number(el.dataset.idx);
+    const d = state.scan && state.scan.data;
+    const food = d && Array.isArray(d.catalog) ? d.catalog.find(c => c.key === el.value) : null;
+    if (food && Array.isArray(d.items) && d.items[idx]) {
+      const it = d.items[idx];
+      it.key = food.key; it.name = food.name; it.p100 = food.p100; it.cal100 = food.cal100; it.estimated = false;
+      recalcScan();
+      render();
+    }
+    return;
+  }
 });
 
 document.getElementById("foodInput").addEventListener("change", function (e) {

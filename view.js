@@ -594,7 +594,9 @@ export function scanResultHTML(state) {
     const itemsHTML = (d.items || []).map((item, i) => `
       <div class="flex-between" style="padding: 8px 0; border-bottom: 1px dashed var(--border);">
         <div style="flex: 1;">
-          <div style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</div>
+          <div>${(d.catalog && d.catalog.length)
+            ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #0a0e12; border: 1px solid var(--border); color: #fff; padding: 4px; border-radius: 4px; font-size: 13px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+            : `<span style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</span>`}</div>
           <div class="flex-row" style="margin-top: 4px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 60px; background: #0a0e12; border: 1px solid var(--border); color: var(--primary); padding: 4px; border-radius: 4px; font-size: 12px;" /> <span class="mono small color-muted">grams</span>
           </div>
