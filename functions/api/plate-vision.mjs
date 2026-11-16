@@ -2,32 +2,34 @@
 // Cloudflare Pages Function
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.8-27b"; 
+const MODEL = "qwen/qwen3.8-27b";
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
-You are an elite nutritionist AI. Your job is to identify Kenyan foods and packaged snacks, and estimate their weight/volume.
+You are an elite nutritionist AI. Your job is to identify foods and estimate their weight/volume.
 
-*** PACKAGED PRODUCTS & PACKET COUNTING (CRITICAL) ***
-- If you see a person's hand holding a single packet, the quantity is **1 packet**.
-- Do NOT count the pictures of food printed on the wrapper as physical items. If a wrapper shows 2 biscuits, that is just the packaging design. It is still 1 packet.
-- A standard small biscuit packet (like Novita 4pcs) is ~30g.
-- A standard milk packet is 200g.
+*** IMPORTANT MACRO REFERENCE ***
+When estimating, keep in mind:
+- Dried Omena is very high in protein (~50g per 100g).
+- Cooked Pasta/Spaghetti is a carb.
+- White Rice is a carb.
 
 *** VISUAL DISAMBIGUATION RULES ***
 - **Ugali**: A SOLID, CUT BLOCK of white maize meal. 
 - **White Rice**: A LOOSE PILE of individual grains. 
+- **Pasta/Spaghetti**: Long, cylindrical noodles (often mixed with vegetables).
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
 - **Maharagwe (Beans)**: LARGER, kidney-shaped beans. 
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
-- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
 - **Omena**: Small silver dried fish.
+- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
 
 *** WEIGHT ESTIMATION ***
 - **A standard dinner plate** is ~10 inches.
 - **Ugali**: 1 block is ~200g-250g.
-- **Scrambled Eggs**: 2-3 eggs is ~150g.
+- **Pasta/Rice Pile**: A large serving is ~200g-250g.
+- **Omena**: A handful mixed with onions/tomatoes is ~100g.
 - **Biscuit packets**: 1 small packet = 30g.
 
 *** OUTPUT FORMAT ***
@@ -36,7 +38,8 @@ Format:
 {
   "is_food": true,
   "items": [
-    {"name": "Lemon Cream Biscuits", "weight_g": 30}
+    {"name": "Spaghetti", "weight_g": 250},
+    {"name": "Omena", "weight_g": 100}
   ]
 }
 
@@ -180,7 +183,7 @@ export async function onRequest(context) {
 
   const payload = {
     model: MODEL,
-    temperature: 0.0, 
+    temperature: 0.0,
     max_tokens: 300,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
@@ -227,17 +230,17 @@ export async function onRequest(context) {
     parsed.items.forEach(item => {
       const nameLower = item.name.toLowerCase();
       let matchedKey = Object.keys(MACRO_DB).sort((a, b) => b.length - a.length).find(k => nameLower.includes(k));
-      
-      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 }; 
-      
+
+      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 };
+
       const weight = Number(item.weight_g) || 0;
       if (weight > 0) {
         const itemP = (weight / 100) * macros.p;
         const itemCal = (weight / 100) * macros.cal;
-        
+
         totalP += itemP;
         totalCal += itemCal;
-        
+
         itemNames.push(item.name);
         breakdownParts.push(`${weight}g ${item.name}: ${itemP.toFixed(1)}g P, ${Math.round(itemCal)} kcal`);
       }
