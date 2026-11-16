@@ -348,7 +348,7 @@ async function handleFoodFile(file) {
   state.scan = { status: "loading" };
   render();
   try {
-    const dataUrl = await compressImage(file, 800, 0.65);
+    const dataUrl = await compressImage(file, 1024, 0.85);
     const base64 = dataUrl.split(",")[1];
     const thumbnail = await compressImage(file, 100, 0.5);
     const res = await fetch("/api/plate-vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: base64 }) });

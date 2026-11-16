@@ -24,6 +24,7 @@ When estimating, keep in mind:
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
 - **Omena**: Small silver dried fish.
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
+- **Pasta/Spaghetti**: Long, thin, cylindrical yellow/tan noodles. Often mixed with vegetables. DO NOT CALL THIS WHITE RICE. White rice consists of individual, separated oval grains. If you see long strands, it is pasta.
 
 *** WEIGHT ESTIMATION ***
 - **A standard dinner plate** is ~10 inches.
@@ -65,6 +66,10 @@ const MACRO_DB = {
   "muthokoi": { p: 3.7, cal: 120 },
   "indomie": { p: 10.5, cal: 450 },
   "spaghetti": { p: 5.0, cal: 150 },
+  "pasta": { p: 5.0, cal: 150 },
+  "noodles": { p: 5.0, cal: 150 },
+  "macaroni": { p: 5.0, cal: 150 },
+  "spaghetti noodles": { p: 5.0, cal: 150 },
   "chips": { p: 3.0, cal: 300 },
 
   // PROTEINS & MEATS
