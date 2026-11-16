@@ -1,5 +1,10 @@
 // functions/api/plate-vision.mjs
 // Cloudflare Pages Function
+//
+// DESIGN: the vision model only IDENTIFIES foods (with preparation) and ESTIMATES grams.
+// All protein / calorie maths happens here from MACRO_DB. Every item is returned with its
+// own per-100g values, so the client can recalculate after the user edits a weight
+// without keeping a second macro table (app.js no longer has one).
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "qwen/qwen3.8-27b";
@@ -7,40 +12,42 @@ const TIMEOUT_MS = 25000;
 
 const SYSTEM_INSTRUCTION = `
 *** FORENSIC VISION PROTOCOL ***
-You are an elite nutritionist AI. Your job is to identify foods and estimate their weight/volume.
+You are an elite nutritionist AI. Your job is to identify foods, state HOW they are prepared, and estimate their weight in grams AS SERVED ON THE PLATE.
 
-*** IMPORTANT MACRO REFERENCE ***
-When estimating, keep in mind:
-- Dried Omena is very high in protein (~50g per 100g).
-- Cooked Pasta/Spaghetti is a carb.
-- White Rice is a carb.
+*** PREPARATION RULES (CRITICAL) ***
+Always put the preparation in the item name, using ONLY these forms where they apply:
+- "Omena stew": omena cooked with tomato/onion/sauce (glossy, saucy, brown/red). THIS IS THE COMMON CASE.
+- "Omena (dry)": dry-fried / crispy omena with NO sauce, or raw dried omena.
+- "Spaghetti (boiled)": plain pasta, no visible oil or vegetables.
+- "Spaghetti (fried)": pasta stir-fried/sautéed, glossy, mixed with tomato/onion/greens.
+- "Pilau", "White rice", "Ugali", etc. for the other foods below.
+Never describe a stewed dish as dry. Weights are COOKED weights as served, never dry/uncooked weights.
 
 *** VISUAL DISAMBIGUATION RULES ***
-- **Ugali**: A SOLID, CUT BLOCK of white maize meal. 
-- **White Rice**: A LOOSE PILE of individual grains. 
-- **Pasta/Spaghetti**: Long, cylindrical noodles (often mixed with vegetables).
+- **Ugali**: A SOLID, CUT BLOCK of white maize meal.
+- **White Rice**: A LOOSE PILE of separate, short oval grains.
+- **Pasta/Spaghetti**: Long (or broken) thin cylindrical yellow/tan strands, often mixed with vegetables. If you see strands, it is pasta. DO NOT CALL THIS WHITE RICE.
+- **Pilau**: Brown/spiced separate rice grains.
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
-- **Maharagwe (Beans)**: LARGER, kidney-shaped beans. 
+- **Maharagwe (Beans)**: LARGER, kidney-shaped beans.
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
-- **Omena**: Small silver dried fish.
-- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables. 
-- **Pasta/Spaghetti**: Long, thin, cylindrical yellow/tan noodles. Often mixed with vegetables. DO NOT CALL THIS WHITE RICE. White rice consists of individual, separated oval grains. If you see long strands, it is pasta.
+- **Omena**: Small silver dried fish (whole, with heads and eyes).
+- **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
 
-*** WEIGHT ESTIMATION ***
-- **A standard dinner plate** is ~10 inches.
-- **Ugali**: 1 block is ~200g-250g.
-- **Pasta/Rice Pile**: A large serving is ~200g-250g.
-- **Omena**: A handful mixed with onions/tomatoes is ~100g.
-- **Biscuit packets**: 1 small packet = 30g.
+*** WEIGHT ESTIMATION (cooked, as served) ***
+- A standard dinner plate is ~10 inches.
+- Ugali: 1 block is ~200g-250g.
+- Pasta/Rice pile: a large serving is ~200g-250g.
+- Omena stew: a fish-heavy portion on a plate is ~100g-130g.
+- Biscuit packets: 1 small packet = 30g.
 
 *** OUTPUT FORMAT ***
-Return ONLY a JSON object. Do NOT calculate protein or calories. Just list the items and their estimated weights in grams.
-Format:
+Return ONLY a JSON object. Do NOT calculate protein or calories.
 {
   "is_food": true,
   "items": [
-    {"name": "Spaghetti", "weight_g": 250},
-    {"name": "Omena", "weight_g": 100}
+    {"name": "Spaghetti (fried)", "weight_g": 250},
+    {"name": "Omena stew", "weight_g": 110}
   ]
 }
 
@@ -48,6 +55,7 @@ If the image is clearly NOT food, return:
 {"is_food": false, "name": "Non-food", "items": []}
 `.trim();
 
+// Per 100 g AS SERVED (cooked). Values for stew / fried dishes are estimates, tune to taste.
 const MACRO_DB = {
   // STAPLES & CARBS
   "ugali": { p: 2.5, cal: 120 },
@@ -65,11 +73,8 @@ const MACRO_DB = {
   "kimanga": { p: 3.0, cal: 140 },
   "muthokoi": { p: 3.7, cal: 120 },
   "indomie": { p: 10.5, cal: 450 },
-  "spaghetti": { p: 5.0, cal: 150 },
-  "pasta": { p: 5.0, cal: 150 },
-  "noodles": { p: 5.0, cal: 150 },
-  "macaroni": { p: 5.0, cal: 150 },
-  "spaghetti noodles": { p: 5.0, cal: 150 },
+  "spaghetti boiled": { p: 5.0, cal: 150 },
+  "spaghetti fried": { p: 6.0, cal: 190 },
   "chips": { p: 3.0, cal: 300 },
 
   // PROTEINS & MEATS
@@ -78,7 +83,8 @@ const MACRO_DB = {
   "kuku kienyeji": { p: 10.0, cal: 93 },
   "samaki wa kupaka": { p: 10.5, cal: 102 },
   "samaki mkaango": { p: 12.7, cal: 150 },
-  "omena": { p: 53.0, cal: 350 },
+  "omena dry": { p: 53.0, cal: 350 },   // dry-fried / dried only
+  "omena stew": { p: 22.0, cal: 210 },  // cooked with tomato/onion/oil
   "mutura": { p: 12.0, cal: 190 },
   "beef stew": { p: 11.2, cal: 136 },
   "mbuzi wet fry": { p: 18.0, cal: 184 },
@@ -136,6 +142,31 @@ const MACRO_DB = {
   "banana": { p: 1.0, cal: 90 }
 };
 
+// Preparation-aware routing. Checked BEFORE the generic longest-substring match, so the
+// model's wording ("Omena", "Fried Spaghetti", "dry omena") always lands on the right row.
+const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+const DRY_RE = /\b(dry|dried|raw|uncooked|crispy|crunchy)\b/;
+const FRIED_RE = /\b(fried|stir|stirfried|saute|sauteed|sautéed|vegetables|veg|mixed)\b/;
+
+function resolveMacros(name) {
+  const n = norm(name);
+
+  if (/\b(omena|dagaa|silver fish|silverfish)\b/.test(n)) {
+    const key = DRY_RE.test(n) && !/\b(stew|sauce|tomato|wet)\b/.test(n) ? "omena dry" : "omena stew";
+    return { key, ...MACRO_DB[key] };
+  }
+  if (/\b(spaghetti|pasta|noodles|macaroni)\b/.test(n) && !/\bindomie\b/.test(n)) {
+    const key = FRIED_RE.test(n) ? "spaghetti fried" : "spaghetti boiled";
+    return { key, ...MACRO_DB[key] };
+  }
+
+  const key = Object.keys(MACRO_DB)
+    .sort((a, b) => b.length - a.length)
+    .find((k) => n.includes(norm(k)));
+  if (key) return { key, ...MACRO_DB[key] };
+  return { key: null, p: 5.0, cal: 150 }; // generic fallback, flagged to the client
+}
+
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -189,18 +220,21 @@ export async function onRequest(context) {
   const payload = {
     model: MODEL,
     temperature: 0.0,
-    max_tokens: 300,
+    max_tokens: 400,
     messages: [
       { role: "system", content: SYSTEM_INSTRUCTION },
       {
         role: "user",
         content: [
-          { type: "text", text: "Identify the foods/drinks and estimate their weights in grams. Output ONLY the strict JSON." },
+          { type: "text", text: "Identify the foods/drinks, include how each is prepared in the name, and estimate cooked weights in grams. Output ONLY the strict JSON." },
           { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
         ],
       },
     ],
   };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
     const res = await fetch(GROQ_URL, {
@@ -211,6 +245,7 @@ export async function onRequest(context) {
         "Accept": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -227,44 +262,42 @@ export async function onRequest(context) {
       return json(reject("Rejected: vision model returned no usable data."));
     }
 
-    let totalP = 0;
-    let totalCal = 0;
-    let breakdownParts = [];
-    let itemNames = [];
+    const items = [];
+    parsed.items.slice(0, 12).forEach((raw) => {
+      const name = String(raw?.name || "").trim().slice(0, 60);
+      const weight = Math.min(1500, Math.max(0, Number(raw?.weight_g) || 0));
+      if (!name || weight <= 0) return;
 
-    parsed.items.forEach(item => {
-      const nameLower = item.name.toLowerCase();
-      let matchedKey = Object.keys(MACRO_DB).sort((a, b) => b.length - a.length).find(k => nameLower.includes(k));
-
-      let macros = matchedKey ? MACRO_DB[matchedKey] : { p: 5.0, cal: 150 };
-
-      const weight = Number(item.weight_g) || 0;
-      if (weight > 0) {
-        const itemP = (weight / 100) * macros.p;
-        const itemCal = (weight / 100) * macros.cal;
-
-        totalP += itemP;
-        totalCal += itemCal;
-
-        itemNames.push(item.name);
-        breakdownParts.push(`${weight}g ${item.name}: ${itemP.toFixed(1)}g P, ${Math.round(itemCal)} kcal`);
-      }
+      const m = resolveMacros(name);
+      items.push({
+        name,
+        weight_g: Math.round(weight),
+        p100: m.p,
+        cal100: m.cal,
+        p: Math.round((weight / 100) * m.p * 10) / 10,
+        cal: Math.round((weight / 100) * m.cal),
+        estimated: m.key === null,
+      });
     });
 
-    if (totalCal === 0) {
-      return json(reject("Rejected: could not calculate macros."));
-    }
+    if (items.length === 0) return json(reject("Rejected: could not calculate macros."));
+
+    const totalP = items.reduce((s, i) => s + i.p, 0);
+    const totalCal = items.reduce((s, i) => s + i.cal, 0);
 
     return json({
       is_food: true,
-      name: itemNames.join(" & "),
+      name: items.map((i) => i.name).join(" & "),
       p: Math.round(totalP * 10) / 10,
       cal: Math.round(totalCal),
-      breakdown: breakdownParts.join(" | ")
+      breakdown: items.map((i) => `${i.weight_g}g ${i.name}: ${i.p.toFixed(1)}g P, ${i.cal} kcal`).join(" | "),
+      items,
     }, 200);
 
   } catch (err) {
     const aborted = err && err.name === "AbortError";
     return json(reject(aborted ? "Rejected: vision request timed out." : "Rejected: vision service unavailable."), 200);
+  } finally {
+    clearTimeout(timer);
   }
 }

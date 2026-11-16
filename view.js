@@ -598,6 +598,8 @@ export function scanResultHTML(state) {
           <div class="flex-row" style="margin-top: 4px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 60px; background: #0a0e12; border: 1px solid var(--border); color: var(--primary); padding: 4px; border-radius: 4px; font-size: 12px;" /> <span class="mono small color-muted">grams</span>
           </div>
+          <div class="mono small color-muted" style="margin-top: 4px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
+          ${item.estimated ? '<div class="small" style="color: var(--orange); margin-top: 2px;">⚠ No exact match, generic estimate. Check before logging.</div>' : ''}
         </div>
         <button class="del" data-act="remove-scanned-item" data-idx="${i}">✕</button>
       </div>
@@ -606,6 +608,7 @@ export function scanResultHTML(state) {
     return `<div class="scan-result load" style="border-color: var(--orange);">
       <h4 style="color: var(--orange);">⚠ REVIEW SCANNED ITEMS</h4>
       <div class="dim small mb-8">The AI may have misjudged the quantity. Adjust the weight or remove wrong items.</div>
+      ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid var(--border);" />` : ''}
       <div style="margin-bottom: 12px;">
         ${itemsHTML}
       </div>

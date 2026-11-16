@@ -343,6 +343,29 @@ function toggleSet(exId, i) {
   if (!wasOn && ex.rest > 0) startRest(ex.rest);
 }
 
+// Single source of truth for scan maths: every item carries its own per-100g values
+// (p100 / cal100) from /api/plate-vision, so there is no second macro table on the client.
+function recalcScan() {
+  const d = state.scan && state.scan.data;
+  if (!d || !Array.isArray(d.items)) return;
+  let totalP = 0, totalCal = 0;
+  const names = [], parts = [];
+  d.items.forEach(item => {
+    const w = Number(item.weight_g) || 0;
+    const p = (w / 100) * num(item.p100, 0);
+    const c = (w / 100) * num(item.cal100, 0);
+    item.p = Math.round(p * 10) / 10;
+    item.cal = Math.round(c);
+    totalP += p; totalCal += c;
+    names.push(item.name);
+    parts.push(`${w}g ${item.name}: ${item.p.toFixed(1)}g P, ${item.cal} kcal`);
+  });
+  d.name = names.join(" & ");
+  d.p = Math.round(totalP * 10) / 10;
+  d.cal = Math.round(totalCal);
+  d.breakdown = parts.join(" | ");
+}
+
 async function handleFoodFile(file) {
   if (!file) return;
   state.scan = { status: "loading" };
@@ -360,21 +383,10 @@ async function handleFoodFile(file) {
     } else if (!data || data.is_food !== true) {
       state.scan = { status: "reject", data: data || {} };
     } else {
-      // SAFETY NET: Trigger checklist for complex plates OR packaged goods
-      // Added check to ensure data.items exists and is an array before checking
-      const hasItems = data.items && Array.isArray(data.items) && data.items.length > 0;
-
-      const hasDuplicates = hasItems ? data.items.some(item =>
-        item.name.toLowerCase().includes("packet") ||
-        item.name.toLowerCase().includes("biscuit") ||
-        item.name.toLowerCase().includes("milk")
-      ) : false;
-
-      if (hasItems && (data.items.length >= 3 || hasDuplicates)) {
-        state.scan = { status: "verify", data: data, img: thumbnail };
-      } else {
-        state.scan = { status: "ok", data: data, img: thumbnail };
-      }
+      // Every scan with itemised data goes through the editable review card,
+      // so a wrong gram estimate can be fixed before it is logged.
+      const hasItems = Array.isArray(data.items) && data.items.length > 0;
+      state.scan = { status: hasItems ? "verify" : "ok", data: data, img: thumbnail };
     }
   } catch (err) {
     console.error("[plate-vision]", err);
@@ -647,38 +659,10 @@ document.addEventListener("click", function (ev) {
 
   if (act === "remove-scanned-item") {
     const idx = Number(el.dataset.idx);
-    if (state.scan && state.scan.data && state.scan.data.items) {
+    if (state.scan && state.scan.data && Array.isArray(state.scan.data.items)) {
       state.scan.data.items.splice(idx, 1);
-
-      let totalP = 0;
-      let totalCal = 0;
-      let names = [];
-      let breakdown = [];
-
-      state.scan.data.items.forEach(item => {
-        const n = item.name.toLowerCase();
-        let p = 5, c = 150;
-        if (n.includes("biscuit")) { p = 6.6; c = 500; }
-        else if (n.includes("ugali")) { p = 2.5; c = 120; }
-        else if (n.includes("egg")) { p = 12; c = 140; }
-        else if (n.includes("omena")) { p = 53; c = 350; }
-        else if (n.includes("milk")) { p = 3.2; c = 60; }
-
-        const w = Number(item.weight_g) || 0;
-        totalP += (w / 100) * p;
-        totalCal += (w / 100) * c;
-        names.push(item.name);
-        breakdown.push(`${w}g ${item.name}`);
-      });
-
-      state.scan.data.name = names.join(" & ");
-      state.scan.data.p = Math.round(totalP * 10) / 10;
-      state.scan.data.cal = Math.round(totalCal);
-      state.scan.data.breakdown = breakdown.join(" | ");
-
-      if (state.scan.data.items.length === 0) {
-        state.scan = { status: "idle" };
-      }
+      if (state.scan.data.items.length === 0) state.scan = { status: "idle" };
+      else recalcScan();
       render();
     }
     return;
@@ -1319,34 +1303,12 @@ document.addEventListener("input", function (ev) {
 
   if (act === "edit-scanned-weight") {
     const idx = Number(el.dataset.idx);
-    if (state.scan && state.scan.data && state.scan.data.items[idx]) {
+    if (state.scan && state.scan.data && state.scan.data.items && state.scan.data.items[idx]) {
       state.scan.data.items[idx].weight_g = Number(el.value) || 0;
-
-      let totalP = 0;
-      let totalCal = 0;
-      let names = [];
-      let breakdown = [];
-
-      state.scan.data.items.forEach(item => {
-        const n = item.name.toLowerCase();
-        let p = 5, c = 150;
-        if (n.includes("biscuit")) { p = 6.6; c = 500; }
-        else if (n.includes("ugali")) { p = 2.5; c = 120; }
-        else if (n.includes("egg")) { p = 12; c = 140; }
-        else if (n.includes("omena")) { p = 53; c = 350; }
-        else if (n.includes("milk")) { p = 3.2; c = 60; }
-
-        const w = Number(item.weight_g) || 0;
-        totalP += (w / 100) * p;
-        totalCal += (w / 100) * c;
-        names.push(item.name);
-        breakdown.push(`${w}g ${item.name}`);
-      });
-
-      state.scan.data.p = Math.round(totalP * 10) / 10;
-      state.scan.data.cal = Math.round(totalCal);
-      state.scan.data.breakdown = breakdown.join(" | ");
-
+      recalcScan();
+      const it = state.scan.data.items[idx];
+      const lineDiv = document.querySelector('[data-item-macros="' + idx + '"]');
+      if (lineDiv) lineDiv.textContent = num(it.p, 0) + "g P · " + num(it.cal, 0) + " kcal";
       const totalDiv = document.getElementById("scan-total-display");
       if (totalDiv) totalDiv.innerHTML = `${state.scan.data.p}g P &nbsp; ${state.scan.data.cal} KCAL`;
     }
