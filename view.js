@@ -589,68 +589,103 @@ export function scanResultHTML(state) {
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
 
+  // --- VERIFY STATE (Multiple items detected) ---
   if (s.status === "verify") {
-    const d = s.data || {};
-    const itemsHTML = (d.items || []).map((item, i) => `
-      <div class="flex-between" style="padding: 8px 0; border-bottom: 1px dashed var(--border);">
-        <div style="flex: 1;">
-          <div>${(d.catalog && d.catalog.length)
-        ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #0a0e12; border: 1px solid var(--border); color: #fff; padding: 4px; border-radius: 4px; font-size: 13px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-        : `<span style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</span>`}</div>
-          <div class="flex-row" style="margin-top: 4px;">
-            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 60px; background: #0a0e12; border: 1px solid var(--border); color: var(--primary); padding: 4px; border-radius: 4px; font-size: 12px;" /> <span class="mono small color-muted">grams</span>
-          </div>
-          <div class="mono small color-muted" style="margin-top: 4px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
-          ${item.estimated ? '<div class="small" style="color: var(--orange); margin-top: 2px;">⚠ No exact match, generic estimate. Check before logging.</div>' : ''}
-        </div>
-        <button class="del" data-act="remove-scanned-item" data-idx="${i}">✕</button>
-      </div>
-    `).join("");
-
-    return `<div class="scan-result load" style="border-color: #fff;">
-      <h4 style="color: #fff;">⚠ REVIEW SCANNED ITEMS</h4>
-      <div class="dim small mb-8">The AI may have misjudged the quantity. Adjust the weight or remove wrong items.</div>
-      <div style="margin-bottom: 12px;">
-        ${itemsHTML}
-      </div>
-      <div id="scan-total-display" class="mono font-bold mb-8" style="font-size: 16px; color: #fff;">
-        ${num(d.p, 0)}g P &nbsp; ${num(d.cal, 0)} KCAL
-      </div>
-      <button class="confirm-btn" data-act="scan-confirm" style="background: #fff; color: #000;">✓ CONFIRM &amp; LOG</button>
-      <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
-    </div>`;
-  }
-
-  if (s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
 
-    // This creates the full-screen AR view
+    const itemsHTML = (d.items || []).map((item, i) => `
+      <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
+        <div style="flex: 1;">
+          <div>${(d.catalog && d.catalog.length)
+        ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
+          <div class="flex-row" style="margin-top: 6px;">
+            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 70px; background: #111; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 8px; font-size: 14px;" /> <span class="mono small color-muted">grams</span>
+          </div>
+          <div class="mono small color-muted" style="margin-top: 6px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
+        </div>
+        <button class="del" data-act="remove-scanned-item" data-idx="${i}" style="background: rgba(255, 75, 75, 0.1); border: none; color: #ff4b4b; width: 36px; height: 36px; border-radius: 8px;">✕</button>
+      </div>
+    `).join("");
+
     return `
+      <!-- FULL SCREEN AR LAYOUT -->
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        <!-- FULL SCREEN IMAGE -->
+        <!-- TOP HALF (IMAGE + AR CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />` : ''}
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;" />` : ''}
           
-          <!-- SVG CONNECTING LINE -->
           <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
             <line x1="35%" y1="65%" x2="55%" y2="25%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
             <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
           </svg>
 
-          <!-- FLOATING MACRO CARD -->
+          <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
+            <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
+              ${esc(d.name || "DETECTED ITEMS")}
+            </div>
+            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
+              ${num(d.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
+            </div>
+            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
+            <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
+              <span>Protein</span>
+              <span>${num(d.p, 0)} g</span>
+            </div>
+            <div class="flex-between mono" style="font-size: 16px; color: #888;">
+              <span>Items</span>
+              <span>${d.items ? d.items.length : 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM SHEET (EDIT ITEMS) -->
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; max-height: 50vh; overflow-y: auto;">
+          <div class="kicker mb-4">REVIEW ITEMS</div>
+          <div style="margin-bottom: 16px;">
+            ${itemsHTML}
+          </div>
+          
+          <div id="scan-total-display" class="mono font-bold mb-6" style="font-size: 18px; color: #fff;">
+            ${num(d.p, 0)}g P &nbsp; ${num(d.cal, 0)} KCAL
+          </div>
+          
+          <div class="flex-row" style="gap: 12px;">
+            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0; background: transparent; border: 1px solid #444; color: #fff;">CANCEL</button>
+            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0; background: #fff; color: #000; font-weight: 700;">CONFIRM & LOG</button>
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // --- OK STATE (Single item or simple meal) ---
+  if (s.status === "ok") {
+    const d = s.data || {};
+    const img = s.img || "";
+
+    return `
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
+        
+        <div style="flex: 1; position: relative; overflow: hidden;">
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
+          
+          <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
+            <line x1="35%" y1="65%" x2="55%" y2="25%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
+            <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
+          </svg>
+
           <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
             <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
               ${esc(d.name || "DETECTED MEAL")}
             </div>
-            
             <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
               ${num(d.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
             </div>
-            
             <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
-            
             <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
               <span>Protein</span>
               <span>${num(d.p, 0)} g</span>
@@ -662,8 +697,7 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <!-- BOTTOM ACTION BAR -->
-        <div style="padding: 24px; background: rgba(0,0,0,0.9); border-top: 1px solid #333;">
+        <div style="padding: 24px; background: #0a0a0a; border-top: 1px solid #333;">
           <div class="mono" style="font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.5;">
             ${esc(d.breakdown || "")}
           </div>

@@ -2809,11 +2809,11 @@ textarea#sessionNotesInput:focus {
 
 /* --- AR FLOATING SCANNER OVERLAY --- */
 /* --- AR FLOATING SCANNER OVERLAY --- */
+/* --- AR FLOATING SCANNER OVERLAY --- */
 .ar-overlay-card {
     background: rgba(20, 20, 20, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 24px;
-    /* Matched the video's rounded corners */
     padding: 24px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
