@@ -610,11 +610,11 @@ export function scanResultHTML(state) {
     `).join("");
 
     return `
-      <!-- FULL SCREEN AR LAYOUT -->
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
         <!-- TOP HALF (IMAGE + AR CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden;">
+          <!-- FIXED: Make sure the image renders correctly -->
           ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;" />` : ''}
           
           <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
@@ -642,7 +642,7 @@ export function scanResultHTML(state) {
         </div>
 
         <!-- BOTTOM SHEET (EDIT ITEMS) -->
-        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; max-height: 50vh; overflow-y: auto;">
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; max-height: 50vh; overflow-y: auto;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${itemsHTML}
@@ -662,7 +662,6 @@ export function scanResultHTML(state) {
     `;
   }
 
-  // --- OK STATE (Single item or simple meal) ---
   if (s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
@@ -697,7 +696,7 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <div style="padding: 24px; background: #0a0a0a; border-top: 1px solid #333;">
+        <div style="padding: 24px; padding-bottom: 100px; background: #0a0a0a; border-top: 1px solid #333;">
           <div class="mono" style="font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.5;">
             ${esc(d.breakdown || "")}
           </div>
