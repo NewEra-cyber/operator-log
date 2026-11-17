@@ -610,7 +610,6 @@ export function scanResultHTML(state) {
     return `<div class="scan-result load" style="border-color: #fff;">
       <h4 style="color: #fff;">⚠ REVIEW SCANNED ITEMS</h4>
       <div class="dim small mb-8">The AI may have misjudged the quantity. Adjust the weight or remove wrong items.</div>
-      
       <div style="margin-bottom: 12px;">
         ${itemsHTML}
       </div>
@@ -625,47 +624,52 @@ export function scanResultHTML(state) {
   if (s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
-    
+
+    // This creates the full-screen AR view
     return `
-      <div style="position: relative; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid #333; margin-top: 16px; background: #000;">
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        ${img ? `<img src="${img}" style="width: 100%; height: 280px; object-fit: cover; opacity: 0.8; display: block;" />` : ''}
-        
-        <div style="position: absolute; inset: 0; pointer-events: none;">
-          <svg style="width: 100%; height: 100%;">
-            <line x1="40%" y1="60%" x2="60%" y2="20%" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="4" />
-            <circle cx="40%" cy="60%" r="4" fill="#ffffff" />
+        <!-- FULL SCREEN IMAGE -->
+        <div style="flex: 1; position: relative; overflow: hidden;">
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />` : ''}
+          
+          <!-- SVG CONNECTING LINE -->
+          <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
+            <line x1="35%" y1="65%" x2="55%" y2="25%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
+            <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
           </svg>
 
-          <div class="ar-overlay-card" style="position: absolute; top: 15px; right: 15px;">
-            <div class="mono" style="font-size: 10px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
+          <!-- FLOATING MACRO CARD -->
+          <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
+            <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
               ${esc(d.name || "DETECTED MEAL")}
             </div>
             
-            <div class="mono" style="font-size: 32px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(d.cal, 0)}<span style="font-size: 14px; color: #888; margin-left: 4px;">kcal</span>
+            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
+              ${num(d.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
             </div>
             
-            <div style="border-top: 1px solid #333; margin: 12px 0;"></div>
+            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
             
-            <div class="flex-between mono" style="font-size: 13px; color: #fff; margin-bottom: 4px;">
+            <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
               <span>Protein</span>
               <span>${num(d.p, 0)} g</span>
             </div>
-            <div class="flex-between mono" style="font-size: 13px; color: #888;">
+            <div class="flex-between mono" style="font-size: 16px; color: #888;">
               <span>Weight</span>
               <span>EST.</span>
             </div>
           </div>
         </div>
 
-        <div style="padding: 16px; background: #000; border-top: 1px solid #333;">
-          <div class="mono" style="font-size: 10px; color: #888; margin-bottom: 12px; line-height: 1.4;">
+        <!-- BOTTOM ACTION BAR -->
+        <div style="padding: 24px; background: rgba(0,0,0,0.9); border-top: 1px solid #333;">
+          <div class="mono" style="font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.5;">
             ${esc(d.breakdown || "")}
           </div>
-          <div class="flex-row" style="gap: 8px;">
-            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0;">CANCEL</button>
-            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0;">CONFIRM & LOG</button>
+          <div class="flex-row" style="gap: 12px;">
+            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0; background: transparent; border: 1px solid #444; color: #fff;">CANCEL</button>
+            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0; background: #fff; color: #000; font-weight: 700;">CONFIRM & LOG</button>
           </div>
         </div>
 

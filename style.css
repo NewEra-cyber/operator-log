@@ -2808,15 +2808,17 @@ textarea#sessionNotesInput:focus {
 }
 
 /* --- AR FLOATING SCANNER OVERLAY --- */
+/* --- AR FLOATING SCANNER OVERLAY --- */
 .ar-overlay-card {
-    background: rgba(10, 10, 10, 0.95);
-    border: 1px solid #333;
-    border-radius: 16px;
-    padding: 16px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    min-width: 160px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    background: rgba(20, 20, 20, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    /* Matched the video's rounded corners */
+    padding: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    min-width: 220px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
 /* Pop animation for the AR card */
