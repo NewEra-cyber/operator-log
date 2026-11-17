@@ -2,22 +2,18 @@
    NEW UI KIT THEME (NEON TEAL & DEEP DARK)
    ============================================================ */
 :root {
-    --bg: #0A0A0F;
-    --card: #16161C;
-    --card-hover: #1E1E26;
-    --border: rgba(255, 255, 255, 0.08);
-    --primary: #00E5FF;
-    /* Neon Teal */
-    --primary-dark: #00B8D4;
-    --txt: #FFFFFF;
-    --muted: #8F8F9E;
-    --dim: #5A5A68;
-    --green: #00E5FF;
-    /* Map success to primary */
-    --red: #FF4B4B;
-    --font-head: 'Outfit', system-ui, sans-serif;
-    --font-body: 'Inter', system-ui, sans-serif;
-    --nav-h: 72px;
+    --bg: #000000;
+    --card: #0a0a0a;
+    --border: #333333;
+    --txt: #ffffff;
+    --muted: #888888;
+    --primary: #ffffff;
+    --red: #ff3333;
+    --green: #ffffff;
+    --cyan: #ffffff;
+    --orange: #dddddd;
+    --font-body: 'Inter', sans-serif;
+    --font-head: 'Outfit', sans-serif;
 }
 
 * {
@@ -1555,9 +1551,10 @@ main#view {
 }
 
 .act-btn.primary {
-    border-color: var(--primary);
-    color: #000;
-    background: var(--primary);
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
+    font-weight: 700;
 }
 
 /* ============================================================
@@ -2771,4 +2768,70 @@ textarea#sessionNotesInput:focus {
         transform: translate(-50%, -50%) scale(4);
         opacity: 0;
     }
+}
+
+/* ============================================================
+   NEW UI KIT THEME (TRUE MONOCHROME)
+   ============================================================ */
+:root {
+    --bg: #000000;
+    --card: #0a0a0a;
+    --border: #333333;
+    --txt: #ffffff;
+    --muted: #888888;
+    --primary: #ffffff;
+    --red: #ff3333;
+    --green: #ffffff;
+    --cyan: #ffffff;
+    --orange: #dddddd;
+    --font-body: 'Inter', sans-serif;
+    --font-head: 'Outfit', sans-serif;
+}
+
+/* Make sure the spinner is white */
+.spinner {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+}
+
+/* Fix the AI coach result to look like a stark terminal */
+.coach-text {
+    background: #000;
+    border: 1px solid #333;
+    border-left: 4px solid #fff;
+    color: #fff;
+}
+
+/* Fix the progress rings to be white */
+.ring-fg {
+    stroke: #ffffff !important;
+}
+
+/* --- AR FLOATING SCANNER OVERLAY --- */
+.ar-overlay-card {
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-width: 160px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Pop animation for the AR card */
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.ar-overlay-card {
+    animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }

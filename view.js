@@ -142,7 +142,7 @@ export function viewMission(db, state) {
       <div class="card" style="margin-top: 16px; border-left: 3px solid var(--primary);">
         <div class="kicker mb-4">AI TACTICAL COACH</div>
         <div class="small color-muted mb-8">Log your sets and reps above, then ask the coach for next week's progression.</div>
-        <button class="scan-btn" data-act="ask-coach" id="askCoachBtn" style="background: rgba(0, 229, 255, 0.1); color: var(--primary); border: 1px solid var(--primary);">
+        <button class="scan-btn" data-act="ask-coach" id="askCoachBtn" style="background: rgba(255, 255, 255, 0.1); color: var(--primary); border: 1px solid var(--primary);">
           <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V7a1 1 0 0 0-1-1z"/></svg>
           ANALYZE PERFORMANCE
         </button>
@@ -417,8 +417,8 @@ export function viewRefuel(db, state) {
             <svg class="ring" viewBox="0 0 120 120">
               <defs>
                 <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#f0a030"/>
-                  <stop offset="100%" stop-color="#3fb27f"/>
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#888888"/>
                 </linearGradient>
               </defs>
               <circle class="ring-bg" cx="60" cy="60" r="${R}"/>
@@ -458,7 +458,7 @@ export function viewRefuel(db, state) {
       <div class="card">
         <div class="kicker mb-8">7-DAY PERFORMANCE MATRIX</div>
         <div class="matrix">${matrix}</div>
-        <div class="mono stat-label mt-8">GREEN = 105G PROTEIN TARGET ACHIEVED</div>
+        <div class="mono stat-label mt-8">WHITE = 105G PROTEIN TARGET ACHIEVED</div>
       </div>
 
       <div class="kicker mb-4 mt-8">QUICK STASH</div>
@@ -518,8 +518,8 @@ function viewMealPlan(state) {
       </div>
       <div class="meal-desc">${esc(m.desc)}</div>
       <div class="flex-row">
-        <div class="mono color-green stat-macro">+${m.p}g P</div>
-        <div class="mono color-cyan stat-macro">+${m.cal} kcal</div>
+        <div class="mono color-white stat-macro">+${m.p}g P</div>
+        <div class="mono color-muted stat-macro">+${m.cal} kcal</div>
       </div>
     </div>`
   ).join('');
@@ -530,8 +530,8 @@ function viewMealPlan(state) {
         🛒 GENERATE WEEKLY GROCERY LIST
       </button>
 
-      <div class="card" style="border-left: 3px solid var(--primary); background: rgba(0, 229, 255, 0.05);">
-        <div class="kicker color-orange mb-4">RULES FOR THE WHOLE WEEK</div>
+      <div class="card" style="border-left: 3px solid var(--primary); background: rgba(255, 255, 255, 0.05);">
+        <div class="kicker color-white mb-4">RULES FOR THE WHOLE WEEK</div>
         <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6;">
           <li>• <b>Weights:</b> Starting guesses. Use RPE (about 2 reps left on the last rep).</li>
           <li>• <b>Progression:</b> Keep weight until you hit top of rep range on all sets, then add 2.5 kg.</li>
@@ -560,8 +560,8 @@ function viewMealPlan(state) {
       <div class="kicker mt-16 mb-4">MEAL TIMELINE</div>
       ${mealCards}
 
-      <div class="card" style="border: 1px solid var(--primary); background: rgba(0, 229, 255, 0.05); margin-top: 16px;">
-        <div class="kicker color-orange mb-4">🌙 PREP TONIGHT</div>
+      <div class="card" style="border: 1px solid var(--primary); background: rgba(255, 255, 255, 0.05); margin-top: 16px;">
+        <div class="kicker color-white mb-4">🌙 PREP TONIGHT</div>
         <div style="font-size: 14px; font-weight: 600; color: #fff;">
           ${day.prep}
         </div>
@@ -595,8 +595,8 @@ export function scanResultHTML(state) {
       <div class="flex-between" style="padding: 8px 0; border-bottom: 1px dashed var(--border);">
         <div style="flex: 1;">
           <div>${(d.catalog && d.catalog.length)
-            ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #0a0e12; border: 1px solid var(--border); color: #fff; padding: 4px; border-radius: 4px; font-size: 13px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-            : `<span style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</span>`}</div>
+        ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #0a0e12; border: 1px solid var(--border); color: #fff; padding: 4px; border-radius: 4px; font-size: 13px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+        : `<span style="font-weight: 600; color: #fff; font-size: 13px;">${esc(item.name)}</span>`}</div>
           <div class="flex-row" style="margin-top: 4px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 60px; background: #0a0e12; border: 1px solid var(--border); color: var(--primary); padding: 4px; border-radius: 4px; font-size: 12px;" /> <span class="mono small color-muted">grams</span>
           </div>
@@ -607,31 +607,70 @@ export function scanResultHTML(state) {
       </div>
     `).join("");
 
-    return `<div class="scan-result load" style="border-color: var(--orange);">
-      <h4 style="color: var(--orange);">⚠ REVIEW SCANNED ITEMS</h4>
+    return `<div class="scan-result load" style="border-color: #fff;">
+      <h4 style="color: #fff;">⚠ REVIEW SCANNED ITEMS</h4>
       <div class="dim small mb-8">The AI may have misjudged the quantity. Adjust the weight or remove wrong items.</div>
-      ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid var(--border);" />` : ''}
+      
       <div style="margin-bottom: 12px;">
         ${itemsHTML}
       </div>
-      <div id="scan-total-display" class="mono color-cyan font-bold mb-8" style="font-size: 16px;">
+      <div id="scan-total-display" class="mono font-bold mb-8" style="font-size: 16px; color: #fff;">
         ${num(d.p, 0)}g P &nbsp; ${num(d.cal, 0)} KCAL
       </div>
-      <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
+      <button class="confirm-btn" data-act="scan-confirm" style="background: #fff; color: #000;">✓ CONFIRM &amp; LOG</button>
       <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
     </div>`;
   }
 
   if (s.status === "ok") {
     const d = s.data || {};
-    return `<div class="scan-result ok">
-      <h4>✓ ${esc(d.name || "Meal Detected")}</h4>
-      ${s.img ? `<img src="${s.img}" class="w-full mb-8" style="height:160px; object-fit:cover; border-radius:4px; border:1px solid rgba(63,178,127,0.3);" />` : ''}
-      <div class="scan-macros"><span class="p">${num(d.p, 0)}g P</span><span class="c">${num(d.cal, 0)} KCAL</span></div>
-      <div class="dim small">${esc(d.breakdown || "")}</div>
-      <button class="confirm-btn" data-act="scan-confirm">✓ CONFIRM &amp; LOG</button>
-      <button class="act-btn mt-8" data-act="scan-clear">CANCEL</button>
-    </div>`;
+    const img = s.img || "";
+    
+    return `
+      <div style="position: relative; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid #333; margin-top: 16px; background: #000;">
+        
+        ${img ? `<img src="${img}" style="width: 100%; height: 280px; object-fit: cover; opacity: 0.8; display: block;" />` : ''}
+        
+        <div style="position: absolute; inset: 0; pointer-events: none;">
+          <svg style="width: 100%; height: 100%;">
+            <line x1="40%" y1="60%" x2="60%" y2="20%" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="4" />
+            <circle cx="40%" cy="60%" r="4" fill="#ffffff" />
+          </svg>
+
+          <div class="ar-overlay-card" style="position: absolute; top: 15px; right: 15px;">
+            <div class="mono" style="font-size: 10px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
+              ${esc(d.name || "DETECTED MEAL")}
+            </div>
+            
+            <div class="mono" style="font-size: 32px; font-weight: 700; color: #fff; line-height: 1;">
+              ${num(d.cal, 0)}<span style="font-size: 14px; color: #888; margin-left: 4px;">kcal</span>
+            </div>
+            
+            <div style="border-top: 1px solid #333; margin: 12px 0;"></div>
+            
+            <div class="flex-between mono" style="font-size: 13px; color: #fff; margin-bottom: 4px;">
+              <span>Protein</span>
+              <span>${num(d.p, 0)} g</span>
+            </div>
+            <div class="flex-between mono" style="font-size: 13px; color: #888;">
+              <span>Weight</span>
+              <span>EST.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 16px; background: #000; border-top: 1px solid #333;">
+          <div class="mono" style="font-size: 10px; color: #888; margin-bottom: 12px; line-height: 1.4;">
+            ${esc(d.breakdown || "")}
+          </div>
+          <div class="flex-row" style="gap: 8px;">
+            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0;">CANCEL</button>
+            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0;">CONFIRM & LOG</button>
+          </div>
+        </div>
+
+      </div>
+    `;
   }
   return "";
 }
@@ -654,9 +693,7 @@ export function viewVault(db, state) {
               </div>
             </div>
             <div class="text-right">
-              <!-- === CHANGED === /9 -> /${POSES.length} -->
-              <div class="mono color-cyan font-bold" style="font-size: 14px;">${photoCount}/${POSES.length}</div>
-              <!-- === END CHANGED === -->
+              <div class="mono color-white font-bold" style="font-size: 14px;">${photoCount}/${POSES.length}</div>
               <div class="small color-muted">PHOTOS</div>
             </div>
           </div>
@@ -677,7 +714,7 @@ export function viewVault(db, state) {
             <div class="folder-icon" style="opacity: 0.5;">📂</div>
             <h3>${m.label}</h3>
           </div>
-          <span class="mono color-cyan">${m.sub} · TAP TO CLOSE</span>
+          <span class="mono color-white">${m.sub} · TAP TO CLOSE</span>
         </div>
         <div class="ms-grid">${slots}</div>
       </div>
@@ -688,7 +725,6 @@ export function viewVault(db, state) {
     `<option value="${p}"${state.cmpPose === p ? " selected" : ""}>${formatPose(p)}</option>`
   ).join("");
 
-  // Custom helper to get image, falling back to POSE_REFERENCES
   const getPhoto = (milestone) => {
     if (milestone === "reference") {
       return POSE_REFERENCES[state.cmpPose] || "";
@@ -735,7 +771,7 @@ export function viewVault(db, state) {
       <div class="card">
         <div class="kicker mb-9">BODY WEIGHT & PROGRESSION CORRELATOR</div>
         <div class="row between mb-12">
-          <div class="mono color-orange stat-pct">
+          <div class="mono color-white stat-pct">
             ${db.weightLog && db.weightLog.length > 0 ? db.weightLog[db.weightLog.length - 1].weight : '--'}
             <span class="stat-label color-muted">KG</span>
           </div>
@@ -761,7 +797,7 @@ export function viewVault(db, state) {
       <div class="card">
         <div class="kicker mb-9">SPLIT-SLIDER COMPARISON</div>
         <div class="sel-row" style="margin-bottom: 12px;">
-                    <select data-act="cmp-a">
+          <select data-act="cmp-a">
             <option value="reference"${state.cmpA === "reference" ? " selected" : ""}>REFERENCE IMAGE</option>
             ${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpA === m.k ? " selected" : ""}>${m.label}</option>`).join("")}
           </select>
@@ -776,7 +812,7 @@ export function viewVault(db, state) {
           ${imgA ? `<img src="${imgA}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           ${imgB ? `<img src="${imgB}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           
-                    <div class="split-label label-before">${state.cmpA === "reference" ? "REFERENCE" : state.cmpA.toUpperCase()} (BEFORE)</div>
+          <div class="split-label label-before">${state.cmpA === "reference" ? "REFERENCE" : state.cmpA.toUpperCase()} (BEFORE)</div>
           <div class="split-label label-after">${state.cmpB === "reference" ? "REFERENCE" : state.cmpB.toUpperCase()} (AFTER)</div>
 
           ${imgA && imgB ? `<div class="split-handle" id="splitHandle" style="left: 50%;"></div>` : ''}
@@ -881,8 +917,8 @@ export function viewBlueprint(db, state) {
       <div class="card">
         <div class="kicker mb-4">VOLUME vs PROTEIN EQUILIBRIUM</div>
         <div class="flex-row between" style="margin-bottom: 8px;">
-          <span class="mono small color-cyan">BAR = VOLUME (KG)</span>
-          <span class="mono small color-green">DOT = PROTEIN HIT</span>
+          <span class="mono small color-white">BAR = VOLUME (KG)</span>
+          <span class="mono small color-white">DOT = PROTEIN HIT</span>
         </div>
         <div class="equilibrium-grid" style="height: 80px; align-items: flex-end;">
           ${eqCols}
@@ -913,7 +949,6 @@ export function viewSystem(db) {
   let showBackupWarning = false;
   let backupMessage = "";
 
-  // Only show the red banner if they don't have a Sync Code set
   if (!db.settings.syncId) {
     if (lastBackup === 0) {
       showBackupWarning = true;
@@ -996,7 +1031,7 @@ export function viewSystem(db) {
       <div class="card">
         <div class="kicker mb-6">WEEKLY TACTICAL SYNTHESIS</div>
         <div class="dim small mb-10">Synthesize your 7-day training and nutrition into a tactical report.</div>
-        <button class="act-btn primary" data-act="run-synthesis" id="synthesisBtn" style="border-color: var(--cyan); color: var(--cyan);">🧠 RUN AI DEBRIEF</button>
+        <button class="act-btn primary" data-act="run-synthesis" id="synthesisBtn" style="border-color: var(--primary); color: var(--primary);">🧠 RUN AI DEBRIEF</button>
         <div id="synthesisResult" style="display:none; margin-top:12px; padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;"></div>
       </div>
 
@@ -1024,8 +1059,8 @@ export function viewSystem(db) {
           <button data-act="save-sync" style="padding:0 15px;">SAVE</button>
         </div>
         <div class="flex-row mt-10">
-          <button class="act-btn color-cyan m-0" data-act="sync-push" style="flex:1; border-color:var(--cyan);">⭱ PUSH TO CLOUD</button>
-          <button class="act-btn color-green m-0" data-act="sync-pull" style="flex:1; border-color:var(--green);">⭳ PULL & MERGE</button>
+          <button class="act-btn color-white m-0" data-act="sync-push" style="flex:1; border-color:var(--primary);">⭱ PUSH TO CLOUD</button>
+          <button class="act-btn color-white m-0" data-act="sync-pull" style="flex:1; border-color:var(--primary);">⭳ PULL & MERGE</button>
         </div>
         <div id="syncStatus" class="mono small mt-8 text-center">STATUS: ${db.settings.syncId ? 'READY' : 'NOT CONFIGURED'}</div>
       </div>
