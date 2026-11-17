@@ -371,7 +371,7 @@ async function handleFoodFile(file) {
   state.scan = { status: "loading" };
   render();
   try {
-    const dataUrl = await compressImage(file, 1024, 0.85);
+    const dataUrl = await compressImage(file, 1200, 0.9);
     const base64 = dataUrl.split(",")[1];
     // Create a high-res image for the UI background
     const thumbnail = await compressImage(file, 800, 0.8);

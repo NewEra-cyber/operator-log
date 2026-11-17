@@ -594,6 +594,9 @@ export function scanResultHTML(state) {
     const d = s.data || {};
     const img = s.img || "";
 
+    // Get the first item for the AR card highlight
+    const mainItem = d.items && d.items[0] ? d.items[0] : { name: "Food", weight_g: 0, p: 0, cal: 0 };
+
     const itemsHTML = (d.items || []).map((item, i) => `
       <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
         <div style="flex: 1;">
@@ -601,7 +604,7 @@ export function scanResultHTML(state) {
         ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
         : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
           <div class="flex-row" style="margin-top: 6px;">
-            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 70px; background: #111; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 8px; font-size: 14px;" /> <span class="mono small color-muted">grams</span>
+            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
           <div class="mono small color-muted" style="margin-top: 6px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
         </div>
@@ -614,36 +617,40 @@ export function scanResultHTML(state) {
         
         <!-- TOP HALF (IMAGE + AR CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden;">
-          <!-- FIXED: Make sure the image renders correctly -->
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;" />` : ''}
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.7;" />` : ''}
           
+          <!-- DOTTED LINE -->
           <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
-            <line x1="35%" y1="65%" x2="55%" y2="25%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
+            <line x1="35%" y1="65%" x2="55%" y2="35%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
             <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
           </svg>
 
+          <!-- FLOATING MACRO CARD -->
           <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
             <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
-              ${esc(d.name || "DETECTED ITEMS")}
+              ${esc(mainItem.name)} (${mainItem.weight_g}g)
             </div>
+            
             <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(d.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
+              ${num(mainItem.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
             </div>
+            
             <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
+            
             <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
               <span>Protein</span>
-              <span>${num(d.p, 0)} g</span>
+              <span>${num(mainItem.p, 0)} g</span>
             </div>
             <div class="flex-between mono" style="font-size: 16px; color: #888;">
-              <span>Items</span>
-              <span>${d.items ? d.items.length : 0}</span>
+              <span>Total Cals</span>
+              <span>${num(d.cal, 0)} kcal</span>
             </div>
           </div>
         </div>
 
-        <!-- BOTTOM SHEET (EDIT ITEMS) -->
-        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; max-height: 50vh; overflow-y: auto;">
-          <div class="kicker mb-4">REVIEW ITEMS</div>
+        <!-- BOTTOM SHEET (REVIEW ITEMS) -->
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; max-height: 50vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+          <div class="kicker mb-4">AI ESTIMATED ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${itemsHTML}
           </div>
