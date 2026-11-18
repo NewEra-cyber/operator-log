@@ -589,28 +589,21 @@ export function scanResultHTML(state) {
     const img = s.img || "";
     const items = d.items || [];
 
-    // Pre-defined spatial slots to make it look like the AI mapped the food
-    // (Since the backend doesn't return exact x/y coordinates yet)
+    // Clean, fixed slots for up to 4 items so lines don't fly off screen
     const slots = [
-      { top: '20%', left: '10%', lineAngle: -30, lineLen: 80 },  // Top Left
-      { top: '40%', right: '5%', lineAngle: 150, lineLen: 80 },  // Mid Right
-      { top: '70%', left: '15%', lineAngle: -45, lineLen: 90 },  // Bottom Left
-      { top: '80%', right: '10%', lineAngle: 120, lineLen: 90 }  // Bottom Right
+      { top: '15%', left: '10%', lineAngle: -20, lineLen: 60 },  // Top Left
+      { top: '35%', right: '10%', lineAngle: 20, lineLen: 60 },  // Top Right
+      { top: '65%', left: '10%', lineAngle: 20, lineLen: 60 },   // Bottom Left
+      { top: '85%', right: '10%', lineAngle: -20, lineLen: 60 }  // Bottom Right
     ];
 
     const pillsHTML = items.map((item, i) => {
       const slot = slots[i % slots.length];
       const isLeft = slot.hasOwnProperty('left');
 
-      // Determine where the line originates from
       const lineStyle = isLeft
         ? `top: ${slot.top}; left: ${slot.left}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`
         : `top: ${slot.top}; right: ${slot.right}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`;
-
-      // Position the pill at the end of the line
-      const pillStyle = isLeft
-        ? `top: ${slot.top}; left: calc(${slot.left} + ${slot.lineLen * Math.cos(slot.lineAngle * Math.PI / 180)}px);`
-        : `top: ${slot.top}; right: calc(${slot.right} + ${slot.lineLen * Math.cos(slot.lineAngle * Math.PI / 180)}px);`;
 
       return `
         <!-- Target Dot -->
@@ -620,7 +613,7 @@ export function scanResultHTML(state) {
         <div class="ar-line" style="${lineStyle}"></div>
 
         <!-- Pill -->
-        <div class="ar-pill" style="${isLeft ? 'left: ' + slot.left : 'right: ' + slot.right}; top: calc(${slot.top} + 60px);" data-act="edit-pill" data-idx="${i}">
+        <div class="ar-pill" style="${isLeft ? 'left: calc(' + slot.left + ' + 40px)' : 'right: calc(' + slot.right + ' + 40px)'}; top: calc(${slot.top} + 20px);" data-act="edit-pill" data-idx="${i}">
           <div class="ar-pill-title">${esc(item.name)} (${item.weight_g}g)</div>
           <div class="ar-pill-macros">
             ${num(item.cal, 0)}<span style="font-size:10px;color:#888;"> kcal</span> | 
@@ -633,8 +626,8 @@ export function scanResultHTML(state) {
     return `
       <div class="ar-container">
         <!-- THE STAGE (Image + Pills) -->
-        <div class="ar-stage">
-          ${img ? `<img src="${img}" />` : ''}
+        <div class="ar-stage" style="background: #000;">
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: contain;" />` : ''}
           ${pillsHTML}
         </div>
 
@@ -645,14 +638,14 @@ export function scanResultHTML(state) {
             <div class="sub">${num(d.p, 0)}g Protein • ${items.length} Items</div>
           </div>
           <div class="flex-row" style="gap: 8px;">
-            <button class="act-btn" data-act="scan-clear" style="width: auto; margin: 0; padding: 12px 16px; border-radius: 12px;">✕</button>
+            <button class="act-btn" data-act="scan-clear" style="width: auto; margin: 0; padding: 12px 16px; border-radius: 12px; border: 1px solid #444;">✕</button>
             <button class="act-btn primary" data-act="scan-confirm" style="width: auto; margin: 0; padding: 12px 24px; border-radius: 12px; font-weight: 700;">LOG</button>
           </div>
         </div>
 
-        <!-- HIDDEN BOTTOM SHEET FOR EDITING (Triggered by tapping a pill) -->
+        <!-- HIDDEN BOTTOM SHEET FOR EDITING -->
         <div id="ar-edit-sheet" class="ar-edit-sheet">
-           <!-- Edit form is injected here via JS -->
+           <!-- Injected via JS -->
         </div>
       </div>
     `;
