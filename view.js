@@ -588,7 +588,16 @@ export function scanResultHTML(state) {
     const img = s.img || "";
     const items = d.items || [];
 
-    const itemsHTML = items.map((item, i) => `
+    // Build the list of foods for the floating card
+    const cardItemsHTML = items.map((item, i) => `
+      <div class="flex-between mono" style="font-size: 13px; color: #fff; margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 4px;">
+        <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(item.name)}</span>
+        <span>${num(item.cal, 0)} kcal</span>
+      </div>
+    `).join("");
+
+    // Build the editable list for the bottom sheet
+    const editItemsHTML = items.map((item, i) => `
       <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
         <div style="flex: 1;">
           <div>${(d.catalog && d.catalog.length)
@@ -608,26 +617,31 @@ export function scanResultHTML(state) {
         
         <!-- TOP HALF (IMAGE + FLOATING CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden; background: #000;">
-          <!-- CHANGED: object-fit: cover to remove black bars and fill the screen -->
           ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
           
-          <!-- FLOATING MACRO CARD (Moved to bottom right so it doesn't cover the food) -->
-          <div class="ar-overlay-card" style="position: absolute; bottom: 20px; right: 20px; background: rgba(15, 15, 15, 0.95);">
-            <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
-              TOTAL MEAL
+          <!-- FLOATING MACRO CARD -->
+          <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px; background: rgba(15, 15, 15, 0.95); max-width: 220px;">
+            
+            <!-- List of foods -->
+            <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">
+              DETECTED ITEMS
             </div>
-            <div class="mono" style="font-size: 42px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(d.cal, 0)}<span style="font-size: 14px; color: #888; margin-left: 4px;">kcal</span>
+            
+            <div style="margin-bottom: 12px;">
+              ${cardItemsHTML}
             </div>
-            <div style="border-top: 1px solid #444; margin: 12px 0;"></div>
-            <div class="flex-between mono" style="font-size: 14px; color: #fff; margin-bottom: 6px;">
-              <span>Protein</span>
-              <span>${num(d.p, 0)} g</span>
+
+            <!-- Total Macros -->
+            <div style="border-top: 1px solid #444; padding-top: 12px;">
+              <div class="mono" style="font-size: 32px; font-weight: 700; color: #fff; line-height: 1;">
+                ${num(d.cal, 0)}<span style="font-size: 14px; color: #888; margin-left: 4px;">kcal</span>
+              </div>
+              <div class="flex-between mono" style="font-size: 13px; color: #fff; margin-top: 8px;">
+                <span>Total Protein</span>
+                <span>${num(d.p, 0)} g</span>
+              </div>
             </div>
-            <div class="flex-between mono" style="font-size: 14px; color: #888;">
-              <span>Items</span>
-              <span>${items.length}</span>
-            </div>
+
           </div>
         </div>
 
@@ -635,7 +649,7 @@ export function scanResultHTML(state) {
         <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 80px; max-height: 50vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
-            ${itemsHTML}
+            ${editItemsHTML}
           </div>
           
           <div class="flex-row" style="gap: 12px;">
