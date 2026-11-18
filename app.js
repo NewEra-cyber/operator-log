@@ -1084,14 +1084,40 @@ document.addEventListener("click", function (ev) {
   if (act === "scan") { const inp = document.getElementById("foodInput"); inp.value = ""; inp.click(); return; }
   if (act === "ai-text-log") {
     const input = document.getElementById("aiTextInput");
-    const text = input.value.trim();
-    if (!text) return;
-    el.textContent = "...";
-    fetch("/api/text-macros", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      .then(r => r.json()).then(data => {
-        if (data.p > 0) { addMealToDB(data.name, data.p, data.cal, data.breakdown); render(); toast("LOGGED VIA AI", "green"); }
-        else { toast("AI couldn't find food", "red"); el.textContent = "ASK AI"; }
-      }).catch(() => { toast("Error", "red"); el.textContent = "ASK AI"; });
+    const text = input ? input.value.trim() : "";
+    if (!text) { toast("TYPE A MEAL FIRST", "red"); return; }
+
+    const btn = el; // 'el' is the button that was clicked
+    const originalText = btn.textContent;
+
+    btn.textContent = "...";
+    btn.disabled = true;
+
+    fetch("/api/text-macros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.p > 0) {
+          addMealToDB(data.name, data.p, data.cal, data.breakdown || "");
+          if (input) input.value = ""; // Clear the input
+          render();
+          toast("LOGGED VIA AI", "green");
+        } else {
+          toast("AI couldn't find food", "red");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        toast("Network Error", "red");
+      })
+      .finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+
     return;
   }
   if (act === "scan-clear") { state.scan = { status: "idle" }; render(); return; }
