@@ -592,8 +592,8 @@ export function scanResultHTML(state) {
       <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
         <div style="flex: 1;">
           <div>${(d.catalog && d.catalog.length)
-            ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-            : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
+        ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
           <div class="flex-row" style="margin-top: 6px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
@@ -606,24 +606,25 @@ export function scanResultHTML(state) {
     return `
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        <!-- TOP HALF (IMAGE + SINGLE AR CARD) -->
+        <!-- TOP HALF (IMAGE + FLOATING CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden; background: #000;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: contain;" />` : ''}
+          <!-- CHANGED: object-fit: cover to remove black bars and fill the screen -->
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
           
-          <!-- FLOATING MACRO CARD -->
-          <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px;">
+          <!-- FLOATING MACRO CARD (Moved to bottom right so it doesn't cover the food) -->
+          <div class="ar-overlay-card" style="position: absolute; bottom: 20px; right: 20px; background: rgba(15, 15, 15, 0.95);">
             <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
-              DETECTED MEAL
+              TOTAL MEAL
             </div>
-            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(d.cal, 0)}<span style="font-size: 16px; color: #888; margin-left: 4px;">kcal</span>
+            <div class="mono" style="font-size: 42px; font-weight: 700; color: #fff; line-height: 1;">
+              ${num(d.cal, 0)}<span style="font-size: 14px; color: #888; margin-left: 4px;">kcal</span>
             </div>
-            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
-            <div class="flex-between mono" style="font-size: 15px; color: #fff; margin-bottom: 8px;">
+            <div style="border-top: 1px solid #444; margin: 12px 0;"></div>
+            <div class="flex-between mono" style="font-size: 14px; color: #fff; margin-bottom: 6px;">
               <span>Protein</span>
               <span>${num(d.p, 0)} g</span>
             </div>
-            <div class="flex-between mono" style="font-size: 15px; color: #888;">
+            <div class="flex-between mono" style="font-size: 14px; color: #888;">
               <span>Items</span>
               <span>${items.length}</span>
             </div>
@@ -631,7 +632,7 @@ export function scanResultHTML(state) {
         </div>
 
         <!-- BOTTOM SHEET (EDIT ITEMS) -->
-        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 80px; max-height: 50vh; overflow-y: auto;">
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 80px; max-height: 50vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${itemsHTML}
