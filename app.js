@@ -657,6 +657,32 @@ document.addEventListener("click", function (ev) {
     window.scrollTo({ top: 0, behavior: "instant" });
     return;
   }
+  // Inside the main click listener
+  if (act === "edit-pill") {
+    const idx = Number(el.dataset.idx);
+    const item = state.scan.data.items[idx];
+    const sheet = document.getElementById("ar-edit-sheet");
+
+    sheet.innerHTML = `
+      <div class="flex-between mb-4">
+        <div class="kicker">EDIT ${esc(item.name).toUpperCase()}</div>
+        <button data-act="close-edit-sheet" style="background:none; border:none; color:#fff; font-size:20px;">✕</button>
+      </div>
+      <div class="flex-row" style="gap: 12px; margin-bottom: 16px;">
+        <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${idx}" value="${item.weight_g}" style="flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; font-size: 20px; font-weight: bold; text-align: center;" />
+        <span class="mono" style="color: #888;">grams</span>
+      </div>
+      <button class="act-btn primary" data-act="close-edit-sheet">DONE</button>
+    `;
+    sheet.style.display = "block";
+    return;
+  }
+
+  if (act === "close-edit-sheet") {
+    document.getElementById("ar-edit-sheet").style.display = "none";
+    render(); // Re-render to update the pills with new macros
+    return;
+  }
 
   if (act === "remove-scanned-item") {
     const idx = Number(el.dataset.idx);

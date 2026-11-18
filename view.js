@@ -577,143 +577,83 @@ export function scanResultHTML(state) {
     return `<div class="scan-result load"><h4><span class="spinner"></span> ANALYSING IMAGE…</h4>
       <div class="dim small">Sending to plate-vision. Non-food items will be rejected.</div></div>`;
   }
-  if (s.status === "reject") {
-    return `<div class="scan-result bad"><h4>✕ NON-FOOD DETECTED</h4>
-      <div class="dim small">${esc((s.data && s.data.breakdown) || "Rejected: not a food item.")}</div>
-      <div class="mono color-red mt-8 small">0G PROTEIN LOGGED</div>
-      <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
-  }
-  if (s.status === "error") {
+  if (s.status === "reject" || s.status === "error") {
     return `<div class="scan-result bad"><h4>⚠ SCAN FAILED</h4>
-      <div class="dim small">${esc(s.message || "Vision service unavailable. Enter manually.")}</div>
+      <div class="dim small">${esc(s.message || (s.data && s.data.breakdown) || "Vision service unavailable.")}</div>
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
 
-  // --- VERIFY STATE (Multiple items detected) ---
-  if (s.status === "verify") {
+  // --- VERIFY / OK STATE (Multi-Pill AR HUD) ---
+  if (s.status === "verify" || s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
+    const items = d.items || [];
 
-    // Get the first item for the AR card highlight
-    const mainItem = d.items && d.items[0] ? d.items[0] : { name: "Food", weight_g: 0, p: 0, cal: 0 };
+    // Pre-defined spatial slots to make it look like the AI mapped the food
+    // (Since the backend doesn't return exact x/y coordinates yet)
+    const slots = [
+      { top: '20%', left: '10%', lineAngle: -30, lineLen: 80 },  // Top Left
+      { top: '40%', right: '5%', lineAngle: 150, lineLen: 80 },  // Mid Right
+      { top: '70%', left: '15%', lineAngle: -45, lineLen: 90 },  // Bottom Left
+      { top: '80%', right: '10%', lineAngle: 120, lineLen: 90 }  // Bottom Right
+    ];
 
-    const itemsHTML = (d.items || []).map((item, i) => `
-      <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
-        <div style="flex: 1;">
-          <div>${(d.catalog && d.catalog.length)
-        ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
-          <div class="flex-row" style="margin-top: 6px;">
-            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
+    const pillsHTML = items.map((item, i) => {
+      const slot = slots[i % slots.length];
+      const isLeft = slot.hasOwnProperty('left');
+
+      // Determine where the line originates from
+      const lineStyle = isLeft
+        ? `top: ${slot.top}; left: ${slot.left}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`
+        : `top: ${slot.top}; right: ${slot.right}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`;
+
+      // Position the pill at the end of the line
+      const pillStyle = isLeft
+        ? `top: ${slot.top}; left: calc(${slot.left} + ${slot.lineLen * Math.cos(slot.lineAngle * Math.PI / 180)}px);`
+        : `top: ${slot.top}; right: calc(${slot.right} + ${slot.lineLen * Math.cos(slot.lineAngle * Math.PI / 180)}px);`;
+
+      return `
+        <!-- Target Dot -->
+        <div class="ar-reticle" style="top: ${slot.top}; ${isLeft ? 'left: ' + slot.left : 'right: ' + slot.right};"></div>
+        
+        <!-- Glowing Line -->
+        <div class="ar-line" style="${lineStyle}"></div>
+
+        <!-- Pill -->
+        <div class="ar-pill" style="${isLeft ? 'left: ' + slot.left : 'right: ' + slot.right}; top: calc(${slot.top} + 60px);" data-act="edit-pill" data-idx="${i}">
+          <div class="ar-pill-title">${esc(item.name)} (${item.weight_g}g)</div>
+          <div class="ar-pill-macros">
+            ${num(item.cal, 0)}<span style="font-size:10px;color:#888;"> kcal</span> | 
+            ${num(item.p, 0)}<span style="font-size:10px;color:#888;">g P</span>
           </div>
-          <div class="mono small color-muted" style="margin-top: 6px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
         </div>
-        <button class="del" data-act="remove-scanned-item" data-idx="${i}" style="background: rgba(255, 75, 75, 0.1); border: none; color: #ff4b4b; width: 36px; height: 36px; border-radius: 8px;">✕</button>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
-        
-        <!-- TOP HALF (IMAGE + AR CARD) -->
-        <div style="flex: 1; position: relative; overflow: hidden;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.8; background: #000;" />` : ''}
+      <div class="ar-container">
+        <!-- THE STAGE (Image + Pills) -->
+        <div class="ar-stage">
+          ${img ? `<img src="${img}" />` : ''}
+          ${pillsHTML}
+        </div>
 
-          
-          <!-- DOTTED LINE -->
-          <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
-            <line x1="35%" y1="65%" x2="55%" y2="35%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
-            <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
-          </svg>
-
-          <!-- FLOATING MACRO CARD -->
-          <div class="ar-overlay-card" style="position: absolute; bottom: 20px; right: 20px;">
-            <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
-              ${esc(mainItem.name)} (${mainItem.weight_g}g)
-            </div>
-            
-            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(mainItem.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
-            </div>
-            
-            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
-            
-            <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
-              <span>Protein</span>
-              <span>${num(mainItem.p, 0)} g</span>
-            </div>
-            <div class="flex-between mono" style="font-size: 16px; color: #888;">
-              <span>Total Cals</span>
-              <span>${num(d.cal, 0)} kcal</span>
-            </div>
+        <!-- THE DOCKED SUMMARY BAR -->
+        <div class="ar-summary-dock">
+          <div class="ar-total-numbers">
+            <div class="big">${num(d.cal, 0)} kcal</div>
+            <div class="sub">${num(d.p, 0)}g Protein • ${items.length} Items</div>
+          </div>
+          <div class="flex-row" style="gap: 8px;">
+            <button class="act-btn" data-act="scan-clear" style="width: auto; margin: 0; padding: 12px 16px; border-radius: 12px;">✕</button>
+            <button class="act-btn primary" data-act="scan-confirm" style="width: auto; margin: 0; padding: 12px 24px; border-radius: 12px; font-weight: 700;">LOG</button>
           </div>
         </div>
 
-        <!-- BOTTOM SHEET (REVIEW ITEMS) -->
-        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; max-height: 50vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-          <div class="kicker mb-4">AI ESTIMATED ITEMS</div>
-          <div style="margin-bottom: 16px;">
-            ${itemsHTML}
-          </div>
-          
-          <div id="scan-total-display" class="mono font-bold mb-6" style="font-size: 18px; color: #fff;">
-            ${num(d.p, 0)}g P &nbsp; ${num(d.cal, 0)} KCAL
-          </div>
-          
-          <div class="flex-row" style="gap: 12px;">
-            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0; background: transparent; border: 1px solid #444; color: #fff;">CANCEL</button>
-            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0; background: #fff; color: #000; font-weight: 700;">CONFIRM & LOG</button>
-          </div>
+        <!-- HIDDEN BOTTOM SHEET FOR EDITING (Triggered by tapping a pill) -->
+        <div id="ar-edit-sheet" class="ar-edit-sheet">
+           <!-- Edit form is injected here via JS -->
         </div>
-
-      </div>
-    `;
-  }
-
-  if (s.status === "ok") {
-    const d = s.data || {};
-    const img = s.img || "";
-
-    return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
-        
-        <div style="flex: 1; position: relative; overflow: hidden;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
-          
-          <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
-            <line x1="35%" y1="65%" x2="55%" y2="25%" stroke="#ffffff" stroke-width="2" stroke-dasharray="4" />
-            <circle cx="35%" cy="65%" r="5" fill="#ffffff" />
-          </svg>
-
-          <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
-            <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
-              ${esc(d.name || "DETECTED MEAL")}
-            </div>
-            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
-              ${num(d.cal, 0)}<span style="font-size: 18px; color: #888; margin-left: 4px;">kcal</span>
-            </div>
-            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
-            <div class="flex-between mono" style="font-size: 16px; color: #fff; margin-bottom: 8px;">
-              <span>Protein</span>
-              <span>${num(d.p, 0)} g</span>
-            </div>
-            <div class="flex-between mono" style="font-size: 16px; color: #888;">
-              <span>Weight</span>
-              <span>EST.</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="padding: 24px; padding-bottom: 100px; background: #0a0a0a; border-top: 1px solid #333;">
-          <div class="mono" style="font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.5;">
-            ${esc(d.breakdown || "")}
-          </div>
-          <div class="flex-row" style="gap: 12px;">
-            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0; background: transparent; border: 1px solid #444; color: #fff;">CANCEL</button>
-            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0; background: #fff; color: #000; font-weight: 700;">CONFIRM & LOG</button>
-          </div>
-        </div>
-
       </div>
     `;
   }
