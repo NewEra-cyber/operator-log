@@ -617,7 +617,8 @@ export function scanResultHTML(state) {
         
         <!-- TOP HALF (IMAGE + AR CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.7;" />` : ''}
+          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.8; background: #000;" />` : ''}
+
           
           <!-- DOTTED LINE -->
           <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
@@ -626,7 +627,7 @@ export function scanResultHTML(state) {
           </svg>
 
           <!-- FLOATING MACRO CARD -->
-          <div class="ar-overlay-card" style="position: absolute; top: 15%; right: 8%;">
+          <div class="ar-overlay-card" style="position: absolute; bottom: 20px; right: 20px;">
             <div class="mono" style="font-size: 12px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
               ${esc(mainItem.name)} (${mainItem.weight_g}g)
             </div>
