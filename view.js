@@ -583,70 +583,66 @@ export function scanResultHTML(state) {
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
 
-  // --- VERIFY / OK STATE (Multi-Pill AR HUD) ---
   if (s.status === "verify" || s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
     const items = d.items || [];
 
-    // Clean, fixed slots for up to 4 items so lines don't fly off screen
-    const slots = [
-      { top: '15%', left: '10%', lineAngle: -20, lineLen: 60 },  // Top Left
-      { top: '35%', right: '10%', lineAngle: 20, lineLen: 60 },  // Top Right
-      { top: '65%', left: '10%', lineAngle: 20, lineLen: 60 },   // Bottom Left
-      { top: '85%', right: '10%', lineAngle: -20, lineLen: 60 }  // Bottom Right
-    ];
-
-    const pillsHTML = items.map((item, i) => {
-      const slot = slots[i % slots.length];
-      const isLeft = slot.hasOwnProperty('left');
-
-      const lineStyle = isLeft
-        ? `top: ${slot.top}; left: ${slot.left}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`
-        : `top: ${slot.top}; right: ${slot.right}; width: ${slot.lineLen}px; transform: rotate(${slot.lineAngle}deg);`;
-
-      return `
-        <!-- Target Dot -->
-        <div class="ar-reticle" style="top: ${slot.top}; ${isLeft ? 'left: ' + slot.left : 'right: ' + slot.right};"></div>
-        
-        <!-- Glowing Line -->
-        <div class="ar-line" style="${lineStyle}"></div>
-
-        <!-- Pill -->
-        <div class="ar-pill" style="${isLeft ? 'left: calc(' + slot.left + ' + 40px)' : 'right: calc(' + slot.right + ' + 40px)'}; top: calc(${slot.top} + 20px);" data-act="edit-pill" data-idx="${i}">
-          <div class="ar-pill-title">${esc(item.name)} (${item.weight_g}g)</div>
-          <div class="ar-pill-macros">
-            ${num(item.cal, 0)}<span style="font-size:10px;color:#888;"> kcal</span> | 
-            ${num(item.p, 0)}<span style="font-size:10px;color:#888;">g P</span>
+    const itemsHTML = items.map((item, i) => `
+      <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
+        <div style="flex: 1;">
+          <div>${(d.catalog && d.catalog.length)
+            ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+            : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
+          <div class="flex-row" style="margin-top: 6px;">
+            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
+          <div class="mono small color-muted" style="margin-top: 6px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
         </div>
-      `;
-    }).join("");
+        <button class="del" data-act="remove-scanned-item" data-idx="${i}" style="background: rgba(255, 75, 75, 0.1); border: none; color: #ff4b4b; width: 36px; height: 36px; border-radius: 8px;">✕</button>
+      </div>
+    `).join("");
 
     return `
-      <div class="ar-container">
-        <!-- THE STAGE (Image + Pills) -->
-        <div class="ar-stage" style="background: #000;">
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
+        
+        <!-- TOP HALF (IMAGE + SINGLE AR CARD) -->
+        <div style="flex: 1; position: relative; overflow: hidden; background: #000;">
           ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: contain;" />` : ''}
-          ${pillsHTML}
+          
+          <!-- FLOATING MACRO CARD -->
+          <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px;">
+            <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">
+              DETECTED MEAL
+            </div>
+            <div class="mono" style="font-size: 48px; font-weight: 700; color: #fff; line-height: 1;">
+              ${num(d.cal, 0)}<span style="font-size: 16px; color: #888; margin-left: 4px;">kcal</span>
+            </div>
+            <div style="border-top: 1px solid #444; margin: 16px 0;"></div>
+            <div class="flex-between mono" style="font-size: 15px; color: #fff; margin-bottom: 8px;">
+              <span>Protein</span>
+              <span>${num(d.p, 0)} g</span>
+            </div>
+            <div class="flex-between mono" style="font-size: 15px; color: #888;">
+              <span>Items</span>
+              <span>${items.length}</span>
+            </div>
+          </div>
         </div>
 
-        <!-- THE DOCKED SUMMARY BAR -->
-        <div class="ar-summary-dock">
-          <div class="ar-total-numbers">
-            <div class="big">${num(d.cal, 0)} kcal</div>
-            <div class="sub">${num(d.p, 0)}g Protein • ${items.length} Items</div>
+        <!-- BOTTOM SHEET (EDIT ITEMS) -->
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 80px; max-height: 50vh; overflow-y: auto;">
+          <div class="kicker mb-4">REVIEW ITEMS</div>
+          <div style="margin-bottom: 16px;">
+            ${itemsHTML}
           </div>
-          <div class="flex-row" style="gap: 8px;">
-            <button class="act-btn" data-act="scan-clear" style="width: auto; margin: 0; padding: 12px 16px; border-radius: 12px; border: 1px solid #444;">✕</button>
-            <button class="act-btn primary" data-act="scan-confirm" style="width: auto; margin: 0; padding: 12px 24px; border-radius: 12px; font-weight: 700;">LOG</button>
+          
+          <div class="flex-row" style="gap: 12px;">
+            <button class="act-btn" data-act="scan-clear" style="flex: 1; margin: 0; background: transparent; border: 1px solid #444; color: #fff;">CANCEL</button>
+            <button class="act-btn primary" data-act="scan-confirm" style="flex: 2; margin: 0; background: #fff; color: #000; font-weight: 700;">CONFIRM & LOG</button>
           </div>
         </div>
 
-        <!-- HIDDEN BOTTOM SHEET FOR EDITING -->
-        <div id="ar-edit-sheet" class="ar-edit-sheet">
-           <!-- Injected via JS -->
-        </div>
       </div>
     `;
   }
