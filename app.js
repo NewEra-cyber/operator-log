@@ -1087,7 +1087,7 @@ document.addEventListener("click", function (ev) {
     const text = input ? input.value.trim() : "";
     if (!text) { toast("TYPE A MEAL FIRST", "red"); return; }
 
-    const btn = el; // 'el' is the button that was clicked
+    const btn = el;
     const originalText = btn.textContent;
 
     btn.textContent = "...";
@@ -1098,20 +1098,27 @@ document.addEventListener("click", function (ev) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
     })
-      .then(r => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const errText = await r.text();
+          throw new Error(`HTTP ${r.status}: ${errText}`);
+        }
+        return r.json();
+      })
       .then(data => {
+        console.log("Text AI Response:", data); // Check console for this
         if (data && data.p > 0) {
           addMealToDB(data.name, data.p, data.cal, data.breakdown || "");
-          if (input) input.value = ""; // Clear the input
+          if (input) input.value = "";
           render();
           toast("LOGGED VIA AI", "green");
         } else {
-          toast("AI couldn't find food", "red");
+          toast("AI couldn't find food macros", "red");
         }
       })
       .catch((err) => {
-        console.error(err);
-        toast("Network Error", "red");
+        console.error("Text AI Error:", err);
+        toast("AI ERROR - CHECK CONSOLE", "red");
       })
       .finally(() => {
         btn.textContent = originalText;
