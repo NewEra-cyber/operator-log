@@ -25,74 +25,54 @@ async function sendChatMessage() {
   historyDiv.scrollTop = historyDiv.scrollHeight;
   sendBtn.disabled = true;
 
-  // 3. GATHER USER DATA (Formatted for AI)
+  // 3. GATHER USER DATA (The Full Timeline)
   const db = getDB();
   const todayKey = ymd();
-  const day = getDay(state.dayKey);
-  const session = getSession(db, day.key, todayKey);
 
-  const meals = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
-  const workoutLog = [];
+  // Format ALL workout logs into a readable timeline (last 30 days)
+  const workoutTimeline = [];
+  const thirtyDaysAgo = addDays(todayKey, -30);
 
-  day.exercises.forEach(ex => {
-    const s = getExState(session, ex, db);
-    if (s.sets.some(Boolean)) {
-      workoutLog.push({
-        exercise: ex.name,
-        weight: s.weight,
-        reps: s.reps.filter((r, i) => s.sets[i]),
-        rir: s.rir
-      });
-    }
-  });
+  Object.keys(db.workouts).sort().forEach(k => {
+    const parts = k.split("::");
+    const dayKey = parts[0];
+    const dateStr = parts[1] || k;
 
-  // FORMAT HISTORY CLEANLY
-  const recentWorkouts = [];
-  // Get the last 14 days of workouts
-  Object.keys(db.workouts).sort().reverse().slice(0, 14).forEach(k => {
-    const sess = db.workouts[k];
-    if (sess.ex && Object.keys(sess.ex).length > 0) {
-      const parts = k.split("::");
-      const dayKey = parts[0];
-      const dateStr = parts[1] || k;
+    // Only send the last 30 days to save tokens, but include all days in that window
+    if (dateStr >= thirtyDaysAgo) {
+      const sess = db.workouts[k];
+      if (sess.ex && Object.keys(sess.ex).length > 0) {
+        const dayData = TRAINING.find(d => d.key === dayKey);
+        const dayName = dayData ? dayData.name : dayKey;
 
-      // Look up the actual day name from the TRAINING array
-      const dayData = TRAINING.find(d => d.key === dayKey);
-      const dayName = dayData ? dayData.name : dayKey;
+        const exercisesDone = [];
+        Object.keys(sess.ex).forEach(exId => {
+          const s = sess.ex[exId];
+          const setsDone = s.sets ? s.sets.filter(Boolean).length : 0;
+          if (setsDone > 0) {
+            const exData = dayData?.exercises.find(e => e.id === exId);
+            const exName = exData ? exData.name : exId;
+            exercisesDone.push(`${exName} (${setsDone} sets @ ${s.weight}kg)`);
+          }
+        });
 
-      const exercisesDone = [];
-      Object.keys(sess.ex).forEach(exId => {
-        const s = sess.ex[exId];
-        const setsDone = s.sets ? s.sets.filter(Boolean).length : 0;
-        if (setsDone > 0) {
-          // Look up the exercise name
-          const exData = dayData?.exercises.find(e => e.id === exId);
-          const exName = exData ? exData.name : exId;
-          exercisesDone.push(`${exName} (${setsDone} sets @ ${s.weight}kg)`);
+        if (exercisesDone.length > 0) {
+          workoutTimeline.push(`[${dateStr}] ${dayName}: ${exercisesDone.join(", ")}`);
         }
-      });
-
-      if (exercisesDone.length > 0) {
-        recentWorkouts.push(`- ${dateStr} (${dayName}): ${exercisesDone.join(", ")}`);
       }
     }
   });
 
-  const fullProgram = TRAINING.map(d => ({
-    day: d.name,
-    focus: d.focus,
-    exercises: d.exercises.map(e => e.name)
-  }));
+  // Format ALL meals for today
+  const mealsToday = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
+  const mealsString = mealsToday.map(m => `${m.name} (${m.p}g P, ${m.cal} kcal)`).join(", ");
 
   const context = {
-    dateToday: todayKey,
-    currentDayName: day.name,
-    fullWeeklyProgram: fullProgram,
-    mealsToday: meals.map(m => ({ name: m.name, protein: m.p, calories: m.cal })),
-    dailyProteinTarget: db.settings.proteinTarget,
-    currentSession: workoutLog,
-    recentWorkoutLogs: recentWorkouts, // <--- This is now human-readable text!
-    recentPRs: Object.keys(db.history).map(exId => ({ exercise: exId, weight: db.history[exId].weight }))
+    currentDate: todayKey,
+    proteinTarget: db.settings.proteinTarget,
+    mealsLoggedToday: mealsString || "None",
+    workoutHistoryLast30Days: workoutTimeline.length > 0 ? workoutTimeline : ["No workouts logged in the last 30 days."],
+    personalRecords: db.history
   };
 
   // 4. Send to API
@@ -107,7 +87,12 @@ async function sendChatMessage() {
     document.getElementById(loadingId).remove();
 
     if (data.reply) {
-      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${esc(data.reply).replace(/\n/g, '<br>')}</div>`;
+      // Convert **text** to <b>text</b>, and \n to <br>
+      let formattedReply = data.reply
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+
+      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formattedReply}</div>`;
 
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
