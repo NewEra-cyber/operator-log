@@ -90,6 +90,7 @@ export function blankDB() {
     photos: {},
     favorites: [],
     weightLog: [],
+    chats: []
   };
 }
 

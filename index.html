@@ -281,37 +281,61 @@
       </div>
     </div>
   </div>
-  <!-- AI CHATBOT MODAL -->
-  <div class="lightbox" id="chatModal" style="z-index: 9999; background: #000;">
-    <div class="lb-bar">
-      <span class="mono">TACTICAL CHATBOT</span>
-      <div class="lb-btns"><button data-act="close-chat">✕</button></div>
-    </div>
-
-    <div class="lb-stage lb-stage-top" style="padding: 20px; display: flex; flex-direction: column;">
-      <!-- Chat History Container -->
-      <div id="chatHistory"
-        style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;">
-        <!-- Messages injected via JS -->
-      </div>
-
-      <!-- Input Area -->
+  <!-- AI CHATBOT MODAL WITH SIDEBAR -->
+  < <div class="lightbox" id="chatModal" style="z-index: 9999; background: #000; flex-direction: row !important;">
+    <!-- SIDEBAR -->
+    <div id="chatSidebar"
+      style="width: 280px; height: 100%; background: #0a0a0a; border-right: 1px solid #333; display: flex; flex-direction: column; transform: translateX(-100%); transition: transform 0.3s ease; position: absolute; z-index: 10000;">
       <div
-        style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 8px; display: flex; gap: 8px;">
-        <input id="chatInput" type="text" placeholder="Ask about your meals, lifts, or PRs..."
-          style="flex: 1; background: transparent; border: none; color: #fff; padding: 8px; outline: none;" />
-        <button data-act="send-chat" id="chatSendBtn"
-          style="background: var(--primary); color: #000; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold;">SEND</button>
+        style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+        <span class="mono" style="font-size: 14px; font-weight: bold; color: #fff;">CHAT HISTORY</span>
+        <button data-act="new-chat"
+          style="background: var(--primary); color: #000; border: none; border-radius: 8px; padding: 6px 12px; font-weight: bold; cursor: pointer;">+
+          NEW</button>
+      </div>
+
+      <!-- List of past chats goes here -->
+      <div id="chatList" style="flex: 1; overflow-y: auto; padding: 10px;">
+        <!-- Injected via JS -->
       </div>
     </div>
-  </div>
 
-  <!-- FLOATING CHAT BUTTON -->
-  <button data-act="open-chat"
-    style="position: fixed; bottom: 90px; right: 20px; z-index: 100; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #000; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 24px; display: flex; align-items: center; justify-content: center;">
-    💬
-  </button>
-  <script type="module" src="app.js"></script>
+    <!-- MAIN CHAT AREA -->
+    <div style="flex: 1; display: flex; flex-direction: column; height: 100%;">
+      <div class="lb-bar">
+        <div class="flex-row">
+          <button data-act="toggle-sidebar"
+            style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; margin-right: 12px;">☰</button>
+          <span class="mono" id="currentChatTitle">TACTICAL CHATBOT</span>
+        </div>
+        <div class="lb-btns"><button data-act="close-chat">✕</button></div>
+      </div>
+
+      <div class="lb-stage lb-stage-top" style="padding: 20px; display: flex; flex-direction: column;">
+        <!-- Chat History Container -->
+        <div id="chatHistory"
+          style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;">
+          <!-- Messages injected via JS -->
+        </div>
+
+        <!-- Input Area -->
+        <div
+          style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 8px; display: flex; gap: 8px;">
+          <input id="chatInput" type="text" placeholder="Ask about your meals, lifts, or PRs..."
+            style="flex: 1; background: transparent; border: none; color: #fff; padding: 8px; outline: none;" />
+          <button data-act="send-chat" id="chatSendBtn"
+            style="background: var(--primary); color: #000; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold; cursor: pointer;">SEND</button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- FLOATING CHAT BUTTON -->
+    <button data-act="open-chat"
+      style="position: fixed; bottom: 90px; right: 20px; z-index: 100; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #000; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 24px; display: flex; align-items: center; justify-content: center;">
+      💬
+    </button>
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>

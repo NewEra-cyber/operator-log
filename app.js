@@ -4,7 +4,95 @@ import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from '
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES, POSES, formatPose, POSE_REFERENCES } from './data.js';
 // === END CHANGED ===
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
-let chatHistory = [];
+// === CHAT ENGINE ===
+let currentChatId = null;
+let chatHistory = []; // Holds the active chat's messages for the API
+
+function loadChatSidebar() {
+  const db = getDB();
+  const chatList = document.getElementById("chatList");
+  const chats = db.chats || [];
+
+  // Sort by newest first
+  chats.sort((a, b) => b.timestamp - a.timestamp);
+
+  if (chats.length === 0) {
+    chatList.innerHTML = `<div class="dim small text-center mt-10">No past chats.</div>`;
+    return;
+  }
+
+  chatList.innerHTML = chats.map(c => `
+    <div style="padding: 12px; border-bottom: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" 
+         onclick="loadChat('${c.id}')">
+      <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <div class="mono" style="font-size: 12px; color: #fff;">${esc(c.title)}</div>
+        <div class="small color-muted" style="font-size: 10px;">${new Date(c.timestamp).toLocaleDateString()}</div>
+      </div>
+      <button onclick="deleteChat('${c.id}', event)" style="background: none; border: none; color: #ff4b4b; font-size: 16px; padding: 4px;">✕</button>
+    </div>
+  `).join("");
+}
+
+window.loadChat = function (id) {
+  const db = getDB();
+  const chat = (db.chats || []).find(c => c.id === id);
+  if (!chat) return;
+
+  currentChatId = chat.id;
+  chatHistory = chat.messages;
+
+  document.getElementById("currentChatTitle").textContent = chat.title.toUpperCase();
+  document.getElementById("chatSidebar").style.transform = "translateX(-100%)"; // Close sidebar
+
+  renderChatMessages();
+}
+
+window.deleteChat = function (id, event) {
+  event.stopPropagation();
+  if (!confirm("Delete this conversation?")) return;
+
+  const db = getDB();
+  db.chats = (db.chats || []).filter(c => c.id !== id);
+  saveDB(db);
+
+  if (currentChatId === id) {
+    startNewChat();
+  } else {
+    loadChatSidebar();
+  }
+}
+
+function renderChatMessages() {
+  const historyDiv = document.getElementById("chatHistory");
+  historyDiv.innerHTML = "";
+
+  if (chatHistory.length === 0) {
+    historyDiv.innerHTML = `<div class="dim small text-center mt-10">Ask the coach anything about your data.</div>`;
+    return;
+  }
+
+  chatHistory.forEach(msg => {
+    if (msg.role === "user") {
+      historyDiv.innerHTML += `<div style="align-self: flex-end; background: var(--primary); color: #000; padding: 10px 16px; border-radius: 16px 16px 0 16px; max-width: 80%; font-weight: 600;">${esc(msg.content)}</div>`;
+    } else {
+      // Convert markdown to bold tags and newlines to <br>
+      let formatted = msg.content
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
+    }
+  });
+
+  historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+
+function startNewChat() {
+  currentChatId = null;
+  chatHistory = [];
+  document.getElementById("currentChatTitle").textContent = "NEW CONVERSATION";
+  document.getElementById("chatSidebar").style.transform = "translateX(-100%)"; // Close sidebar
+  renderChatMessages();
+}
 
 async function sendChatMessage() {
   const input = document.getElementById("chatInput");
@@ -25,13 +113,23 @@ async function sendChatMessage() {
   historyDiv.scrollTop = historyDiv.scrollHeight;
   sendBtn.disabled = true;
 
-  // 3. GATHER USER DATA (The Full History)
+  // 3. GATHER USER DATA
   const db = getDB();
   const todayKey = ymd();
+  const day = getDay(state.dayKey);
+  const session = getSession(db, day.key, todayKey);
 
-  // Format ALL workout logs into a readable timeline
+  const meals = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
+  const workoutLog = [];
+
+  day.exercises.forEach(ex => {
+    const s = getExState(session, ex, db);
+    if (s.sets.some(Boolean)) {
+      workoutLog.push({ exercise: ex.name, weight: s.weight, reps: s.reps.filter((r, i) => s.sets[i]), rir: s.rir });
+    }
+  });
+
   const workoutTimeline = [];
-
   Object.keys(db.workouts).sort().forEach(k => {
     const parts = k.split("::");
     const dayKey = parts[0];
@@ -41,8 +139,6 @@ async function sendChatMessage() {
     if (sess.ex && Object.keys(sess.ex).length > 0) {
       const dayData = TRAINING.find(d => d.key === dayKey);
       const sessionName = dayData ? dayData.name : dayKey;
-
-      // Calculate the actual day of the week (e.g., "Monday")
       const dateObj = new Date(dateStr + "T12:00:00");
       const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
@@ -63,42 +159,62 @@ async function sendChatMessage() {
     }
   });
 
-  // ... (keep the rest of the context object the same) ...
-
-  // Format ALL meals for today
-  const mealsToday = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
-  const mealsString = mealsToday.map(m => `${m.name} (${m.p}g P, ${m.cal} kcal)`).join(", ");
-
   const context = {
-    currentDate: todayKey,
+    date: todayKey,
+    currentDayName: day.name,
+    mealsLoggedToday: meals.map(m => `${m.name} (${m.p}g P, ${m.cal} kcal)`).join(", ") || "None",
     proteinTarget: db.settings.proteinTarget,
-    mealsLoggedToday: mealsString || "None",
-    workoutHistoryLast30Days: workoutTimeline.length > 0 ? workoutTimeline : ["No workouts logged in the last 30 days."],
+    currentSession: workoutLog,
+    workoutHistory: workoutTimeline,
     personalRecords: db.history
   };
 
   // 4. Send to API
   try {
+    // Pass the last 10 messages for context
+    const recentHistory = chatHistory.slice(-10);
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: text, context: context, history: chatHistory })
+      body: JSON.stringify({ question: text, context: context, history: recentHistory })
     });
 
     const data = await res.json();
     document.getElementById(loadingId).remove();
 
     if (data.reply) {
-      // Convert **text** to <b>text</b>, and \n to <br>
-      let formattedReply = data.reply
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/\n/g, '<br>');
+      let formatted = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
 
-      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formattedReply}</div>`;
-
+      // 5. SAVE CHAT TO DB
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
-      if (chatHistory.length > 6) chatHistory = chatHistory.slice(-6);
+
+      if (!currentChatId) {
+        // Create a new chat entry
+        currentChatId = uid();
+        const title = text.substring(0, 30) + (text.length > 30 ? "..." : "");
+        db.chats.push({
+          id: currentChatId,
+          title: title,
+          timestamp: Date.now(),
+          messages: chatHistory
+        });
+        document.getElementById("currentChatTitle").textContent = title.toUpperCase();
+      } else {
+        // Update existing chat
+        const chat = db.chats.find(c => c.id === currentChatId);
+        if (chat) {
+          chat.messages = chatHistory;
+          chat.timestamp = Date.now(); // Bump to top
+        }
+      }
+
+      saveDB(db);
+      triggerAutoSync();
+      loadChatSidebar(); // Refresh sidebar UI
+
     } else {
       historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: AI failed to respond.</div>`;
     }
@@ -781,6 +897,30 @@ document.addEventListener("click", function (ev) {
   if (act === "open-live-camera") { startLiveCamera(); return; }
   if (act === "close-live-camera") { stopLiveCamera(); return; }
   if (act === "capture-photo") { captureLivePhoto(); return; }
+  if (act === "open-chat") {
+    document.getElementById("chatModal").classList.add("open");
+    loadChatSidebar();
+    renderChatMessages();
+    return;
+  }
+  if (act === "close-chat") {
+    document.getElementById("chatModal").classList.remove("open");
+    return;
+  }
+  if (act === "toggle-sidebar") {
+    const sidebar = document.getElementById("chatSidebar");
+    const isOpen = sidebar.style.transform === "translateX(0px)";
+    sidebar.style.transform = isOpen ? "translateX(-100%)" : "translateX(0px)";
+    return;
+  }
+  if (act === "new-chat") {
+    startNewChat();
+    return;
+  }
+  if (act === "send-chat") {
+    sendChatMessage();
+    return;
+  }
 
   if (act === "open-file-picker") {
     document.getElementById("cameraChoiceModal").classList.remove("open");
@@ -1741,12 +1881,6 @@ document.addEventListener("pointerdown", function (e) {
   });
 })();
 // === END CHANGED ===
-document.getElementById("chatInput").addEventListener("keypress", function (e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    sendChatMessage();
-  }
-});
 function tickClock() {
   const d = new Date();
   const el = document.getElementById("sysClock");
