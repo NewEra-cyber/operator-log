@@ -25,48 +25,45 @@ async function sendChatMessage() {
   historyDiv.scrollTop = historyDiv.scrollHeight;
   sendBtn.disabled = true;
 
-  // 3. GATHER USER DATA (The Full Timeline)
+  // 3. GATHER USER DATA (The Full History)
   const db = getDB();
   const todayKey = ymd();
 
-  // Format ALL workout logs into a readable timeline (last 30 days)
-  // Format ALL workout logs into a readable timeline (last 30 days)
+  // Format ALL workout logs into a readable timeline
   const workoutTimeline = [];
-  const thirtyDaysAgo = addDays(todayKey, -30);
 
   Object.keys(db.workouts).sort().forEach(k => {
     const parts = k.split("::");
     const dayKey = parts[0];
     const dateStr = parts[1] || k;
 
-    if (dateStr >= thirtyDaysAgo) {
-      const sess = db.workouts[k];
-      if (sess.ex && Object.keys(sess.ex).length > 0) {
-        const dayData = TRAINING.find(d => d.key === dayKey);
-        const sessionName = dayData ? dayData.name : dayKey;
+    const sess = db.workouts[k];
+    if (sess.ex && Object.keys(sess.ex).length > 0) {
+      const dayData = TRAINING.find(d => d.key === dayKey);
+      const sessionName = dayData ? dayData.name : dayKey;
 
-        // NEW: Calculate the actual day of the week (e.g., "Monday")
-        const dateObj = new Date(dateStr + "T12:00:00");
-        const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+      // Calculate the actual day of the week (e.g., "Monday")
+      const dateObj = new Date(dateStr + "T12:00:00");
+      const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-        const exercisesDone = [];
-        Object.keys(sess.ex).forEach(exId => {
-          const s = sess.ex[exId];
-          const setsDone = s.sets ? s.sets.filter(Boolean).length : 0;
-          if (setsDone > 0) {
-            const exData = dayData?.exercises.find(e => e.id === exId);
-            const exName = exData ? exData.name : exId;
-            exercisesDone.push(`${exName} (${setsDone} sets @ ${s.weight}kg)`);
-          }
-        });
-
-        if (exercisesDone.length > 0) {
-          // CHANGE: Include the actual day of the week in the string
-          workoutTimeline.push(`[${dateStr} - ${dayOfWeek}] ${sessionName}: ${exercisesDone.join(", ")}`);
+      const exercisesDone = [];
+      Object.keys(sess.ex).forEach(exId => {
+        const s = sess.ex[exId];
+        const setsDone = s.sets ? s.sets.filter(Boolean).length : 0;
+        if (setsDone > 0) {
+          const exData = dayData?.exercises.find(e => e.id === exId);
+          const exName = exData ? exData.name : exId;
+          exercisesDone.push(`${exName} (${setsDone} sets @ ${s.weight}kg)`);
         }
+      });
+
+      if (exercisesDone.length > 0) {
+        workoutTimeline.push(`[${dateStr} - ${dayOfWeek}] ${sessionName}: ${exercisesDone.join(", ")}`);
       }
     }
   });
+
+  // ... (keep the rest of the context object the same) ...
 
   // Format ALL meals for today
   const mealsToday = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
