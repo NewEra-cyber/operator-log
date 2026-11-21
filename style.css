@@ -2983,3 +2983,8 @@ img[src*="data:image"] {
     color: #fff;
     border-color: #fff;
 }
+.load-in.target-up {
+    color: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(63, 178, 127, 0.2);
+}

@@ -181,7 +181,22 @@ function exCardHTML(db, session, ex) {
   const best = db.history[ex.id];
   const allDone = s.sets.every(Boolean) && s.sets.length > 0;
   const overload = allDone && s.reps.every((r) => num(r, 0) >= ex.max);
-  const target = num(s.weight, 0) + ex.inc;
+
+  // NEW: Calculate smart target weight based on last session
+  let smartTargetWeight = num(s.weight, 0);
+  if (!s.weight || s.weight === ex.weight) {
+    // If we are using the default weight, check the last session
+    if (lastSession) {
+      const lastRepsHitMax = lastSession.reps.every(r => num(r, 0) >= ex.max);
+      if (lastRepsHitMax && lastSession.weight > 0) {
+        // You hit max reps last time. Auto-bump the weight for today.
+        smartTargetWeight = lastSession.weight + ex.inc;
+      } else if (lastSession.weight > 0) {
+        // You didn't hit max reps. Keep the same weight.
+        smartTargetWeight = lastSession.weight;
+      }
+    }
+  }
 
   const bestHTML = best
     ? `<div class="best-badge">◈ PREVIOUS BEST <b>${best.weight}KG</b>${best.reps != null ? " × " + best.reps : ""}${best.date ? " · " + esc(best.date) : ""}</div>`
@@ -245,8 +260,8 @@ function exCardHTML(db, session, ex) {
           </div>
         </div>
         <div class="ex-target">
-          <span>LOAD</span>
-          <input class="load-in mono" type="number" step="2.5" value="${s.weight}" data-act="ex-weight" data-ex="${ex.id}" />
+          <span>TARGET</span>
+          <input class="load-in mono" type="number" step="2.5" value="${smartTargetWeight}" data-act="ex-weight" data-ex="${ex.id}" />
           <em>KG</em>
         </div>
       </div>

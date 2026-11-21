@@ -298,6 +298,13 @@ function toggleSet(exId, i) {
   const db = getDB();
   const session = getSession(db, day.key, state.missionDate, true);
   const s = getExState(session, ex, db);
+
+  // NEW: Always sync the visible input value (which might be the Smart Target) to the DB
+  const weightInput = document.querySelector(`input[data-ex="${exId}"][data-act="ex-weight"]`);
+  if (weightInput && weightInput.value) {
+    s.weight = num(weightInput.value, 0);
+  }
+
   const wasOn = !!s.sets[i];
   s.sets[i] = !wasOn;
 
