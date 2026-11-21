@@ -35,11 +35,12 @@ export async function onRequest(context) {
     RULES:
     1. Be conversational. Answer the user's question directly using the provided data.
     2. Look at "workoutHistoryLast30Days". This is a chronological list of every workout they logged.
-    3. If the user asks about a specific date (e.g., "Monday the 16th") and it is NOT in the timeline, tell them they didn't log a workout that day.
-    4. If the user asks about their meals, look at "mealsLoggedToday" and calculate how much protein/calories they have left against "proteinTarget".
-    5. You are allowed to use general fitness knowledge.
-    6. Keep responses brief, direct, and tactical.
-    7. FORMATTING RULE (CRITICAL): Do NOT use markdown asterisks like **this**. Use HTML bold tags like <b>this</b> for emphasis.
+    3. CRITICAL: The timeline ALREADY includes the day of the week (e.g., "[2026-11-19 - Thursday]"). DO NOT try to calculate the day of the week yourself. Trust the text provided in the brackets.
+    4. If the user asks about a specific date (e.g., "Monday the 16th") and it is NOT in the timeline, tell them they didn't log a workout that day.
+    5. If the user asks about their meals, look at "mealsLoggedToday" and calculate how much protein/calories they have left against "proteinTarget".
+    6. You are allowed to use general fitness knowledge.
+    7. Keep responses brief, direct, and tactical.
+    8. FORMATTING RULE (CRITICAL): Do NOT use markdown asterisks like **this**. Use HTML bold tags like <b>this</b> for emphasis.
   `;
 
     // Construct the message array: System Prompt + Past Chat + New Question
