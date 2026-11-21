@@ -3,7 +3,7 @@ export async function onRequest(context) {
     const apiKey = context.env?.GROQ_API_KEY;
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
-    if (!apiKey) return new Response(JSON.stringify({ error: "Missing GROQ_API_KEY" }), { status: 200 });
+    if (!apiKey) return new Response(JSON.stringify({ error: "Missing GROQ_API_KEY" }), { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
 
     try {
         const { weekData } = await req.json();
@@ -20,8 +20,7 @@ Provide EXACTLY 3 bullet points using this format:
 - **Refuel Discipline:** [1 sentence on protein hits/misses and water]
 - **Directive for Next Week:** [1 tactical command on what to focus on]
 
-Keep it aggressive, brief, and highly analytical. Do NOT use markdown headers, just the 3 bullet points.
-CRITICAL: Tonnage is in KILOGRAMS (kg). You MUST use kg for any weight references. NEVER use pounds (lbs).`
+Keep it aggressive, brief, and highly analytical. Do NOT use markdown headers, just the 3 bullet points.`
                 },
                 { role: "user", content: JSON.stringify(weekData) }
             ]
@@ -33,11 +32,24 @@ CRITICAL: Tonnage is in KILOGRAMS (kg). You MUST use kg for any weight reference
             body: JSON.stringify(payload)
         });
 
-        const data = await res.json();
-        const advice = data.choices[0].message.content;
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Groq Synthesis Error:", errorText);
+            return new Response(JSON.stringify({ error: `Groq Error: ${res.status}` }), { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        }
 
-        return new Response(JSON.stringify({ advice }), { status: 200, headers: { "Content-Type": "application/json" } });
+        const data = await res.json();
+        let rawContent = data.choices[0].message.content;
+        
+        // Remove <think> tags
+        rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+        return new Response(JSON.stringify({ advice: rawContent }), { 
+            status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+        });
+
     } catch (err) {
-        return new Response(JSON.stringify({ error: "Failed to synthesize data." }), { status: 200 });
+        console.error("Synthesis System Error:", err);
+        return new Response(JSON.stringify({ error: "System Error" }), { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 }

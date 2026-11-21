@@ -620,7 +620,7 @@ export function scanResultHTML(state) {
           ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
           
           <!-- FLOATING MACRO CARD -->
-          <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px; background: rgba(15, 15, 15, 0.95); max-width: 220px;">
+          <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px; background: rgba(15, 15, 15, 0.95); z-index: 2; padding-bottom: 24px;">
             
             <!-- List of foods -->
             <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">

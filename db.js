@@ -209,7 +209,7 @@ export function mergeDBs(local, remote) {
         if (!localEx[exId]) {
           localEx[exId] = remoteEx[exId];
         } else {
-          const localDone = localEx[exId].sets.filter(Boolean).length;
+          const localDone = (localEx[exId] && localEx[exId].sets) ? localEx[exId].sets.filter(Boolean).length : 0;
           const remoteDone = remoteEx[exId].sets.filter(Boolean).length;
           if (remoteDone > localDone) localEx[exId] = remoteEx[exId];
         }

@@ -28,7 +28,7 @@ Assume the plate in the image is a standard 10-inch dinner plate.
 - **White Rice**: A large serving covering 1/3 of the plate is ~250g.
 - **Maharagwe (Beans)**: A large scoop covering 1/4 of the plate is ~150g-180g.
 - **Sukuma Wiki / Greens**: A pile covering 1/4 of the plate is ~100g-120g.
-- **Ugali**: A block covering 1/4 of the plate is ~200g.
+- **Ugali**: A standard block covering 1/4 of the plate is ~250g-300g. (If it looks thick and tall, estimate closer to 300g).
 - **Scrambled Eggs**: 2-3 eggs scrambled is 100g-150g.
 
 Look closely at the food relative to the edge of the plate to calculate the area it covers, then apply the weight rule above.
@@ -40,7 +40,7 @@ Look closely at the food relative to the edge of the plate to calculate the area
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
 - **Maharagwe (Beans)**: LARGER, kidney-shaped beans (often brown/red).
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
-- **Omena**: Small silver dried fish.
+- **Omena**: Small silver dried fish. Even if it is cooked in a tomato/onion sauce (stew), you MUST identify the fish portion. If the bowl is full of fish, assume it is a dense portion (e.g., 100g) and DO NOT underestimate the weight just because there is broth.
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
 
 *** OUTPUT FORMAT ***
@@ -86,8 +86,8 @@ const MACRO_DB = {
   "kuku kienyeji": { p: 10.0, cal: 93 },
   "samaki wa kupaka": { p: 10.5, cal: 102 },
   "samaki mkaango": { p: 12.7, cal: 150 },
-  "omena dry": { p: 53.0, cal: 350 },   // dry-fried / dried only
-  "omena stew": { p: 22.0, cal: 210 },  // cooked with tomato/onion/oil
+  "omena dry": { p: 53.0, cal: 350 },
+  "omena stew": { p: 35.0, cal: 240 },  // CHANGED: Bumped protein from 22 to 35
   "mutura": { p: 12.0, cal: 190 },
   "beef stew": { p: 11.2, cal: 136 },
   "mbuzi wet fry": { p: 18.0, cal: 184 },
