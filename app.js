@@ -1547,9 +1547,11 @@ document.addEventListener("change", function (ev) {
   const el = ev.target.closest("[data-act]");
   if (!el) return;
   const act = el.dataset.act;
+
   if (act === "cmp-a") { state.cmpA = el.value; render(); return; }
   if (act === "cmp-b") { state.cmpB = el.value; render(); return; }
   if (act === "cmp-pose") { state.cmpPose = el.value; render(); return; }
+
   if (act === "swap-scanned-item") {
     const idx = Number(el.dataset.idx);
     const d = state.scan && state.scan.data;

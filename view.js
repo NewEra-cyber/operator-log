@@ -743,6 +743,9 @@ export function viewVault(db, state) {
     if (milestone === "reference") {
       return POSE_REFERENCES[state.cmpPose] || "";
     }
+    if (milestone === "baseline") {
+      return "/images/baseline.jpg"; // <-- ADD THIS LINE
+    }
     return (db.photos[milestone] || {})[state.cmpPose] || "";
   };
 
@@ -810,14 +813,16 @@ export function viewVault(db, state) {
 
       <div class="card">
         <div class="kicker mb-9">SPLIT-SLIDER COMPARISON</div>
-        <div class="sel-row" style="margin-bottom: 12px;">
+                <div class="sel-row" style="margin-bottom: 12px;">
           <select data-act="cmp-a">
             <option value="reference"${state.cmpA === "reference" ? " selected" : ""}>REFERENCE IMAGE</option>
+            <option value="baseline"${state.cmpA === "baseline" ? " selected" : ""}>BASELINE PHOTO</option> <!-- ADDED -->
             ${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpA === m.k ? " selected" : ""}>${m.label}</option>`).join("")}
           </select>
           <select data-act="cmp-pose">${poseOpts}</select>
           <select data-act="cmp-b">
             <option value="reference"${state.cmpB === "reference" ? " selected" : ""}>REFERENCE IMAGE</option>
+            <option value="baseline"${state.cmpB === "baseline" ? " selected" : ""}>BASELINE PHOTO</option> <!-- ADDED -->
             ${MILESTONES.map((m) => `<option value="${m.k}"${state.cmpB === m.k ? " selected" : ""}>${m.label}</option>`).join("")}
           </select>
         </div>
@@ -826,8 +831,12 @@ export function viewVault(db, state) {
           ${imgA ? `<img src="${imgA}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           ${imgB ? `<img src="${imgB}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           
-          <div class="split-label label-before">${state.cmpA === "reference" ? "REFERENCE" : state.cmpA.toUpperCase()} (BEFORE)</div>
-          <div class="split-label label-after">${state.cmpB === "reference" ? "REFERENCE" : state.cmpB.toUpperCase()} (AFTER)</div>
+          <div class="split-label label-before">
+            ${state.cmpA === "reference" ? "REFERENCE" : state.cmpA === "baseline" ? "BASELINE" : state.cmpA.toUpperCase()} (BEFORE)
+          </div>
+          <div class="split-label label-after">
+            ${state.cmpB === "reference" ? "REFERENCE" : state.cmpB === "baseline" ? "BASELINE" : state.cmpB.toUpperCase()} (AFTER)
+          </div>
 
           ${imgA && imgB ? `<div class="split-handle" id="splitHandle" style="left: 50%;"></div>` : ''}
         </div>
