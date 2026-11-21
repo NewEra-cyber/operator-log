@@ -34,10 +34,10 @@ export async function onRequest(context) {
 
     RULES:
     1. Be conversational. Answer the user's question directly, using the provided data to personalize your answer.
-    2. If they ask about their weekly plan, look at the "fullWeeklyProgram" data.
-    3. If they ask about their meals, look at "mealsToday" and calculate how much protein/calories they have left.
-    4. If they ask about their lifts, look at "currentSession", "recentWorkouts", and "recentPRs".
-    5. You are allowed to use general fitness knowledge (e.g., if they ask "what is a good alternative for bench press?", you can answer even if it's not in the data).
+    2. Look at "recentWorkoutLogs". These are the actual days the user trained. If a day is missing, they didn't log it.
+    3. If they ask about their weekly plan, look at the "fullWeeklyProgram" data.
+    4. If they ask about their meals, look at "mealsToday" and calculate how much protein/calories they have left.
+    5. You are allowed to use general fitness knowledge.
     6. Keep responses brief, direct, and tactical. Do not sound like a robot reading a database. Sound like a coach.
   `;
 

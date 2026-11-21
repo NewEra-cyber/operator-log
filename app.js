@@ -25,18 +25,15 @@ async function sendChatMessage() {
   historyDiv.scrollTop = historyDiv.scrollHeight;
   sendBtn.disabled = true;
 
-  // 3. GATHER USER DATA
-  // 3. GATHER USER DATA (The Upgrade)
+  // 3. GATHER USER DATA (Formatted for AI)
   const db = getDB();
   const todayKey = ymd();
   const day = getDay(state.dayKey);
   const session = getSession(db, day.key, todayKey);
 
-  // Get today's meals
   const meals = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
-
-  // Get today's workout stats
   const workoutLog = [];
+
   day.exercises.forEach(ex => {
     const s = getExState(session, ex, db);
     if (s.sets.some(Boolean)) {
@@ -49,16 +46,38 @@ async function sendChatMessage() {
     }
   });
 
-  // Get recent workout history (Last 3 logged sessions)
+  // FORMAT HISTORY CLEANLY
   const recentWorkouts = [];
-  Object.keys(db.workouts).sort().reverse().slice(0, 3).forEach(k => {
+  // Get the last 14 days of workouts
+  Object.keys(db.workouts).sort().reverse().slice(0, 14).forEach(k => {
     const sess = db.workouts[k];
     if (sess.ex && Object.keys(sess.ex).length > 0) {
-      recentWorkouts.push({ date: k.split("::")[1], data: sess.ex });
+      const parts = k.split("::");
+      const dayKey = parts[0];
+      const dateStr = parts[1] || k;
+
+      // Look up the actual day name from the TRAINING array
+      const dayData = TRAINING.find(d => d.key === dayKey);
+      const dayName = dayData ? dayData.name : dayKey;
+
+      const exercisesDone = [];
+      Object.keys(sess.ex).forEach(exId => {
+        const s = sess.ex[exId];
+        const setsDone = s.sets ? s.sets.filter(Boolean).length : 0;
+        if (setsDone > 0) {
+          // Look up the exercise name
+          const exData = dayData?.exercises.find(e => e.id === exId);
+          const exName = exData ? exData.name : exId;
+          exercisesDone.push(`${exName} (${setsDone} sets @ ${s.weight}kg)`);
+        }
+      });
+
+      if (exercisesDone.length > 0) {
+        recentWorkouts.push(`- ${dateStr} (${dayName}): ${exercisesDone.join(", ")}`);
+      }
     }
   });
 
-  // Get the full weekly program from data.js
   const fullProgram = TRAINING.map(d => ({
     day: d.name,
     focus: d.focus,
@@ -66,13 +85,13 @@ async function sendChatMessage() {
   }));
 
   const context = {
-    date: todayKey,
+    dateToday: todayKey,
     currentDayName: day.name,
     fullWeeklyProgram: fullProgram,
     mealsToday: meals.map(m => ({ name: m.name, protein: m.p, calories: m.cal })),
     dailyProteinTarget: db.settings.proteinTarget,
     currentSession: workoutLog,
-    recentWorkouts: recentWorkouts,
+    recentWorkoutLogs: recentWorkouts, // <--- This is now human-readable text!
     recentPRs: Object.keys(db.history).map(exId => ({ exercise: exId, weight: db.history[exId].weight }))
   };
 
