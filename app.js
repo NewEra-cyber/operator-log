@@ -1038,6 +1038,26 @@ document.addEventListener("click", function (ev) {
   if (act === "tab") { state.tab = el.dataset.tab; render(); window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" }); return; }
   if (act === "pick-day") { state.dayKey = el.dataset.key; render(); return; }
   if (act === "toggle-set") { toggleSet(el.dataset.ex, Number(el.dataset.i)); return; }
+  if (act === "repeat-set") {
+    const exId = el.dataset.ex;
+    const i = Number(el.dataset.i); // The current set index
+
+    if (i > 0) {
+      withSession(function (db, session) {
+        const ex = currentEx(exId);
+        const s = getExState(session, ex, db);
+
+        // Copy the weight from the previous set (or current weight)
+        // Copy the reps from the previous set
+        s.reps[i] = s.reps[i - 1];
+
+        // If you want to copy the weight too (uncomment below):
+        // s.weight = s.weight; (Weight is shared across all sets in this app anyway)
+      });
+      render(); // Re-render to show the copied reps
+    }
+    return;
+  }
   if (act === "set-rir") {
     const exId = el.dataset.ex;
     withSession(function (db, session) {

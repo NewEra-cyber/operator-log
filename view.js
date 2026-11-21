@@ -190,6 +190,10 @@ function exCardHTML(db, session, ex) {
   const setsHTML = s.sets.map((on, i) => {
     const lastReps = lastSession ? lastSession.reps[i] : null;
     const lastWeight = lastSession ? lastSession.weight : null;
+
+    // Check if there is a previous set to copy from
+    const prevSetExists = i > 0;
+
     const ghost = lastReps
       ? `<span class="ghost-text">Prev: ${lastWeight}kg × ${lastReps}</span>`
       : "";
@@ -205,6 +209,10 @@ function exCardHTML(db, session, ex) {
       <div class="flex-row">
         <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
         <input class="reps-in mono" type="number" inputmode="numeric" min="0" max="99" value="${s.reps[i]}" data-act="ex-reps" data-ex="${ex.id}" data-i="${i}" data-last="${lastReps || 0}" data-last-weight="${lastWeight || 0}" />
+        
+        <!-- NEW: Repeat Set Button -->
+        ${prevSetExists ? `<button class="repeat-set-btn" data-act="repeat-set" data-ex="${ex.id}" data-i="${i}">⟳</button>` : `<div style="width: 24px;"></div>`}
+        
         <span id="delta-${ex.id}-${i}"></span>
       </div>
       ${ghost}
