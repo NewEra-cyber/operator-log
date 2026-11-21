@@ -428,7 +428,7 @@ async function handlePhotoFile(file) {
   render();
 }
 
-function exportJSON() {
+async function exportJSON() {
   const db = getDB();
   db.settings.lastBackup = Date.now();
   saveDB(db);
@@ -437,15 +437,35 @@ function exportJSON() {
   const exportData = JSON.parse(JSON.stringify(db));
   if (!exportData.settings.includePhotos) exportData.photos = {};
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "operator-log-backup-" + ymd() + ".json";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  toast("BACKUP EXPORTED", "cyan");
+  const jsonString = JSON.stringify(exportData);
+
+  try {
+    // Compress the string using native browser Gzip API
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const compressedStream = blob.stream().pipeThrough(new CompressionStream("gzip"));
+    const compressedBlob = await new Response(compressedStream).blob();
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(compressedBlob);
+    a.download = "operator-log-backup-" + ymd() + ".json.gz";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("COMPRESSED BACKUP EXPORTED", "cyan");
+  } catch (err) {
+    console.error("Compression failed, falling back to uncompressed", err);
+    // Fallback if the browser doesn't support Gzip
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "operator-log-backup-" + ymd() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("BACKUP EXPORTED (UNCOMPRESSED)", "cyan");
+  }
 }
 
 function exportCSV() {
@@ -488,7 +508,16 @@ function exportCSV() {
 async function importJSON(file) {
   if (!file) return;
   try {
-    const text = await file.text();
+    let text;
+
+    // Check if it's a gzipped file
+    if (file.name.endsWith(".gz")) {
+      const stream = file.stream().pipeThrough(new DecompressionStream("gzip"));
+      text = await new Response(stream).text();
+    } else {
+      text = await file.text();
+    }
+
     const parsed = JSON.parse(text);
     if (!window.confirm("IMPORT WILL REPLACE ALL CURRENT DATA. CONTINUE?")) return;
     const db = migrate(parsed);
@@ -498,7 +527,7 @@ async function importJSON(file) {
     }
   } catch (e) {
     console.error(e);
-    toast("IMPORT FAILED — INVALID JSON", "red");
+    toast("IMPORT FAILED — INVALID FILE", "red");
   }
 }
 
@@ -1222,7 +1251,24 @@ document.addEventListener("click", function (ev) {
     render();
     return;
   }
+  if (act === "apply-overload") {
+    const exId = el.dataset.ex;
+    const target = Number(el.dataset.target);
+    const db = getDB();
+    const day = getDay(state.dayKey);
+    const session = getSession(db, day.key, state.missionDate, true);
+    const ex = currentEx(exId);
+    const s = getExState(session, ex, db);
 
+    s.weight = target; // Set the weight
+    s.sets = s.sets.map(() => false); // Reset sets so they can do it again next time
+    s.reps = s.reps.map(() => ex.max);
+
+    saveDB(db);
+    render();
+    toast("WEIGHT INCREASED TO " + target + "KG", "green");
+    return;
+  }
   // === CHANGED === open-photo-modal now uses POSE_REFERENCES instead of previous week photo
   if (act === "open-photo-modal") {
     const ms = el.dataset.ms;

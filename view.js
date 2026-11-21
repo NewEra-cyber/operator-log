@@ -266,8 +266,9 @@ function exCardHTML(db, session, ex) {
       </div>
       <div class="sets" id="sets-${ex.id}">${setsHTML}</div>
       <div class="overload ${overload ? 'show' : ''}" id="ovl-${ex.id}">
-        ⚠ OVERLOAD DETECTED — ALL SETS AT ${ex.max} REPS. UNLOCK <b>${ex.inc > 0 ? target + "KG" : "PROGRESSION"}</b> NEXT WEEK.
-      </div>
+  ⚠ CAPACITY DETECTED — ALL SETS AT ${ex.max} REPS. 
+  <button class="act-btn primary m-0" style="width:auto; padding:4px 8px; font-size:11px;" data-act="apply-overload" data-ex="${ex.id}" data-target="${target}">APPLY ${target}KG</button>
+</div>
     </article>
   `;
 }
