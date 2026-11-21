@@ -181,6 +181,7 @@ function exCardHTML(db, session, ex) {
   const best = db.history[ex.id];
   const allDone = s.sets.every(Boolean) && s.sets.length > 0;
   const overload = allDone && s.reps.every((r) => num(r, 0) >= ex.max);
+  const target = num(s.weight, 0) + ex.inc; // <--- ADD THIS LINE BACK
 
   // NEW: Calculate smart target weight based on last session
   let smartTargetWeight = num(s.weight, 0);
