@@ -642,7 +642,11 @@ export function scanResultHTML(state) {
         
         <!-- TOP HALF (IMAGE + FLOATING CARD) -->
         <div style="flex: 1; position: relative; overflow: hidden; background: #000;">
-          ${img ? `<img src="${img}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />` : ''}
+                    <!-- Blurred Background -->
+          ${img ? `<img src="${img}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(20px) brightness(0.4); transform: scale(1.1);" />` : ''}
+          
+          <!-- Sharp Foreground -->
+          ${img ? `<img src="${img}" style="position: relative; max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1;" />` : ''}
           
           <!-- FLOATING MACRO CARD -->
           <div class="ar-overlay-card" style="position: absolute; top: 20px; right: 20px; background: rgba(15, 15, 15, 0.95); z-index: 2; padding-bottom: 24px;">

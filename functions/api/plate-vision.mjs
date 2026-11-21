@@ -35,8 +35,9 @@ Assume the plate in the image is a standard 10-inch dinner plate.
 Look closely at the food relative to the edge of the plate to calculate the area it covers, then apply the weight rule above.
 
 *** VISUAL DISAMBIGUATION RULES ***
-- **Ugali**: A SOLID, CUT BLOCK of white maize meal. It holds a dense, cake-like shape. It does NOT have separate grains.
-- **White Rice**: A LOOSE PILE of separate, short oval grains. If you see distinct grains, it is rice. If it is a solid, smooth mass, it is Ugali.
+- **Ugali**: A SOLID, CUT BLOCK of white maize meal. It can be rectangular, sliced, or triangular. It is dense and holds its shape. If you see a thick block of white food, it is Ugali, NOT Bread.
+- **Bread**: Soft, porous, with a visible crust. Do NOT call Ugali "Bread".
+- **White Rice**: A LOOSE PILE of separate, short oval grains. 
 - **Pasta/Spaghetti**: Long thin cylindrical yellow/tan strands. DO NOT CALL THIS WHITE RICE.
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
 - **Maharagwe (Beans)**: LARGER, kidney-shaped beans (often brown/red).
