@@ -4,7 +4,90 @@ import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from '
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES, POSES, formatPose, POSE_REFERENCES } from './data.js';
 // === END CHANGED ===
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
+let chatHistory = [];
 
+async function sendChatMessage() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const historyDiv = document.getElementById("chatHistory");
+  const sendBtn = document.getElementById("chatSendBtn");
+
+  // 1. Add user message to UI
+  historyDiv.innerHTML += `<div style="align-self: flex-end; background: var(--primary); color: #000; padding: 10px 16px; border-radius: 16px 16px 0 16px; max-width: 80%; font-weight: 600;">${esc(text)}</div>`;
+  input.value = "";
+  historyDiv.scrollTop = historyDiv.scrollHeight;
+
+  // 2. Add loading state
+  const loadingId = "loading-" + Date.now();
+  historyDiv.innerHTML += `<div id="${loadingId}" style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%;"><span class="spinner"></span> Thinking...</div>`;
+  historyDiv.scrollTop = historyDiv.scrollHeight;
+  sendBtn.disabled = true;
+
+  // 3. GATHER USER DATA
+  const db = getDB();
+  const todayKey = ymd();
+  const day = getDay(state.dayKey);
+  const session = getSession(db, day.key, todayKey);
+
+  const meals = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
+  const workoutLog = [];
+
+  day.exercises.forEach(ex => {
+    const s = getExState(session, ex, db);
+    if (s.sets.some(Boolean)) {
+      workoutLog.push({
+        exercise: ex.name,
+        weight: s.weight,
+        reps: s.reps.filter((r, i) => s.sets[i]),
+        rir: s.rir
+      });
+    }
+  });
+
+  const recentPRs = Object.keys(db.history).slice(0, 5).map(exId => ({
+    exercise: exId,
+    weight: db.history[exId].weight
+  }));
+
+  const context = {
+    date: todayKey,
+    dayName: day.name,
+    mealsToday: meals.map(m => ({ name: m.name, protein: m.p, calories: m.cal })),
+    dailyProteinTarget: db.settings.proteinTarget,
+    currentSession: workoutLog,
+    recentPRs: recentPRs
+  };
+
+  // 4. Send to API
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: text, context: context, history: chatHistory })
+    });
+
+    const data = await res.json();
+    document.getElementById(loadingId).remove();
+
+    if (data.reply) {
+      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${esc(data.reply).replace(/\n/g, '<br>')}</div>`;
+
+      chatHistory.push({ role: "user", content: text });
+      chatHistory.push({ role: "assistant", content: data.reply });
+      if (chatHistory.length > 6) chatHistory = chatHistory.slice(-6);
+    } else {
+      historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: AI failed to respond.</div>`;
+    }
+  } catch (err) {
+    document.getElementById(loadingId).remove();
+    historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Network Error.</div>`;
+  }
+
+  sendBtn.disabled = false;
+  historyDiv.scrollTop = historyDiv.scrollHeight;
+}
 // === AUDIO CONTEXT ===
 let audioCtx = null;
 function playTone(freq, duration, type = 'sine') {
@@ -683,7 +766,18 @@ document.addEventListener("click", function (ev) {
     return;
   }
   if (navigator.vibrate) navigator.vibrate(10); // Safe haptic tick
-
+  if (act === "open-chat") {
+    document.getElementById("chatModal").classList.add("open");
+    return;
+  }
+  if (act === "close-chat") {
+    document.getElementById("chatModal").classList.remove("open");
+    return;
+  }
+  if (act === "send-chat") {
+    sendChatMessage();
+    return;
+  }
   if (act === "jump-to-workout") {
     state.tab = "mission";
     state.dayKey = el.dataset.day;
@@ -1623,7 +1717,12 @@ document.addEventListener("pointerdown", function (e) {
   });
 })();
 // === END CHANGED ===
-
+document.getElementById("chatInput").addEventListener("keypress", function (e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
 function tickClock() {
   const d = new Date();
   const el = document.getElementById("sysClock");
