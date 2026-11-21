@@ -30,6 +30,7 @@ Assume the plate in the image is a standard 10-inch dinner plate.
 - **Sukuma Wiki / Greens**: A pile covering 1/4 of the plate is ~100g-120g.
 - **Ugali**: A standard block covering 1/4 of the plate is ~250g-300g. (If it looks thick and tall, estimate closer to 300g).
 - **Scrambled Eggs**: 2-3 eggs scrambled is 100g-150g.
+- **Omena Stew**: A standard bowl or large plate serving is usually between 120g and 150g total weight (including broth). Do NOT estimate 250g unless it is overflowing.
 
 Look closely at the food relative to the edge of the plate to calculate the area it covers, then apply the weight rule above.
 
@@ -87,7 +88,7 @@ const MACRO_DB = {
   "samaki wa kupaka": { p: 10.5, cal: 102 },
   "samaki mkaango": { p: 12.7, cal: 150 },
   "omena dry": { p: 53.0, cal: 350 },
-  "omena stew": { p: 35.0, cal: 240 },  // CHANGED: Bumped protein from 22 to 35
+  "omena stew": { p: 28.0, cal: 200 },  // CHANGED: 28g protein, 200 kcal per 100g
   "mutura": { p: 12.0, cal: 190 },
   "beef stew": { p: 11.2, cal: 136 },
   "mbuzi wet fry": { p: 18.0, cal: 184 },
