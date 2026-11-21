@@ -26,14 +26,17 @@ async function sendChatMessage() {
   sendBtn.disabled = true;
 
   // 3. GATHER USER DATA
+  // 3. GATHER USER DATA (The Upgrade)
   const db = getDB();
   const todayKey = ymd();
   const day = getDay(state.dayKey);
   const session = getSession(db, day.key, todayKey);
 
+  // Get today's meals
   const meals = (db.logs[todayKey] && db.logs[todayKey].meals) || [];
-  const workoutLog = [];
 
+  // Get today's workout stats
+  const workoutLog = [];
   day.exercises.forEach(ex => {
     const s = getExState(session, ex, db);
     if (s.sets.some(Boolean)) {
@@ -46,18 +49,31 @@ async function sendChatMessage() {
     }
   });
 
-  const recentPRs = Object.keys(db.history).slice(0, 5).map(exId => ({
-    exercise: exId,
-    weight: db.history[exId].weight
+  // Get recent workout history (Last 3 logged sessions)
+  const recentWorkouts = [];
+  Object.keys(db.workouts).sort().reverse().slice(0, 3).forEach(k => {
+    const sess = db.workouts[k];
+    if (sess.ex && Object.keys(sess.ex).length > 0) {
+      recentWorkouts.push({ date: k.split("::")[1], data: sess.ex });
+    }
+  });
+
+  // Get the full weekly program from data.js
+  const fullProgram = TRAINING.map(d => ({
+    day: d.name,
+    focus: d.focus,
+    exercises: d.exercises.map(e => e.name)
   }));
 
   const context = {
     date: todayKey,
-    dayName: day.name,
+    currentDayName: day.name,
+    fullWeeklyProgram: fullProgram,
     mealsToday: meals.map(m => ({ name: m.name, protein: m.p, calories: m.cal })),
     dailyProteinTarget: db.settings.proteinTarget,
     currentSession: workoutLog,
-    recentPRs: recentPRs
+    recentWorkouts: recentWorkouts,
+    recentPRs: Object.keys(db.history).map(exId => ({ exercise: exId, weight: db.history[exId].weight }))
   };
 
   // 4. Send to API
