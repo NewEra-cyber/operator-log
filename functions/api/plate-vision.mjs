@@ -31,19 +31,24 @@ Assume the plate in the image is a standard 10-inch dinner plate.
 - **Ugali**: A standard block covering 1/4 of the plate is ~250g-300g. (If it looks thick and tall, estimate closer to 300g).
 - **Scrambled Eggs**: 2-3 eggs scrambled is 100g-150g.
 - **Omena Stew**: A standard bowl or large plate serving is usually between 120g and 150g total weight (including broth). Do NOT estimate 250g unless it is overflowing.
+- **Banana**: 1 medium banana is ~120g (105 kcal).
+
 
 Look closely at the food relative to the edge of the plate to calculate the area it covers, then apply the weight rule above.
 
-*** VISUAL DISAMBIGUATION RULES ***
-- **Ugali**: A SOLID, CUT BLOCK of white maize meal. It can be rectangular, sliced, or triangular. It is dense and holds its shape. If you see a thick block of white food, it is Ugali, NOT Bread.
-- **Bread**: Soft, porous, with a visible crust. Do NOT call Ugali "Bread".
+*** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
+- **Bananas**: If you see a peeled banana and unpeeled bananas next to it, count ALL of them. One medium banana is ~120 kcal and ~30g of carbs. If you see a peeled banana, assume it is 1 whole banana. 
+- **Ugali**: A SOLID, CUT BLOCK of white maize meal. It holds a dense, cake-like shape.
 - **White Rice**: A LOOSE PILE of separate, short oval grains. 
 - **Pasta/Spaghetti**: Long thin cylindrical yellow/tan strands. DO NOT CALL THIS WHITE RICE.
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
 - **Maharagwe (Beans)**: LARGER, kidney-shaped beans (often brown/red).
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
-- **Omena**: Small silver dried fish. Even if it is cooked in a tomato/onion sauce (stew), you MUST identify the fish portion. If the bowl is full of fish, assume it is a dense portion (e.g., 100g) and DO NOT underestimate the weight just because there is broth.
+- **Omena**: Small silver dried fish.
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
+
+*** COUNTING RULE (CRITICAL) ***
+Count every distinct item on the plate. If there are 2 unpeeled bananas and 1 peeled banana, you MUST output 3 bananas. Do not group them into 1.
 
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories.
