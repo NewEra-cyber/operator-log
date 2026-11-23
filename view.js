@@ -640,25 +640,19 @@ export function scanResultHTML(state) {
     return `
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        <!-- TOP SECTION: IMAGE + FLOATING CARD (Side by Side) -->
-        <div style="padding: 20px; display: flex; gap: 16px; align-items: flex-start;">
-          
-          <!-- SHARP IMAGE (Fixed size, no huge gaps) -->
+        <!-- TOP SECTION: IMAGE + FLOATING CARD -->
+        <div style="padding: 20px; display: flex; gap: 16px; align-items: flex-start; flex: 0 0 auto;">
           <div style="width: 45%; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
             ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block;" />` : ''}
           </div>
 
-          <!-- FLOATING MACRO CARD -->
           <div class="ar-overlay-card" style="flex: 1; position: relative; background: rgba(15, 15, 15, 0.95); padding: 16px;">
-            
             <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">
               DETECTED ITEMS
             </div>
-            
-            <div style="margin-bottom: 12px;">
+            <div style="margin-bottom: 12px; max-height: 120px; overflow-y: auto;">
               ${cardItemsHTML}
             </div>
-
             <div style="border-top: 1px solid #444; padding-top: 12px;">
               <div class="mono" style="font-size: 28px; font-weight: 700; color: #fff; line-height: 1;">
                 ${num(d.cal, 0)}<span style="font-size: 12px; color: #888; margin-left: 4px;">kcal</span>
@@ -668,12 +662,11 @@ export function scanResultHTML(state) {
                 <span>${num(d.p, 0)} g</span>
               </div>
             </div>
-
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: REVIEW ITEMS -->
-        <div style="flex: 1; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; overflow-y: auto;">
+        <!-- BOTTOM SECTION: REVIEW ITEMS (No massive stretch) -->
+        <div style="flex: 0 1 auto; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; overflow-y: auto; max-height: 60vh;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${editItemsHTML}

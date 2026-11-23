@@ -48,7 +48,7 @@ Look closely at the food relative to the edge of the plate to calculate the area
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
 
 *** COUNTING RULE (CRITICAL) ***
-Count every distinct item on the plate. If there are 2 unpeeled bananas and 1 peeled banana, you MUST output 3 bananas. Do not group them into 1.
+Count every distinct item on the plate. If you see 2 unpeeled bananas and 1 peeled banana, output 3 bananas. Do NOT count the same banana twice if it is partially peeled. Do NOT count peels as separate items.
 
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories.
