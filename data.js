@@ -9,7 +9,7 @@ export const TRAINING = [
       { id: "incfly", name: "Incline DB Flyes (30°)", equipment: "dumbbell", weight: 6, sets: 3, min: 12, max: 15, inc: 1, rest: 90, cues: "Palms facing each other, soft elbow bend. Open wide for a deep stretch, then sweep inner elbows together without clanking." },
       { id: "supersetA", name: "Superset: Tri Ext & Lat Raise", equipment: "dumbbell", weight: 15, sets: 3, min: 10, max: 15, inc: 1, rest: 90, cues: "6A Overhead Rope Tri Ext: Flare rope at lockout. 6B DB Lat Raise: Lead with elbows, pinkies slightly higher than thumbs." },
       { id: "curl", name: "DB Bicep Curls", equipment: "dumbbell", weight: 8, sets: 4, min: 10, max: 12, inc: 1, rest: 90, cues: "Elbows pinned to ribs. Curl up, squeeze, lower for a strict 2-second count to full extension." },
-      { id: "declinecr", name: "Weighted Decline Sit-Ups", equipment: "bodyweight", weight: 20, sets: 3, min: 10, max: 15, inc: 2.5, rest: 60, cues: "Hold 20kg weight at collarbone. Curl ribcage toward pelvis, stop 2/3 up, uncurl down over 2-3 sec without resting shoulders." }
+      { id: "bicycle", name: "Bicycle Crunches (Controlled)", equipment: "bodyweight", weight: 0, sets: 3, min: 12, max: 15, inc: 0, rest: 60, cues: "Slow and controlled. Touch opposite elbow to knee. Fully extend the other leg. Focus on the twist (obliques)." }
     ]
   },
   {
@@ -20,8 +20,8 @@ export const TRAINING = [
       { id: "legcurlA", name: "Lying Leg Curl", equipment: "machine", weight: 30, sets: 3, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Knees aligned with pivot, hips pressed down. Curl smoothly to glutes, hold 1 sec, lower over 2 sec." },
       { id: "lunge", name: "Walking DB Lunges", equipment: "dumbbell", weight: 8, sets: 3, min: 10, max: 12, inc: 2, rest: 90, cues: "Per leg. Torso upright, long stride, back knee hovers 1-2 inches off floor. Push through front heel." },
       { id: "calfA", name: "Standing Calf Raise", equipment: "machine", weight: 40, sets: 4, min: 12, max: 15, inc: 5, rest: 60, cues: "Balls of feet on edge. Lower heels deep, dead pause 2 sec, drive high onto toes, squeeze 1 sec." },
-      { id: "hlr", name: "Hanging Knee Raise", equipment: "bodyweight", weight: 0, sets: 3, min: 10, max: 15, inc: 0, rest: 60, cues: "Shoulders engaged. Curl pelvis up to bring knees to chest, lower legs slowly over 2-3 sec." },
-      { id: "plank", name: "Core Stability Block", equipment: "bodyweight", weight: 0, sets: 3, min: 30, max: 60, inc: 0, rest: 45, cues: "Front plank 45-60s (squeeze glutes, pull elbows to toes) + 20-30s side planks with hips high." }
+      { id: "hlr", name: "Hanging Leg Raise (Pelvic Curl)", equipment: "bodyweight", weight: 0, sets: 3, min: 10, max: 15, inc: 2, rest: 60, cues: "Curl your pelvis up toward your ribcage at the top. Do not just swing your legs up. Lower slowly over 3 seconds." },
+      { id: "cablecrunch", name: "Weighted Kneeling Cable Crunch", equipment: "machine", weight: 20, sets: 3, min: 10, max: 15, inc: 2.5, rest: 60, cues: "Kneel below the cable. Pin elbows to sides. Curl your ribcage down toward your pelvis. Squeeze hard at the bottom, then uncurl slowly." }
     ]
   },
   {
@@ -54,8 +54,8 @@ export const TRAINING = [
       { id: "legext", name: "Leg Extensions", equipment: "machine", weight: 45, sets: 3, min: 12, max: 15, inc: 2.5, rest: 90, cues: "Knees align with pivot. Full extension, 1-sec hard quad squeeze, lower over 3 sec." },
       { id: "legcurlB", name: "Seated Leg Curls", equipment: "machine", weight: 20, sets: 4, min: 10, max: 12, inc: 2.5, rest: 90, cues: "Lock thigh pad tight. Curl heels back underneath, squeeze 1 sec, return under control." },
       { id: "calfB", name: "Seated Calf Raises", equipment: "machine", weight: 50, sets: 4, min: 12, max: 15, inc: 5, rest: 60, cues: "Knee pad secured. Drop heels into deep stretch, 2-sec pause, push high onto toes, hold 1 sec." },
-      { id: "hlrB", name: "Hanging Knee Raise", equipment: "bodyweight", weight: 2, sets: 3, min: 10, max: 15, inc: 2, rest: 60, cues: "Hold 2-4kg DB between feet OR use strict 3-sec lowering phase. Curl pelvis to ribs." },
-      { id: "declinecrB", name: "Weighted Decline Sit-Ups", equipment: "bodyweight", weight: 20, sets: 3, min: 12, max: 15, inc: 2.5, rest: 60, cues: "Hold 20kg at collarbone. Curl 2/3 up with rounded spine, lower slowly 2-3 sec without resting." }
+      { id: "abwheel", name: "Ab Wheel Rollout", equipment: "bodyweight", weight: 0, sets: 3, min: 8, max: 12, inc: 1, rest: 90, cues: "Keep lower back flat. Roll out as far as you can without sagging. Pull back using your abs, not your hip flexors." },
+      { id: "revcrunch", name: "Reverse Crunches (Pelvic Tilt)", equipment: "bodyweight", weight: 0, sets: 3, min: 12, max: 15, inc: 0, rest: 60, cues: "Lie flat. Bring knees to chest by curling your pelvis off the floor. Do not use momentum. Lower slowly." }
     ]
   },
   {
@@ -71,7 +71,8 @@ export const TRAINING = [
     exercises: [
       { id: "walkC", name: "Recovery Walk", equipment: "bodyweight", weight: 0, sets: 1, min: 30, max: 45, inc: 0, rest: 0, cues: "Brisk 30-45 min walk." },
       { id: "stretchC", name: "Light Static Stretching", equipment: "bodyweight", weight: 0, sets: 1, min: 10, max: 15, inc: 0, rest: 0, cues: "Chest doorway stretch, hip flexors, hamstrings, lats. 10-15 mins total." },
-      { id: "sleepC", name: "Sleep & Fuel", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "7.5-9 hours sleep. Start Monday fully fueled." }
+      { id: "sleepC", name: "Sleep & Fuel", equipment: "bodyweight", weight: 0, sets: 1, min: 1, max: 1, inc: 0, rest: 0, cues: "7.5-9 hours sleep. Start Monday fully fueled." },
+      { id: "revcrunch", name: "Reverse Crunches (Pelvic Tilt)", equipment: "bodyweight", weight: 0, sets: 3, min: 12, max: 15, inc: 0, rest: 60, cues: "Lie flat. Bring knees to chest by curling your pelvis off the floor. Do not use momentum. Lower slowly." }
     ]
   }
 ];

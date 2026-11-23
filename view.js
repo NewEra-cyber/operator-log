@@ -14,6 +14,7 @@ function getMuscleGroup(exId) {
   if (["curl", "curlB", "hammer", "supersetA"].includes(exId)) return "Arms";
   if (["calfA", "calfB"].includes(exId)) return "Calves";
   if (["cablecr", "hlr", "plank"].includes(exId)) return "Core";
+  if (["cablecr", "hlr", "plank", "cablecrunch", "abwheel", "bicycle", "revcrunch"].includes(exId)) return "Core";
   return "Other";
 }
 
@@ -918,12 +919,31 @@ export function viewBlueprint(db, state) {
     </button>`
   ).join("");
 
+  const weeklySplit = TRAINING.map(d => `
+    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #333;">
+      <div class="mono small color-white" style="font-weight: bold; width: 80px;">${d.tag}</div>
+      <div class="mono small" style="flex: 1; color: var(--muted);">${d.name}</div>
+      <div class="mono small color-white">${d.focus}</div>
+    </div>
+  `).join("");
+
   return `
     <section class="pad">
       <div class="card">
         <div class="kicker">OPERATOR VISUAL INTEL</div>
         <h2 class="day-title mt-4">TACTICAL DECK</h2>
         <div class="dim small mt-5">Analyze your weekly volume distribution and nutritional consistency.</div>
+      </div>
+
+      <!-- NEW: WEEKLY WORKOUT SUMMARY -->
+      <div class="card">
+        <div class="kicker mb-4">WEEKLY PROTOCOL OVERVIEW</div>
+        <div style="margin-bottom: 16px;">
+          ${weeklySplit}
+        </div>
+        <div class="mono small color-white" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border-left: 3px solid #fff;">
+          <b>CORE SCIENCE:</b> Abs are trained 3x/week with progressive overload (Cable Crunches, Ab Wheel, Bicycles). Recovery and sleep are prioritized on weekends.
+        </div>
       </div>
 
       <div class="card">
