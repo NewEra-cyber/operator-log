@@ -597,7 +597,9 @@ function recalcScan() {
 async function handleFoodFile(file) {
   if (!file) return;
   state.scan = { status: "loading" };
+  document.body.classList.add("scanning-active"); // <--- ADD THIS
   render();
+  // ...
   try {
     const dataUrl = await compressImage(file, 1200, 0.9);
     const base64 = dataUrl.split(",")[1];
@@ -1439,12 +1441,18 @@ document.addEventListener("click", function (ev) {
 
     return;
   }
-  if (act === "scan-clear") { state.scan = { status: "idle" }; render(); return; }
+  if (act === "scan-clear") {
+    state.scan = { status: "idle" };
+    document.body.classList.remove("scanning-active"); // <--- ADD THIS
+    render();
+    return;
+  }
   if (act === "scan-confirm") {
     const d = state.scan.data || {};
     const img = state.scan.img || null;
     addMealToDB(d.name || "Scanned Meal", d.p, d.cal, d.breakdown || "", img);
     state.scan = { status: "idle" };
+    document.body.classList.remove("scanning-active"); // <--- ADD THIS
     render();
     toast("MEAL LOGGED · +" + num(d.p, 0) + "G PROTEIN", "green");
     return;

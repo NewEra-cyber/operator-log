@@ -2988,3 +2988,14 @@ img[src*="data:image"] {
     border-color: var(--green);
     box-shadow: 0 0 10px rgba(63, 178, 127, 0.2);
 }
+/* Scan Overlay Fix */
+body.scanning-active #view {
+    overflow: hidden;
+}
+body.scanning-active .card {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}

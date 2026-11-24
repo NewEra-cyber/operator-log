@@ -609,7 +609,7 @@ export function scanResultHTML(state) {
       <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
   }
 
-  if (s.status === "verify" || s.status === "ok") {
+    if (s.status === "verify" || s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
     const items = d.items || [];
@@ -638,8 +638,9 @@ export function scanResultHTML(state) {
       </div>
     `).join("");
 
+    // WE CHANGED POSITION TO ABSOLUTE AND ADDED HEIGHT: 100VH
     return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow-y: auto;">
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 100vh; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow-y: auto;">
         
         <!-- TOP SECTION: IMAGE + FLOATING CARD -->
         <div style="padding: 20px; display: flex; gap: 16px; align-items: flex-start; flex-shrink: 0;">
@@ -666,7 +667,7 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: REVIEW ITEMS (Only as tall as content) -->
+        <!-- BOTTOM SECTION: REVIEW ITEMS -->
         <div style="flex: 0 1 auto; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
