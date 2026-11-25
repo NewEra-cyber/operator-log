@@ -2983,19 +2983,36 @@ img[src*="data:image"] {
     color: #fff;
     border-color: #fff;
 }
+
 .load-in.target-up {
     color: var(--green);
     border-color: var(--green);
     box-shadow: 0 0 10px rgba(63, 178, 127, 0.2);
 }
+
 /* Scan Overlay Fix */
 body.scanning-active #view {
     overflow: hidden;
 }
+
 body.scanning-active .card {
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
+}
+
+#nextSetInfo {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 12px 24px;
+    display: inline-block;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+#nextSetInfo span {
+    display: block;
+    text-align: center;
 }

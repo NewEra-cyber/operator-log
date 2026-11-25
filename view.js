@@ -224,7 +224,7 @@ function exCardHTML(db, session, ex) {
 
     return `<div class="set-item ${on ? "done" : ""}">
       <div class="flex-row">
-        <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}">${on ? "✓" : (i + 1)}</button>
+                <button class="set-btn" data-act="toggle-set" data-ex="${ex.id}" data-i="${i}" data-weight="${s.weight}" data-reps="${s.reps[i]}">${on ? "✓" : (i + 1)}</button>
         <input class="reps-in mono" type="number" inputmode="numeric" min="0" max="99" value="${s.reps[i]}" data-act="ex-reps" data-ex="${ex.id}" data-i="${i}" data-last="${lastReps || 0}" data-last-weight="${lastWeight || 0}" />
         
         <!-- NEW: Repeat Set Button -->

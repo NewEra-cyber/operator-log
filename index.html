@@ -50,6 +50,9 @@
     </div>
 
     <div class="timer-controls">
+      <!-- NEXT SET PREDICTOR -->
+      <div id="nextSetInfo" class="text-center mb-8" style="min-height: 24px;"></div>
+
       <div class="timer-presets">
         <button class="rest-preset-btn" data-act="rest-preset" data-s="60">60s</button>
         <button class="rest-preset-btn" data-act="rest-preset" data-s="90">90s</button>
@@ -241,7 +244,6 @@
   </div>
 
   <!-- LIVE CAMERA MODAL -->
-  <!-- === CHANGED === added ghost img + opacity slider -->
   <div class="lightbox" id="liveCameraModal" style="background: #000;">
     <div class="lb-bar">
       <span class="mono">LIVE CAMERA</span>
@@ -263,7 +265,6 @@
       </div>
     </div>
   </div>
-  <!-- === END CHANGED === -->
   <!-- hidden file inputs -->
   <input type="file" id="foodInput" accept="image/*" hidden />
   <input type="file" id="photoInput" accept="image/*"
@@ -294,7 +295,6 @@
           NEW</button>
       </div>
 
-      <!-- List of past chats goes here -->
       <div id="chatList" style="flex: 1; overflow-y: auto; padding: 10px;">
         <!-- Injected via JS -->
       </div>
@@ -312,13 +312,11 @@
       </div>
 
       <div class="lb-stage lb-stage-top" style="padding: 20px; display: flex; flex-direction: column;">
-        <!-- Chat History Container -->
         <div id="chatHistory"
           style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;">
           <!-- Messages injected via JS -->
         </div>
 
-        <!-- Input Area -->
         <div
           style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 8px; display: flex; gap: 8px;">
           <input id="chatInput" type="text" placeholder="Ask about your meals, lifts, or PRs..."

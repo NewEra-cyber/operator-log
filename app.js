@@ -550,6 +550,25 @@ function toggleSet(exId, i) {
         }
 
         render();
+        if (!wasOn && ex.rest > 0) {
+          // Find the next set index (i + 1)
+          const nextSetIndex = i + 1;
+          let nextWeight = s.weight;
+          let nextReps = ex.max; // Default to max reps
+
+          // If there is a next set, grab its specific reps
+          if (nextSetIndex < s.reps.length) {
+            nextReps = s.reps[nextSetIndex];
+          }
+
+          // Update the timer UI
+          const nextSetLabel = document.getElementById("nextSetInfo");
+          if (nextSetLabel) {
+            nextSetLabel.innerHTML = `<span class="mono color-muted" style="font-size: 12px;">NEXT SET:</span> <span class="mono color-white" style="font-size: 18px; font-weight: bold;">${nextWeight}KG × ${nextReps} REPS</span>`;
+          }
+
+          startRest(ex.rest);
+        }
         startRest(ex.rest);
         return;
       }
