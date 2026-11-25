@@ -3016,3 +3016,10 @@ body.scanning-active .card {
     display: block;
     text-align: center;
 }
+/* Fix for the scan overlay */
+body.scanning-active #view {
+    overflow: hidden;
+}
+body.scanning-active .pad {
+    display: none; /* Hides the underlying page */
+}

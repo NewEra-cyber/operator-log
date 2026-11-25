@@ -50,6 +50,12 @@ Look closely at the food relative to the edge of the plate to calculate the area
 *** COUNTING RULE (CRITICAL) ***
 Count every distinct item on the plate. If you see 2 unpeeled bananas and 1 peeled banana, output 3 bananas. Do NOT count the same banana twice if it is partially peeled. Do NOT count peels as separate items.
 
+*** PACKAGED PRODUCTS & PACKET COUNTING (CRITICAL) ***
+- If you see a single packet, the quantity is 1 packet.
+- If you see two packets side-by-side, it is 2 packets.
+- Do NOT count the pictures of biscuits printed on the wrapper as separate items. If a wrapper shows 3 biscuits, that is 1 packet.
+- A standard small biscuit packet (like Lemon Cream) is ~30g and ~150 kcal.
+
 *** OUTPUT FORMAT ***
 Return ONLY a JSON object. Do NOT calculate protein or calories.
 {
