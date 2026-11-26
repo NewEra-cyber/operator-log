@@ -3046,3 +3046,41 @@ body.scanning-active .pad {
     height: auto !important;
     min-height: 0 !important;
 }
+
+/* ============================================================
+   FORCE MOBILE APP LAYOUT ON ALL DEVICES
+   ============================================================ */
+
+@media (min-width: 480px) {
+    body {
+        /* Dark grey background outside the app */
+        background: #111 !important;
+        /* Center the app */
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Create the "phone" container */
+    header.app-head,
+    main#view,
+    nav#tabs,
+    #fullscreenTimer,
+    .lightbox,
+    .toast {
+        max-width: 480px !important;
+        width: 100%;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Fix the bottom nav so it stays inside the phone container */
+    nav#tabs {
+        left: 50% !important;
+    }
+
+    /* Fix the floating chat button so it doesn't float off-screen */
+    button[data-act="open-chat"] {
+        right: calc(50% - 220px) !important;
+    }
+}

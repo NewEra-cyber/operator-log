@@ -615,10 +615,8 @@ export function scanResultHTML(state) {
   if (s.status === "verify" || s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
-    // CRITICAL FIX: Ensure items is an array. If the AI returned a single object or null, this prevents a crash.
     const items = Array.isArray(d.items) ? d.items : [];
 
-    // If there are no items for some reason, show an error instead of a black screen
     if (items.length === 0) {
       return `<div class="scan-result bad"><h4>⚠ NO ITEMS DETECTED</h4>
          <div class="dim small">The AI couldn't read any food items. Try scanning again.</div>
@@ -637,9 +635,9 @@ export function scanResultHTML(state) {
     const editItemsHTML = items.map((item, i) => `
       <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
         <div style="flex: 1;">
-                    <div>${(Array.isArray(d.catalog) && d.catalog.length > 0)
+          <div>${(Array.isArray(d.catalog) && d.catalog.length > 0)
         ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name || "Unknown Item")}</span>`}</div>
+        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name || "Unknown")}</span>`}</div>
           <div class="flex-row" style="margin-top: 6px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
@@ -650,29 +648,26 @@ export function scanResultHTML(state) {
     `).join("");
 
     return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow-y: auto;">
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        <!-- TOP SECTION: IMAGE + FLOATING CARD (Forces side-by-side) -->
-        <div style="padding: 16px; display: flex; flex-direction: row; gap: 12px; align-items: flex-start; flex-shrink: 0;">
-          
-          <!-- IMAGE (Capped height on mobile) -->
+        <!-- TOP SECTION: IMAGE + FLOATING CARD (Packs tightly to top) -->
+        <div style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; flex-shrink: 0;">
           <div style="width: 45%; border-radius: 12px; overflow: hidden; border: 1px solid #333; flex-shrink: 0;">
-            ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block; object-fit: cover; max-height: 200px;" />` : ''}
+            ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;" />` : ''}
           </div>
 
-          <!-- MACRO CARD -->
           <div class="ar-overlay-card" style="flex: 1; background: rgba(15, 15, 15, 0.95); padding: 16px;">
-            <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">
+            <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">
               DETECTED ITEMS
             </div>
-            <div style="margin-bottom: 10px; max-height: 100px; overflow-y: auto;">
+            <div style="margin-bottom: 12px; max-height: 80px; overflow-y: auto;">
               ${cardItemsHTML}
             </div>
-            <div style="border-top: 1px solid #444; padding-top: 10px;">
-              <div class="mono" style="font-size: 24px; font-weight: 700; color: #fff; line-height: 1;">
+            <div style="border-top: 1px solid #444; padding-top: 12px;">
+              <div class="mono" style="font-size: 28px; font-weight: 700; color: #fff; line-height: 1;">
                 ${num(d.cal, 0)}<span style="font-size: 12px; color: #888; margin-left: 4px;">kcal</span>
               </div>
-              <div class="flex-between mono" style="font-size: 12px; color: #fff; margin-top: 6px;">
+              <div class="flex-between mono" style="font-size: 12px; color: #fff; margin-top: 8px;">
                 <span>Total Protein</span>
                 <span>${num(d.p, 0)} g</span>
               </div>
@@ -680,7 +675,7 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: REVIEW ITEMS (Packs tightly to the top of this section) -->
+        <!-- BOTTOM SECTION: REVIEW ITEMS (Flows naturally below image) -->
         <div style="flex-shrink: 0; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; margin-top: 10px;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
