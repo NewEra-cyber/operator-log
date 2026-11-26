@@ -616,32 +616,51 @@ function recalcScan() {
 async function handleFoodFile(file) {
   if (!file) return;
   state.scan = { status: "loading" };
-  document.body.classList.add("scanning-active"); // <--- ADD THIS
   render();
-  // ...
+
   try {
+    console.log("[SCAN] Starting image compression...");
     const dataUrl = await compressImage(file, 1200, 0.9);
     const base64 = dataUrl.split(",")[1];
-    // Create a high-res image for the UI background
     const thumbnail = await compressImage(file, 800, 0.8);
-    const res = await fetch("/api/plate-vision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: base64 }) });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
 
-    if (data && data.error && data.is_food !== true) {
-      state.scan = { status: "error", message: (data.breakdown || "Vision service unavailable.") };
+    console.log("[SCAN] Sending to backend...");
+    const res = await fetch("/api/plate-vision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: base64 })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Backend HTTP ${res.status}: ${errText}`);
+    }
+
+    const rawText = await res.text();
+    console.log("[SCAN] Raw backend response:", rawText);
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseError) {
+      throw new Error("Backend returned invalid JSON. Check Cloudflare logs.");
+    }
+
+    if (data && data.error) {
+      state.scan = { status: "error", message: data.error };
     } else if (!data || data.is_food !== true) {
       state.scan = { status: "reject", data: data || {} };
     } else {
-      // Every scan with itemised data goes through the editable review card,
-      // so a wrong gram estimate can be fixed before it is logged.
       const hasItems = Array.isArray(data.items) && data.items.length > 0;
       state.scan = { status: hasItems ? "verify" : "ok", data: data, img: thumbnail };
     }
+
   } catch (err) {
-    console.error("[plate-vision]", err);
-    state.scan = { status: "error", message: "Network or service error: " + (err.message || "unknown") };
+    console.error("[SCAN ERROR]", err);
+    state.scan = { status: "error", message: err.message };
   }
+
+  console.log("[SCAN] Rendering state:", state.scan);
   render();
 }
 
