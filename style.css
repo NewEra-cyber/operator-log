@@ -3023,3 +3023,15 @@ body.scanning-active #view {
 body.scanning-active .pad {
     display: none; /* Hides the underlying page */
 }
+/* Muscle Target Tag */
+.muscle-tag {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 700;
+    color: #000;
+    background: var(--primary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}

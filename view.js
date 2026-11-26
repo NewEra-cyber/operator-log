@@ -163,6 +163,8 @@ export function viewMission(db, state) {
 
 function exCardHTML(db, session, ex) {
   const s = getExState(session, ex, db);
+  const muscleGroup = getMuscleGroup(ex.id); // <--- ADD THIS LINE
+
   let lastSession = null;
 
   let historyPoints = [];
@@ -252,11 +254,12 @@ function exCardHTML(db, session, ex) {
   return `
     <article class="ex-card" id="card-${ex.id}">
       <div class="ex-top">
-        <div class="ex-id">
+                <div class="ex-id">
           <h3 class="ex-name" data-act="open-history" data-ex="${ex.id}">
             ${esc(ex.name)} ${swapBtn} ${sparklineHTML}
           </h3>
           <div class="ex-meta flex-row">
+            <span class="muscle-tag">${muscleGroup.toUpperCase()}</span> <!-- NEW TAG -->
             <span>${ex.sets} × ${ex.min}–${ex.max}${ex.recovery ? " REPS/MIN" : " REPS"}</span>
             ${warmupBtn}
           </div>
