@@ -12,8 +12,33 @@
     --green: #ffffff;
     --cyan: #ffffff;
     --orange: #dddddd;
-    --font-body: 'Inter', sans-serif;
-    --font-head: 'Outfit', sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-head: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* FORCE MOBILE LAYOUT EVERYWHERE */
+html,
+body {
+    max-width: 480px;
+    margin: 0 auto;
+    /* Centers the app on desktop */
+    background-color: #000;
+    overflow-x: hidden;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    /* Subtle border for desktop */
+    position: relative;
+    height: 100vh;
+}
+
+/* Ensure fixed elements stay inside the 480px container */
+header.app-head,
+nav#tabs,
+#fullscreenTimer,
+.lightbox,
+.toast {
+    max-width: 480px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 * {
@@ -3053,14 +3078,11 @@ body.scanning-active .pad {
 
 @media (min-width: 480px) {
     body {
-        /* Dark grey background outside the app */
         background: #111 !important;
-        /* Center the app */
         display: flex;
         justify-content: center;
     }
 
-    /* Create the "phone" container */
     header.app-head,
     main#view,
     nav#tabs,
@@ -3074,13 +3096,18 @@ body.scanning-active .pad {
         box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
     }
 
-    /* Fix the bottom nav so it stays inside the phone container */
     nav#tabs {
         left: 50% !important;
     }
 
-    /* Fix the floating chat button so it doesn't float off-screen */
     button[data-act="open-chat"] {
         right: calc(50% - 220px) !important;
+    }
+
+    /* NEW: Constrain the fixed scan result overlay */
+    #scanResultContainer>div {
+        max-width: 480px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
     }
 }

@@ -648,11 +648,11 @@ export function scanResultHTML(state) {
     `).join("");
 
     return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
+      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
         
-        <!-- TOP SECTION: IMAGE + FLOATING CARD (Packs tightly to top) -->
+        <!-- TOP SECTION -->
         <div style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; flex-shrink: 0;">
-          <div style="width: 45%; border-radius: 12px; overflow: hidden; border: 1px solid #333; flex-shrink: 0;">
+          <div style="width: 40%; border-radius: 12px; overflow: hidden; border: 1px solid #333; flex-shrink: 0;">
             ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;" />` : ''}
           </div>
 
@@ -660,14 +660,14 @@ export function scanResultHTML(state) {
             <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">
               DETECTED ITEMS
             </div>
-            <div style="margin-bottom: 12px; max-height: 80px; overflow-y: auto;">
+            <div style="margin-bottom: 12px; max-height: 100px; overflow-y: auto;">
               ${cardItemsHTML}
             </div>
             <div style="border-top: 1px solid #444; padding-top: 12px;">
-              <div class="mono" style="font-size: 28px; font-weight: 700; color: #fff; line-height: 1;">
+              <div class="mono" style="font-size: 24px; font-weight: 700; color: #fff; line-height: 1;">
                 ${num(d.cal, 0)}<span style="font-size: 12px; color: #888; margin-left: 4px;">kcal</span>
               </div>
-              <div class="flex-between mono" style="font-size: 12px; color: #fff; margin-top: 8px;">
+              <div class="flex-between mono" style="font-size: 12px; color: #fff; margin-top: 6px;">
                 <span>Total Protein</span>
                 <span>${num(d.p, 0)} g</span>
               </div>
@@ -675,8 +675,8 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: REVIEW ITEMS (Flows naturally below image) -->
-        <div style="flex-shrink: 0; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; margin-top: 10px;">
+        <!-- BOTTOM SECTION -->
+        <div style="flex-shrink: 0; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; margin-top: 10px; overflow-y: auto;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${editItemsHTML}
