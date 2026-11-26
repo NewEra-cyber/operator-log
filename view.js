@@ -650,15 +650,15 @@ export function scanResultHTML(state) {
     `).join("");
 
     return `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; display: flex; flex-direction: column;">
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000; overflow-y: auto; padding-bottom: 80px;">
         
-        <!-- TOP SECTION: IMAGE + FLOATING CARD -->
-        <div style="padding: 20px; display: flex; gap: 16px; align-items: flex-start; flex-shrink: 0;">
-          <div style="width: 45%; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
+        <!-- TOP SECTION: IMAGE + FLOATING CARD (Side by Side on all screens) -->
+        <div style="padding: 20px; display: flex; gap: 16px; align-items: flex-start;">
+          <div style="width: 45%; border-radius: 12px; overflow: hidden; border: 1px solid #333; flex-shrink: 0;">
             ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block;" />` : ''}
           </div>
 
-          <div class="ar-overlay-card" style="flex: 1; position: relative; background: rgba(15, 15, 15, 0.95); padding: 16px;">
+          <div class="ar-overlay-card" style="flex: 1; position: relative; background: rgba(15, 15, 15, 0.95); padding: 16px; margin: 0;">
             <div class="mono" style="font-size: 11px; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;">
               DETECTED ITEMS
             </div>
@@ -677,8 +677,8 @@ export function scanResultHTML(state) {
           </div>
         </div>
 
-        <!-- BOTTOM SECTION: REVIEW ITEMS (Fills remaining space) -->
-        <div style="flex: 1; background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; padding-bottom: 100px; overflow-y: auto;">
+        <!-- BOTTOM SECTION: REVIEW ITEMS (Flows naturally, no stretching) -->
+        <div style="background: #0a0a0a; border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid #333; padding: 24px; margin-top: 10px;">
           <div class="kicker mb-4">REVIEW ITEMS</div>
           <div style="margin-bottom: 16px;">
             ${editItemsHTML}
