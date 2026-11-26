@@ -3073,41 +3073,66 @@ body.scanning-active .pad {
 }
 
 /* ============================================================
-   FORCE MOBILE APP LAYOUT ON ALL DEVICES
+   MOBILE APP VIEW ON DESKTOP
    ============================================================ */
+body {
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* This centers the app horizontally */
+    min-height: 100vh;
+    margin: 0;
+}
 
-@media (min-width: 480px) {
-    body {
-        background: #111 !important;
-        display: flex;
-        justify-content: center;
-    }
+/* Force every major section to be exactly the width of a phone */
+header.app-head,
+main#view,
+nav#tabs,
+#fullscreenTimer,
+.lightbox,
+.toast {
+    width: 100% !important;
+    max-width: 480px !important;
+    /* Phone width */
+    margin: 0 auto !important;
+    position: relative;
+}
 
-    header.app-head,
-    main#view,
-    nav#tabs,
-    #fullscreenTimer,
-    .lightbox,
-    .toast {
-        max-width: 480px !important;
-        width: 100%;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-    }
+/* The bottom nav and timer need to be fixed to the viewport, but constrained to 480px */
+nav#tabs {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    z-index: 100;
+}
 
-    nav#tabs {
-        left: 50% !important;
-    }
+#fullscreenTimer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    z-index: 200;
+}
 
-    button[data-act="open-chat"] {
-        right: calc(50% - 220px) !important;
-    }
+.lightbox {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    z-index: 200;
+}
 
-    /* NEW: Constrain the fixed scan result overlay */
-    #scanResultContainer>div {
-        max-width: 480px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-    }
+/* Move the floating chat button inside the phone view */
+button[data-act="open-chat"] {
+    right: calc(50% - 210px) !important;
 }
