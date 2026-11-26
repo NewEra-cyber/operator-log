@@ -615,7 +615,15 @@ export function scanResultHTML(state) {
   if (s.status === "verify" || s.status === "ok") {
     const d = s.data || {};
     const img = s.img || "";
-    const items = d.items || [];
+    // CRITICAL FIX: Ensure items is an array. If the AI returned a single object or null, this prevents a crash.
+    const items = Array.isArray(d.items) ? d.items : [];
+
+    // If there are no items for some reason, show an error instead of a black screen
+    if (items.length === 0) {
+      return `<div class="scan-result bad"><h4>⚠ NO ITEMS DETECTED</h4>
+         <div class="dim small">The AI couldn't read any food items. Try scanning again.</div>
+         <button class="act-btn" data-act="scan-clear">DISMISS</button></div>`;
+    }
 
     // Build the list of foods for the floating card
     const cardItemsHTML = items.map((item, i) => `
@@ -629,9 +637,9 @@ export function scanResultHTML(state) {
     const editItemsHTML = items.map((item, i) => `
       <div class="flex-between" style="padding: 12px 0; border-bottom: 1px dashed #333;">
         <div style="flex: 1;">
-          <div>${(d.catalog && d.catalog.length)
+                    <div>${(Array.isArray(d.catalog) && d.catalog.length > 0)
         ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
-        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name)}</span>`}</div>
+        : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name || "Unknown Item")}</span>`}</div>
           <div class="flex-row" style="margin-top: 6px;">
             <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
