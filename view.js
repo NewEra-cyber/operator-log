@@ -639,7 +639,7 @@ export function scanResultHTML(state) {
         ? `<select class="mono" data-act="swap-scanned-item" data-idx="${i}" style="max-width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600;">${item.key ? "" : '<option value="" selected>⚠ Pick the food…</option>'}${d.catalog.map(c => `<option value="${esc(c.key)}"${c.key === item.key ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
         : `<span style="font-weight: 600; color: #fff; font-size: 14px;">${esc(item.name || "Unknown")}</span>`}</div>
           <div class="flex-row" style="margin-top: 6px;">
-            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
+            <input type="number" class="mono" data-act="edit-scanned-weight" data-idx="${i}" value="${item.weight_g}" style="width: 80px; background: #111; border: 1px solid ${item.weight_g > 120 ? 'var(--red)' : '#444'}; color: ${item.weight_g > 120 ? 'var(--red)' : '#fff'}; padding: 8px; border-radius: 8px; font-size: 16px; font-weight: bold;" /> <span class="mono small color-muted">grams</span>
           </div>
           <div class="mono small color-muted" style="margin-top: 6px;" data-item-macros="${i}">${num(item.p, 0)}g P · ${num(item.cal, 0)} kcal</div>
         </div>

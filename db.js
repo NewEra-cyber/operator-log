@@ -312,13 +312,16 @@ export function blankDB() {
   return {
     version: 3,
     created: Date.now(),
-    settings: { proteinTarget: 105, operator: "OPERATOR", syncId: "", includePhotos: true },
+    settings: {
+      proteinTarget: 105,
+      operator: "OPERATOR",
+      syncId: "OPLOG", // <--- CHANGED: Default code is now OPLOG
+      includePhotos: true
+    },
     logs: {},
     workouts: {},
     history: {},
     photos: {},
-    photoAt: {},
-    tomb: {},
     favorites: [],
     weightLog: [],
     chats: []

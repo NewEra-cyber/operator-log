@@ -1666,9 +1666,51 @@ document.addEventListener("click", function (ev) {
   if (act === "import") { const inp = document.getElementById("importInput"); inp.value = ""; inp.click(); return; }
 
   if (act === "reset") {
-    if (!window.confirm("PURGE ALL LOCAL DATA? This cannot be undone. Export a backup first.")) return;
-    clearDB().then(() => window.location.reload());
-    return;
+    const db = getDB();
+    const syncId = db.settings.syncId;
+
+    if (!syncId) {
+      if (!window.confirm("⚠️ WARNING: You have no Cloud Sync Code set. If you purge, you will lose EVERYTHING.\n\nDo you want to export a manual backup file first?")) return;
+      exportJSON().then(() => {
+        setTimeout(() => {
+          if (window.confirm("Backup downloaded. Are you absolutely sure you want to WIPE ALL DATA?")) {
+            clearDB().then(() => window.location.reload());
+          }
+        }, 1000);
+      });
+      return;
+    }
+
+    if (!window.confirm("WARNING: This will wipe all data from your phone.\n\nHowever, we will push the latest data to the Cloud first so you can pull it back.\n\nProceed?")) return;
+
+    toast("PUSHING TO CLOUD BEFORE PURGE...", "cyan");
+
+    // Force a final Cloud Push
+    const payloadData = JSON.parse(JSON.stringify(db));
+    if (!payloadData.settings.includePhotos) payloadData.photos = {};
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: syncId, data: payloadData })
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          toast("CLOUD BACKUP SECURED. WIPING PHONE...", "green");
+          setTimeout(() => {
+            clearDB().then(() => window.location.reload());
+          }, 1500);
+        } else {
+          throw new Error("Failed");
+        }
+      })
+      .catch(() => {
+        toast("CLOUD PUSH FAILED. PURGE CANCELLED FOR SAFETY.", "red");
+        if (window.confirm("Cloud push failed (are you offline?). Do you still want to wipe the phone anyway? THIS IS DANGEROUS.")) {
+          clearDB().then(() => window.location.reload());
+        }
+      });
   }
 
   if (act === "toggle-photo-sync") {
@@ -1976,6 +2018,29 @@ function tickClock() {
   const el = document.getElementById("sysClock");
   if (el) el.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
 }
+// === AUTO-BACKUP ENGINE ===
+function checkAutoBackup() {
+  const db = getDB();
+
+  // If there is no data to backup, skip
+  if (Object.keys(db.logs).length === 0 && Object.keys(db.workouts).length === 0) return;
+
+  const lastBackup = db.settings.lastBackup || 0;
+  const hoursSinceBackup = (Date.now() - lastBackup) / (1000 * 60 * 60);
+
+  // Trigger a backup if it's been more than 24 hours
+  if (hoursSinceBackup >= 24) {
+    console.log("[AUTO-BACKUP] 24 hours passed. Triggering backup...");
+    toast("SYSTEM: DAILY AUTO-BACKUP", "cyan");
+
+    // Record that we backed up
+    db.settings.lastBackup = Date.now();
+    saveDB(db);
+
+    // Trigger the export
+    exportJSON();
+  }
+}
 
 async function boot() {
   await initDB();
@@ -1983,28 +2048,71 @@ async function boot() {
 
   migrateOldPhotos(db);
 
-  if (db.settings.syncId) {
-    try {
-      const res = await fetch("/api/sync?id=" + encodeURIComponent(db.settings.syncId));
-      const remoteData = await res.json();
-
-      if (Object.keys(remoteData).length > 0) {
-        const mergedDB = mergeDBs(db, remoteData);
-        saveDB(mergedDB);
-      }
-    } catch (err) {
-      console.warn("[Auto-Pull] Offline or failed, using local data.");
-    }
-  }
+  // 1. RENDER LOCAL DATA IMMEDIATELY (Fixes the blank screen)
   const urlParams = new URLSearchParams(window.location.search);
   const urlTab = urlParams.get('tab');
   if (urlTab && ["mission", "refuel", "vault", "blueprint", "system"].includes(urlTab)) state.tab = urlTab;
   state.nutDate = ymd();
   state.dayKey = todayDayKey();
-  render();
+
+  render(); // <--- SHOW THE SCREEN RIGHT NOW
   tickClock();
   setInterval(tickClock, 20000);
 
+  // 2. SILENT CLOUD AUTO-SYNC (Push)
+  if (db.settings.syncId) {
+    const lastSync = db.settings.lastCloudSync || 0;
+    const hoursSinceSync = (Date.now() - lastSync) / (1000 * 60 * 60);
+
+    if (hoursSinceSync >= 12) {
+      console.log("[Auto-Cloud] 12 hours passed. Pushing entire DB to Cloudflare...");
+      setTimeout(() => {
+        const payloadData = JSON.parse(JSON.stringify(db));
+        if (!payloadData.settings.includePhotos) payloadData.photos = {};
+
+        fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: db.settings.syncId, data: payloadData })
+        })
+          .then(r => r.json())
+          .then(res => {
+            if (res.success) {
+              db.settings.lastCloudSync = Date.now();
+              saveDB(db);
+              console.log("[Auto-Cloud] Successfully pushed to cloud.");
+            }
+          })
+          .catch(err => console.error("[Auto-Cloud] Failed:", err));
+      }, 3000);
+    }
+  }
+
+  // 3. SILENT CLOUD AUTO-PULL (Pull in the background)
+  if (db.settings.syncId) {
+    fetch("/api/sync?id=" + encodeURIComponent(db.settings.syncId))
+      .then(res => res.json())
+      .then(remoteData => {
+        if (Object.keys(remoteData).length > 0) {
+          const mergedDB = mergeDBs(db, remoteData);
+
+          // Check if the merged data is actually different from what we have locally
+          if (JSON.stringify(mergedDB) !== JSON.stringify(db)) {
+            saveDB(mergedDB);
+            render(); // Update the screen if cloud data brought new stuff
+            console.log("[Auto-Pull] Background sync complete. UI updated.");
+          }
+        }
+      })
+      .catch(err => {
+        console.warn("[Auto-Pull] Offline or failed, using local data.");
+      });
+  }
+
+  // 4. AUTO-BACKUP CHECK
+  setTimeout(checkAutoBackup, 5000);
+
+  // 5. SERVICE WORKER
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").then(function (reg) {
       reg.update();
@@ -2024,26 +2132,30 @@ async function boot() {
     if (document.getElementById("lightbox").classList.contains("open")) e.preventDefault();
   }, { passive: false });
 
-  document.getElementById("chatImageInput").addEventListener("change", async function (e) {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
+  // 6. CHAT IMAGE LISTENER
+  const chatImgInput = document.getElementById("chatImageInput");
+  if (chatImgInput) {
+    chatImgInput.addEventListener("change", async function (e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
 
-    const previewContainer = document.getElementById("chatImagePreview");
-    previewContainer.style.display = "flex";
+      const previewContainer = document.getElementById("chatImagePreview");
+      previewContainer.style.display = "flex";
 
-    for (const file of files) {
-      const base64 = await compressImage(file, 800, 0.7);
-      chatImages.push(base64.split(",")[1]);
+      for (const file of files) {
+        const base64 = await compressImage(file, 800, 0.7);
+        chatImages.push(base64.split(",")[1]);
 
-      const img = document.createElement("img");
-      img.src = base64;
-      img.style.height = "40px";
-      img.style.borderRadius = "4px";
-      img.style.border = "1px solid #444";
-      previewContainer.appendChild(img);
-    }
-    e.target.value = "";
-  });
+        const img = document.createElement("img");
+        img.src = base64;
+        img.style.height = "40px";
+        img.style.borderRadius = "4px";
+        img.style.border = "1px solid #444";
+        previewContainer.appendChild(img);
+      }
+      e.target.value = "";
+    });
+  }
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { boot(); });

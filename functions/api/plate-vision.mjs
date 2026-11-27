@@ -19,9 +19,8 @@ Do NOT just look at the center of the image. Scan the ENTIRE plate from edge to 
 If you see Rice on one side, Beans on another, and Greens at the top, you MUST list all three items. Do not group them together.
 
 *** NAMING RULE (CRITICAL) ***
-Each item's "name" MUST be copied EXACTLY from this list. Never invent a name:
-{{FOOD_LIST}}
-If nothing on the list fits, use "unknown". Do not guess a near match.
+Each item's "name" MUST be copied EXACTLY from this list. Never invent a name.
+If there are multiple distinct foods on the plate (e.g., Rice, Ndengu, Cabbage, Bread, Eggs), you MUST list them as separate items. DO NOT combine them into one string like "Rice & Ndengu & Cabbage". List 5 separate items.
 
 *** WEIGHT ESTIMATION (CRITICAL) ***
 Assume the plate in the image is a standard 10-inch dinner plate.
@@ -32,21 +31,24 @@ Assume the plate in the image is a standard 10-inch dinner plate.
 - **Scrambled Eggs**: 2-3 eggs scrambled is 100g-150g.
 - **Omena Stew**: A standard bowl or large plate serving is usually between 120g and 150g total weight (including broth). Do NOT estimate 250g unless it is overflowing.
 - **Banana**: 1 medium banana is ~120g (105 kcal).
+- **Groundnuts**: A small bowl is ~50g. Do NOT estimate 150g unless the plate is overflowing with nuts.
+- **Bread/Chapati**: 1 slice of bread = ~30g. 1 Chapati = ~90g. 1 Smokie = ~50g. If you see a split round bun or bread, estimate the bread alone (e.g. 100g).
+- **Ndengu**: A scoop covering 1/4 plate = ~100g.
 
 
 Look closely at the food relative to the edge of the plate to calculate the area it covers, then apply the weight rule above.
 
 *** VISUAL DISAMBIGUATION RULES (CRITICAL) ***
-- **Bananas**: If you see a peeled banana and unpeeled bananas next to it, count ALL of them. One medium banana is ~120 kcal and ~30g of carbs. If you see a peeled banana, assume it is 1 whole banana. 
-- **Ugali**: A SOLID, CUT BLOCK of white maize meal. It holds a dense, cake-like shape.
+- **Ugali**: A SOLID, CUT BLOCK of white maize meal. 
 - **White Rice**: A LOOSE PILE of separate, short oval grains. 
 - **Pasta/Spaghetti**: Long thin cylindrical yellow/tan strands. DO NOT CALL THIS WHITE RICE.
 - **Scrambled Eggs**: Yellow, fluffy, curdled texture mixed with tomatoes/onions.
-- **Maharagwe (Beans)**: LARGER, kidney-shaped beans (often brown/red).
+- **Maharagwe (Beans)**: LARGER, kidney-shaped beans.
 - **Ndengu (Green Grams)**: SMALL, round, yellowish-green seeds.
 - **Omena**: Small silver dried fish.
 - **Sukuma Wiki**: Finely chopped, dark green leafy vegetables.
-
+- **Chapo-Smokie**: A chapati wrap containing a smokie (sausage). 
+- **Groundnuts**: Roasted peanuts.
 *** COUNTING RULE (CRITICAL) ***
 Count every distinct item on the plate. If you see 2 unpeeled bananas and 1 peeled banana, output 3 bananas. Do NOT count the same banana twice if it is partially peeled. Do NOT count peels as separate items.
 
@@ -92,6 +94,8 @@ const MACRO_DB = {
   "spaghetti boiled": { p: 5.0, cal: 150 },
   "spaghetti fried": { p: 6.0, cal: 190 },
   "chips": { p: 3.0, cal: 300 },
+  "groundnuts": { p: 25.0, cal: 567 }, // CHANGED: 25g protein per 100g, not 39g
+  "chapo-smokie": { p: 7.0, cal: 300 }, // CHANGED: Standard chapo-smokie is ~300 kcal
 
   // PROTEINS & MEATS
   "nyama choma": { p: 22.0, cal: 192 },
@@ -140,12 +144,10 @@ const MACRO_DB = {
   "smokie pasua": { p: 7.0, cal: 150 },
   "samosa": { p: 10.0, cal: 320 },
   "kaimati": { p: 4.0, cal: 360 },
-  "mkate wa sinia": { p: 3.0, cal: 190 },
-  "chapo-smokie": { p: 6.5, cal: 205 },
+  "mkate wa sinia": { p: 3.0, cal: 190 },  
   "bread": { p: 8.3, cal: 266 },
   "biscuits": { p: 6.6, cal: 500 },
-  "lemon cream biscuits": { p: 6.6, cal: 500 },
-  "groundnuts": { p: 26.0, cal: 567 },
+  "lemon cream biscuits": { p: 6.6, cal: 500 },  
 
   // DRINKS & FRUITS
   "chai ya maziwa": { p: 1.6, cal: 48 },
