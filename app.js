@@ -94,6 +94,45 @@ function startNewChat() {
   document.getElementById("chatSidebar").style.transform = "translateX(-100%)"; // Close sidebar
   renderChatMessages();
 }
+async function fetchAndSendPhotos(toolCall, userQuestion, context) {
+  const db = getDB();
+  const args = JSON.parse(toolCall.function.arguments);
+  const { weekA, weekB, pose } = args;
+
+  // 1. Fetch the images from IndexedDB
+  const imgA = (db.photos[weekA] || {})[pose];
+  const imgB = (db.photos[weekB] || {})[pose];
+
+  let requestedImages = [];
+  if (imgA) requestedImages.push(imgA.split(",")[1]);
+  if (imgB) requestedImages.push(imgB.split(",")[1]);
+
+  if (requestedImages.length === 0) {
+    // Tell the AI we couldn't find the photos
+    return "I couldn't find those photos in your vault. Make sure you have uploaded them.";
+  }
+
+  // 2. Send them back to the backend for Vision Analysis
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: userQuestion,
+        context: context,
+        history: chatHistory.slice(-6),
+        toolResponse: toolCall,
+        requestedImages: requestedImages
+      })
+    });
+
+    const data = await res.json();
+    if (data.reply) return data.reply;
+    if (data.error) return "Error analyzing photos: " + data.error;
+  } catch (e) {
+    return "Network error while analyzing photos.";
+  }
+}
 
 async function sendChatMessage() {
   const input = document.getElementById("chatInput");
@@ -159,6 +198,14 @@ async function sendChatMessage() {
       }
     }
   });
+  const photoInventory = {};
+  Object.keys(db.photos).forEach(weekKey => {
+    const weekPhotos = db.photos[weekKey];
+    const posesAvailable = Object.keys(weekPhotos);
+    if (posesAvailable.length > 0) {
+      photoInventory[weekKey] = posesAvailable;
+    }
+  });
 
   const context = {
     date: todayKey,
@@ -167,67 +214,73 @@ async function sendChatMessage() {
     proteinTarget: db.settings.proteinTarget,
     currentSession: workoutLog,
     workoutHistory: workoutTimeline,
-    personalRecords: db.history
+    personalRecords: db.history,
+    photoInventory: photoInventory
   };
 
   // 4. Send to API
   try {
     const recentHistory = chatHistory.slice(-6);
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question: text,
-        context: context,
-        history: recentHistory,
-        images: chatImages // <--- SEND IMAGES
+        context: context, // The big context object we built earlier
+        history: recentHistory
       })
     });
 
     const data = await res.json();
-    document.getElementById(loadingId).remove();
 
-    if (data.reply) {
+    // Check if the AI wants to run a tool
+    if (data.type === "tool_call") {
+      // It's asking for photos!
+      document.getElementById(loadingId).innerHTML = '<span class="spinner"></span> Fetching photos from vault...';
+
+      // Fetch the images and get the vision response
+      const visionReply = await fetchAndSendPhotos(data.tool_call, text, context);
+
+      document.getElementById(loadingId).remove();
+
+      // Render the final response
+      let formatted = visionReply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
+
+      chatHistory.push({ role: "user", content: text });
+      chatHistory.push({ role: "assistant", content: visionReply });
+
+      // Save to DB
+      if (!currentChatId) {
+        currentChatId = uid();
+        const title = text.substring(0, 30) + (text.length > 30 ? "..." : "");
+        getDB().chats.push({ id: currentChatId, title: title, timestamp: Date.now(), messages: chatHistory });
+        document.getElementById("currentChatTitle").textContent = title.toUpperCase();
+      } else {
+        const chat = getDB().chats.find(c => c.id === currentChatId);
+        if (chat) { chat.messages = chatHistory; chat.timestamp = Date.now(); }
+      }
+      saveDB(getDB());
+      triggerAutoSync();
+      loadChatSidebar();
+
+    } else if (data.reply) {
+      // Normal text reply (No tool used)
+      document.getElementById(loadingId).remove();
       let formatted = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
       historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
 
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
 
-      // CLEAR IMAGES AFTER SENDING
-      chatImages = [];
-      document.getElementById("chatImagePreview").innerHTML = "";
-      document.getElementById("chatImagePreview").style.display = "none";
-
-      // ... (rest of the saving logic)
-      if (!currentChatId) {
-        // Create a new chat entry
-        currentChatId = uid();
-        const title = text.substring(0, 30) + (text.length > 30 ? "..." : "");
-        db.chats.push({
-          id: currentChatId,
-          title: title,
-          timestamp: Date.now(),
-          messages: chatHistory
-        });
-        document.getElementById("currentChatTitle").textContent = title.toUpperCase();
-      } else {
-        // Update existing chat
-        const chat = db.chats.find(c => c.id === currentChatId);
-        if (chat) {
-          chat.messages = chatHistory;
-          chat.timestamp = Date.now(); // Bump to top
-        }
-      }
-
-      saveDB(db);
-      triggerAutoSync();
-      loadChatSidebar(); // Refresh sidebar UI
-
+      // ... Saving logic ...
     } else {
+      document.getElementById(loadingId).remove();
       historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${data.error || "AI failed to respond."}</div>`;
     }
   } catch (err) {
+    // ...
     document.getElementById(loadingId).remove();
     historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Network Error.</div>`;
   }
