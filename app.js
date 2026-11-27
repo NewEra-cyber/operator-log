@@ -1,20 +1,18 @@
 import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
 import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
-// === CHANGED === added POSES, formatPose, POSE_REFERENCES to import
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES, POSES, formatPose, POSE_REFERENCES } from './data.js';
-// === END CHANGED ===
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
+
 // === CHAT ENGINE ===
 let currentChatId = null;
-let chatHistory = []; // Holds the active chat's messages for the API
-let chatImages = []; // Holds base64 strings of attached images
+let chatHistory = [];
+let chatImages = [];
 
 function loadChatSidebar() {
   const db = getDB();
   const chatList = document.getElementById("chatList");
   const chats = db.chats || [];
 
-  // Sort by newest first
   chats.sort((a, b) => b.timestamp - a.timestamp);
 
   if (chats.length === 0) {
@@ -43,7 +41,7 @@ window.loadChat = function (id) {
   chatHistory = chat.messages;
 
   document.getElementById("currentChatTitle").textContent = chat.title.toUpperCase();
-  document.getElementById("chatSidebar").style.transform = "translateX(-100%)"; // Close sidebar
+  document.getElementById("chatSidebar").style.transform = "translateX(-100%)";
 
   renderChatMessages();
 }
@@ -76,7 +74,6 @@ function renderChatMessages() {
     if (msg.role === "user") {
       historyDiv.innerHTML += `<div style="align-self: flex-end; background: var(--primary); color: #000; padding: 10px 16px; border-radius: 16px 16px 0 16px; max-width: 80%; font-weight: 600;">${esc(msg.content)}</div>`;
     } else {
-      // Convert markdown to bold tags and newlines to <br>
       let formatted = msg.content
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\n/g, '<br>');
@@ -91,47 +88,8 @@ function startNewChat() {
   currentChatId = null;
   chatHistory = [];
   document.getElementById("currentChatTitle").textContent = "NEW CONVERSATION";
-  document.getElementById("chatSidebar").style.transform = "translateX(-100%)"; // Close sidebar
+  document.getElementById("chatSidebar").style.transform = "translateX(-100%)";
   renderChatMessages();
-}
-async function fetchAndSendPhotos(toolCall, userQuestion, context) {
-  const db = getDB();
-  const args = JSON.parse(toolCall.function.arguments);
-  const { weekA, weekB, pose } = args;
-
-  // 1. Fetch the images from IndexedDB
-  const imgA = (db.photos[weekA] || {})[pose];
-  const imgB = (db.photos[weekB] || {})[pose];
-
-  let requestedImages = [];
-  if (imgA) requestedImages.push(imgA.split(",")[1]);
-  if (imgB) requestedImages.push(imgB.split(",")[1]);
-
-  if (requestedImages.length === 0) {
-    // Tell the AI we couldn't find the photos
-    return "I couldn't find those photos in your vault. Make sure you have uploaded them.";
-  }
-
-  // 2. Send them back to the backend for Vision Analysis
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: userQuestion,
-        context: context,
-        history: chatHistory.slice(-6),
-        toolResponse: toolCall,
-        requestedImages: requestedImages
-      })
-    });
-
-    const data = await res.json();
-    if (data.reply) return data.reply;
-    if (data.error) return "Error analyzing photos: " + data.error;
-  } catch (e) {
-    return "Network error while analyzing photos.";
-  }
 }
 
 async function sendChatMessage() {
@@ -198,6 +156,7 @@ async function sendChatMessage() {
       }
     }
   });
+
   const photoInventory = {};
   Object.keys(db.photos).forEach(weekKey => {
     const weekPhotos = db.photos[weekKey];
@@ -215,6 +174,7 @@ async function sendChatMessage() {
     currentSession: workoutLog,
     workoutHistory: workoutTimeline,
     personalRecords: db.history,
+    currentWeight: db.weightLog && db.weightLog.length > 0 ? db.weightLog[db.weightLog.length - 1].weight : "Unknown",
     photoInventory: photoInventory
   };
 
@@ -227,60 +187,90 @@ async function sendChatMessage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question: text,
-        context: context, // The big context object we built earlier
-        history: recentHistory
+        context: context,
+        history: recentHistory,
+        images: chatImages
       })
     });
 
     const data = await res.json();
+    document.getElementById(loadingId).remove();
 
-    // Check if the AI wants to run a tool
-    if (data.type === "tool_call") {
-      // It's asking for photos!
-      document.getElementById(loadingId).innerHTML = '<span class="spinner"></span> Fetching photos from vault...';
+    if (data.tool_call) {
+      const { weekA, weekB, pose } = data.args;
+      const dbPhotos = getDB().photos;
 
-      // Fetch the images and get the vision response
-      const visionReply = await fetchAndSendPhotos(data.tool_call, text, context);
+      const imgA = (dbPhotos[weekA] || {})[pose];
+      const imgB = (dbPhotos[weekB] || {})[pose];
 
-      document.getElementById(loadingId).remove();
+      let requestedImages = [];
+      if (imgA) requestedImages.push(imgA.split(",")[1]);
+      if (imgB) requestedImages.push(imgB.split(",")[1]);
 
-      // Render the final response
-      let formatted = visionReply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-      historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
+      if (requestedImages.length > 0) {
+        const secondRes = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: text, // use original question
+            context: context,
+            history: chatHistory.slice(-6),
+            images: requestedImages // Send the base64s
+          })
+        });
+        const secondData = await secondRes.json();
 
-      chatHistory.push({ role: "user", content: text });
-      chatHistory.push({ role: "assistant", content: visionReply });
-
-      // Save to DB
-      if (!currentChatId) {
-        currentChatId = uid();
-        const title = text.substring(0, 30) + (text.length > 30 ? "..." : "");
-        getDB().chats.push({ id: currentChatId, title: title, timestamp: Date.now(), messages: chatHistory });
-        document.getElementById("currentChatTitle").textContent = title.toUpperCase();
+        if (secondData.reply) {
+          let formatted = secondData.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+          historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
+          chatHistory.push({ role: "user", content: text });
+          chatHistory.push({ role: "assistant", content: secondData.reply });
+        } else {
+          historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${secondData.error || "AI Vision failed."}</div>`;
+        }
       } else {
-        const chat = getDB().chats.find(c => c.id === currentChatId);
-        if (chat) { chat.messages = chatHistory; chat.timestamp = Date.now(); }
+        historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: Photos not found in DB.</div>`;
       }
-      saveDB(getDB());
-      triggerAutoSync();
-      loadChatSidebar();
 
     } else if (data.reply) {
-      // Normal text reply (No tool used)
-      document.getElementById(loadingId).remove();
       let formatted = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
       historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
 
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
 
-      // ... Saving logic ...
     } else {
-      document.getElementById(loadingId).remove();
       historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${data.error || "AI failed to respond."}</div>`;
     }
+
+    // SAVING LOGIC
+    chatImages = [];
+    document.getElementById("chatImagePreview").innerHTML = "";
+    document.getElementById("chatImagePreview").style.display = "none";
+
+    if (!currentChatId && chatHistory.length > 0) {
+      currentChatId = uid();
+      const title = text.substring(0, 30) + (text.length > 30 ? "..." : "");
+      db.chats.push({
+        id: currentChatId,
+        title: title,
+        timestamp: Date.now(),
+        messages: chatHistory
+      });
+      document.getElementById("currentChatTitle").textContent = title.toUpperCase();
+    } else if (currentChatId) {
+      const chat = db.chats.find(c => c.id === currentChatId);
+      if (chat) {
+        chat.messages = chatHistory;
+        chat.timestamp = Date.now();
+      }
+    }
+
+    saveDB(db);
+    triggerAutoSync();
+    loadChatSidebar();
+
   } catch (err) {
-    // ...
     document.getElementById(loadingId).remove();
     historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Network Error.</div>`;
   }
@@ -288,6 +278,7 @@ async function sendChatMessage() {
   sendBtn.disabled = false;
   historyDiv.scrollTop = historyDiv.scrollHeight;
 }
+
 // === AUDIO CONTEXT ===
 let audioCtx = null;
 function playTone(freq, duration, type = 'sine') {
@@ -319,28 +310,24 @@ const state = {
   vaultMilestone: null,
   cmpA: "w0",
   cmpB: "w8",
-  // === CHANGED === default cmpPose updated to a valid new pose key
   cmpPose: "front_relaxed",
-  // === END CHANGED ===
   bpKey: null,
   calTarget: null,
   calMonth: new Date().getMonth(),
   calYear: new Date().getFullYear(),
   swappedExercises: {}
 };
+
 // === AUTO-SYNC ENGINE ===
 let syncTimeout = null;
 function triggerAutoSync() {
   const db = getDB();
   const syncId = db.settings.syncId;
-  if (!syncId) return; // Don't sync if no code is set
+  if (!syncId) return;
 
   if (syncTimeout) clearTimeout(syncTimeout);
 
   syncTimeout = setTimeout(() => {
-    // Show a subtle indicator if you want, or just do it silently
-    console.log("[Auto-Sync] Pushing to cloud...");
-
     const payloadData = JSON.parse(JSON.stringify(db));
     if (!payloadData.settings.includePhotos) payloadData.photos = {};
 
@@ -351,16 +338,15 @@ function triggerAutoSync() {
     })
       .then(r => r.json())
       .then(res => {
-        if (res.success) {
-          console.log("[Auto-Sync] Success");
-        }
+        if (res.success) console.log("[Auto-Sync] Success");
       })
       .catch(err => console.error("[Auto-Sync] Failed", err));
-  }, 3000); // 3-second debounce
+  }, 3000);
 }
+
 // === CAMERA ENGINE ===
 let videoStream = null;
-// === CHANGED === startLiveCamera now sets the ghost reference image (guarded)
+
 async function startLiveCamera() {
   const video = document.getElementById("cameraStream");
   const ghostImg = document.getElementById("cameraGhostImg");
@@ -372,7 +358,6 @@ async function startLiveCamera() {
   }
 
   try {
-    // CHANGED: Request high resolution (1920x1080) from the environment camera
     videoStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "environment",
@@ -387,7 +372,6 @@ async function startLiveCamera() {
     toast("CAMERA ACCESS DENIED OR UNAVAILABLE", "red");
   }
 }
-// === END CHANGED ===
 
 function stopLiveCamera() {
   if (videoStream) {
@@ -405,15 +389,12 @@ function captureLivePhoto() {
   }
 
   const canvas = document.createElement("canvas");
-  // Use the native video resolution (often 1080p or 4K depending on device)
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
 
-  // Draw the frame at full resolution
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // Use HIGH QUALITY JPEG (0.92 = 92% quality)
   const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
   const byteString = atob(dataUrl.split(',')[1]);
@@ -430,6 +411,7 @@ function captureLivePhoto() {
   handlePhotoFile(file);
   stopLiveCamera();
 }
+
 function todayDayKey() {
   const map = { 1: "upperA", 2: "lowerA", 3: "recoveryA", 4: "upperB", 5: "lowerB", 6: "recoveryB", 0: "recoveryC" };
   return map[new Date().getDay()];
@@ -527,7 +509,6 @@ function tickRest() {
   if (timerProgress) {
     timerProgress.style.strokeDashoffset = -(circumference * percentage);
 
-    // TACTICAL TIMER COLORS
     if (percentage < 0.5) {
       timerProgress.style.stroke = "var(--red)";
       timerProgress.style.filter = "drop-shadow(0 0 12px var(--red))";
@@ -582,7 +563,6 @@ function toggleSet(exId, i) {
   const session = getSession(db, day.key, state.missionDate, true);
   const s = getExState(session, ex, db);
 
-  // NEW: Always sync the visible input value (which might be the Smart Target) to the DB
   const weightInput = document.querySelector(`input[data-ex="${exId}"][data-act="ex-weight"]`);
   if (weightInput && weightInput.value) {
     s.weight = num(weightInput.value, 0);
@@ -613,17 +593,14 @@ function toggleSet(exId, i) {
 
         render();
         if (!wasOn && ex.rest > 0) {
-          // Find the next set index (i + 1)
           const nextSetIndex = i + 1;
           let nextWeight = s.weight;
-          let nextReps = ex.max; // Default to max reps
+          let nextReps = ex.max;
 
-          // If there is a next set, grab its specific reps
           if (nextSetIndex < s.reps.length) {
             nextReps = s.reps[nextSetIndex];
           }
 
-          // Update the timer UI
           const nextSetLabel = document.getElementById("nextSetInfo");
           if (nextSetLabel) {
             nextSetLabel.innerHTML = `<span class="mono color-muted" style="font-size: 12px;">NEXT SET:</span> <span class="mono color-white" style="font-size: 18px; font-weight: bold;">${nextWeight}KG × ${nextReps} REPS</span>`;
@@ -652,8 +629,6 @@ function toggleSet(exId, i) {
   if (!wasOn && ex.rest > 0) startRest(ex.rest);
 }
 
-// Single source of truth for scan maths: every item carries its own per-100g values
-// (p100 / cal100) from /api/plate-vision, so there is no second macro table on the client.
 function recalcScan() {
   const d = state.scan && state.scan.data;
   if (!d || !Array.isArray(d.items)) return;
@@ -681,12 +656,10 @@ async function handleFoodFile(file) {
   render();
 
   try {
-    console.log("[SCAN] Starting image compression...");
     const dataUrl = await compressImage(file, 1200, 0.9);
     const base64 = dataUrl.split(",")[1];
     const thumbnail = await compressImage(file, 800, 0.8);
 
-    console.log("[SCAN] Sending to backend...");
     const res = await fetch("/api/plate-vision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -699,7 +672,6 @@ async function handleFoodFile(file) {
     }
 
     const rawText = await res.text();
-    console.log("[SCAN] Raw backend response:", rawText);
 
     let data;
     try {
@@ -718,11 +690,8 @@ async function handleFoodFile(file) {
     }
 
   } catch (err) {
-    console.error("[SCAN ERROR]", err);
     state.scan = { status: "error", message: err.message };
   }
-
-  console.log("[SCAN] Rendering state:", state.scan);
   render();
 }
 
@@ -744,7 +713,6 @@ async function handlePhotoFile(file) {
   const target = state.photoTarget;
   state.photoTarget = null;
   try {
-    // CHANGED: Bumped from 620px @ 0.62 quality to 1080px @ 0.85 quality
     const dataUrl = await compressImage(file, 1080, 0.85);
     const db = getDB();
     if (!db.photos[target.ms] || typeof db.photos[target.ms] !== "object") db.photos[target.ms] = {};
@@ -770,7 +738,6 @@ async function exportJSON() {
   const jsonString = JSON.stringify(exportData);
 
   try {
-    // Compress the string using native browser Gzip API
     const blob = new Blob([jsonString], { type: "application/json" });
     const compressedStream = blob.stream().pipeThrough(new CompressionStream("gzip"));
     const compressedBlob = await new Response(compressedStream).blob();
@@ -784,8 +751,7 @@ async function exportJSON() {
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     toast("COMPRESSED BACKUP EXPORTED", "cyan");
   } catch (err) {
-    console.error("Compression failed, falling back to uncompressed", err);
-    // Fallback if the browser doesn't support Gzip
+    console.error("Compression failed", err);
     const blob = new Blob([jsonString], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -839,8 +805,6 @@ async function importJSON(file) {
   if (!file) return;
   try {
     let text;
-
-    // Check if it's a gzipped file
     if (file.name.endsWith(".gz")) {
       const stream = file.stream().pipeThrough(new DecompressionStream("gzip"));
       text = await new Response(stream).text();
@@ -994,7 +958,6 @@ document.addEventListener("click", function (ev) {
   const act = el.dataset.act;
   if (navigator.vibrate) navigator.vibrate(10);
 
-  // === NEW CAMERA HANDLERS ===
   if (act === "close-camera-choice") { document.getElementById("cameraChoiceModal").classList.remove("open"); return; }
   if (act === "open-live-camera") { startLiveCamera(); return; }
   if (act === "close-live-camera") { stopLiveCamera(); return; }
@@ -1033,19 +996,6 @@ document.addEventListener("click", function (ev) {
     const inp = document.getElementById("photoInput"); inp.value = ""; inp.click();
     return;
   }
-  if (navigator.vibrate) navigator.vibrate(10); // Safe haptic tick
-  if (act === "open-chat") {
-    document.getElementById("chatModal").classList.add("open");
-    return;
-  }
-  if (act === "close-chat") {
-    document.getElementById("chatModal").classList.remove("open");
-    return;
-  }
-  if (act === "send-chat") {
-    sendChatMessage();
-    return;
-  }
   if (act === "jump-to-workout") {
     state.tab = "mission";
     state.dayKey = el.dataset.day;
@@ -1055,7 +1005,6 @@ document.addEventListener("click", function (ev) {
     window.scrollTo({ top: 0, behavior: "instant" });
     return;
   }
-  // Inside the main click listener
   if (act === "edit-pill") {
     const idx = Number(el.dataset.idx);
     const item = state.scan.data.items[idx];
@@ -1078,7 +1027,7 @@ document.addEventListener("click", function (ev) {
 
   if (act === "close-edit-sheet") {
     document.getElementById("ar-edit-sheet").style.display = "none";
-    render(); // Re-render to update the pills with new macros
+    render();
     return;
   }
 
@@ -1438,21 +1387,15 @@ document.addEventListener("click", function (ev) {
   if (act === "toggle-set") { toggleSet(el.dataset.ex, Number(el.dataset.i)); return; }
   if (act === "repeat-set") {
     const exId = el.dataset.ex;
-    const i = Number(el.dataset.i); // The current set index
+    const i = Number(el.dataset.i);
 
     if (i > 0) {
       withSession(function (db, session) {
         const ex = currentEx(exId);
         const s = getExState(session, ex, db);
-
-        // Copy the weight from the previous set (or current weight)
-        // Copy the reps from the previous set
         s.reps[i] = s.reps[i - 1];
-
-        // If you want to copy the weight too (uncomment below):
-        // s.weight = s.weight; (Weight is shared across all sets in this app anyway)
       });
-      render(); // Re-render to show the copied reps
+      render();
     }
     return;
   }
@@ -1524,7 +1467,6 @@ document.addEventListener("click", function (ev) {
         return r.json();
       })
       .then(data => {
-        console.log("Text AI Response:", data); // Check console for this
         if (data && data.p > 0) {
           addMealToDB(data.name, data.p, data.cal, data.breakdown || "");
           if (input) input.value = "";
@@ -1547,7 +1489,7 @@ document.addEventListener("click", function (ev) {
   }
   if (act === "scan-clear") {
     state.scan = { status: "idle" };
-    document.body.classList.remove("scanning-active"); // <--- ADD THIS
+    document.body.classList.remove("scanning-active");
     render();
     return;
   }
@@ -1556,7 +1498,7 @@ document.addEventListener("click", function (ev) {
     const img = state.scan.img || null;
     addMealToDB(d.name || "Scanned Meal", d.p, d.cal, d.breakdown || "", img);
     state.scan = { status: "idle" };
-    document.body.classList.remove("scanning-active"); // <--- ADD THIS
+    document.body.classList.remove("scanning-active");
     render();
     toast("MEAL LOGGED · +" + num(d.p, 0) + "G PROTEIN", "green");
     return;
@@ -1635,8 +1577,8 @@ document.addEventListener("click", function (ev) {
     const ex = currentEx(exId);
     const s = getExState(session, ex, db);
 
-    s.weight = target; // Set the weight
-    s.sets = s.sets.map(() => false); // Reset sets so they can do it again next time
+    s.weight = target;
+    s.sets = s.sets.map(() => false);
     s.reps = s.reps.map(() => ex.max);
 
     saveDB(db);
@@ -1644,7 +1586,6 @@ document.addEventListener("click", function (ev) {
     toast("WEIGHT INCREASED TO " + target + "KG", "green");
     return;
   }
-  // === CHANGED === open-photo-modal now uses POSE_REFERENCES instead of previous week photo
   if (act === "open-photo-modal") {
     const ms = el.dataset.ms;
     const pose = el.dataset.pose;
@@ -1666,7 +1607,6 @@ document.addEventListener("click", function (ev) {
     }
     return;
   }
-  // === END CHANGED ===
   if (act === "close-photo-modal") { document.getElementById("photoModal").classList.remove("open"); return; }
   if (act === "trigger-photo-upload") { const inp = document.getElementById("photoInput"); inp.value = ""; inp.click(); return; }
 
@@ -1983,7 +1923,6 @@ document.addEventListener("pointerdown", function (e) {
   document.addEventListener("pointerup", onPointerUp);
 });
 
-// === CHANGED === ghost opacity slider wiring (guarded, no crash if elements missing)
 (function initGhostOpacitySlider() {
   const slider = document.getElementById("ghostOpacitySlider");
   const ghostImg = document.getElementById("cameraGhostImg");
@@ -1992,73 +1931,27 @@ document.addEventListener("pointerdown", function (e) {
     ghostImg.style.opacity = String(Number(e.target.value) / 100);
   });
 })();
-// === END CHANGED ===
+
 function tickClock() {
   const d = new Date();
   const el = document.getElementById("sysClock");
   if (el) el.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
 }
 
-// === MIGRATION: MAP OLD 9 POSES TO NEW 8 POSES ===
-function migrateOldPhotos(db) {
-  if (!db.photos) return;
-  const oldKeys = ["front", "side", "back", "chest", "biceps", "triceps", "abs", "legs_front", "legs_back"];
-
-  // Check if we have old photos in the system
-  let hasOldPhotos = false;
-  Object.values(db.photos).forEach(msPhotos => {
-    Object.keys(msPhotos).forEach(k => {
-      if (oldKeys.includes(k)) hasOldPhotos = true;
-    });
-  });
-
-  if (!hasOldPhotos) return; // Nothing to migrate
-
-  let migratedCount = 0;
-
-  Object.keys(db.photos).forEach(ms => {
-    const p = db.photos[ms];
-
-    // We map the most likely old poses to the new ones
-    if (p["front"] && !p["front_relaxed"]) { p["front_relaxed"] = p["front"]; migratedCount++; }
-    if (p["chest"] && !p["most_muscular_front"]) { p["most_muscular_front"] = p["chest"]; migratedCount++; }
-    if (p["biceps"] && !p["front_double_biceps"]) { p["front_double_biceps"] = p["biceps"]; migratedCount++; }
-    if (p["abs"] && !p["abs_thighs"]) { p["abs_thighs"] = p["abs"]; migratedCount++; }
-    if (p["legs_front"] && !p["side_double_thighs"]) { p["side_double_thighs"] = p["legs_front"]; migratedCount++; }
-    if (p["triceps"] && !p["side_triceps"]) { p["side_triceps"] = p["triceps"]; migratedCount++; }
-    if (p["back"] && !p["back_double_biceps"]) { p["back_double_biceps"] = p["back"]; migratedCount++; }
-    if (p["side"] && !p["rear_relaxed"]) { p["rear_relaxed"] = p["side"]; migratedCount++; }
-
-    // Optional: We keep the old keys just in case, but you can uncomment the lines below to delete them
-    // oldKeys.forEach(k => delete p[k]);
-  });
-
-  if (migratedCount > 0) {
-    saveDB(db);
-    console.log(`[Migration] Successfully mapped ${migratedCount} old photos to the new 8-pose system.`);
-    toast(`RECOVERED ${migratedCount} OLD PHOTOS`, "green");
-  }
-}
-
 async function boot() {
   await initDB();
   const db = getDB();
 
-  // === RUN MIGRATION ===
   migrateOldPhotos(db);
-  // === END MIGRATION ===
 
-  // AUTO-PULL ON BOOT
   if (db.settings.syncId) {
     try {
-      console.log("[Auto-Pull] Checking cloud for updates...");
       const res = await fetch("/api/sync?id=" + encodeURIComponent(db.settings.syncId));
       const remoteData = await res.json();
 
       if (Object.keys(remoteData).length > 0) {
         const mergedDB = mergeDBs(db, remoteData);
         saveDB(mergedDB);
-        console.log("[Auto-Pull] Merged remote data");
       }
     } catch (err) {
       console.warn("[Auto-Pull] Offline or failed, using local data.");
@@ -2091,6 +1984,7 @@ async function boot() {
   document.addEventListener("touchmove", function (e) {
     if (document.getElementById("lightbox").classList.contains("open")) e.preventDefault();
   }, { passive: false });
+
   document.getElementById("chatImageInput").addEventListener("change", async function (e) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -2100,9 +1994,8 @@ async function boot() {
 
     for (const file of files) {
       const base64 = await compressImage(file, 800, 0.7);
-      chatImages.push(base64.split(",")[1]); // Store just the base64 data
+      chatImages.push(base64.split(",")[1]);
 
-      // Add thumbnail to preview
       const img = document.createElement("img");
       img.src = base64;
       img.style.height = "40px";
@@ -2110,7 +2003,7 @@ async function boot() {
       img.style.border = "1px solid #444";
       previewContainer.appendChild(img);
     }
-    e.target.value = ""; // Reset input
+    e.target.value = "";
   });
 }
 
