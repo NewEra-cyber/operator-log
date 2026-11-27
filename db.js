@@ -394,9 +394,18 @@ export function migrate(raw) {
   const rawP = raw.photos || raw.vault || raw.milestones || raw.progress || {};
   if (rawP && typeof rawP === "object") {
     Object.keys(rawP).forEach((k) => {
-      const v = rawP[k];
-      if (!v || typeof v !== "object") return;
-      db.photos[k] = v;
+      // FIX: If the key is corrupted like "w0/front", split it and reconstruct
+      if (k.includes("/")) {
+        const parts = k.split("/");
+        const week = parts[0];
+        const pose = parts[1];
+        if (!db.photos[week]) db.photos[week] = {};
+        db.photos[week][pose] = rawP[k];
+      } else {
+        const v = rawP[k];
+        if (!v || typeof v !== "object") return;
+        db.photos[k] = v;
+      }
     });
   }
 

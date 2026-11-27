@@ -2018,6 +2018,46 @@ function tickClock() {
   const el = document.getElementById("sysClock");
   if (el) el.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
 }
+// === MIGRATION: MAP OLD 9 POSES TO NEW 8 POSES ===
+function migrateOldPhotos(db) {
+  if (!db.photos) return;
+  const oldKeys = ["front", "side", "back", "chest", "biceps", "triceps", "abs", "legs_front", "legs_back"];
+
+  // Check if we have old photos in the system
+  let hasOldPhotos = false;
+  Object.values(db.photos).forEach(msPhotos => {
+    Object.keys(msPhotos).forEach(k => {
+      if (oldKeys.includes(k)) hasOldPhotos = true;
+    });
+  });
+
+  if (!hasOldPhotos) return; // Nothing to migrate
+
+  let migratedCount = 0;
+
+  Object.keys(db.photos).forEach(ms => {
+    const p = db.photos[ms];
+
+    // We map the most likely old poses to the new ones
+    if (p["front"] && !p["front_relaxed"]) { p["front_relaxed"] = p["front"]; migratedCount++; }
+    if (p["chest"] && !p["most_muscular_front"]) { p["most_muscular_front"] = p["chest"]; migratedCount++; }
+    if (p["biceps"] && !p["front_double_biceps"]) { p["front_double_biceps"] = p["biceps"]; migratedCount++; }
+    if (p["abs"] && !p["abs_thighs"]) { p["abs_thighs"] = p["abs"]; migratedCount++; }
+    if (p["legs_front"] && !p["side_double_thighs"]) { p["side_double_thighs"] = p["legs_front"]; migratedCount++; }
+    if (p["triceps"] && !p["side_triceps"]) { p["side_triceps"] = p["triceps"]; migratedCount++; }
+    if (p["back"] && !p["back_double_biceps"]) { p["back_double_biceps"] = p["back"]; migratedCount++; }
+    if (p["side"] && !p["rear_relaxed"]) { p["rear_relaxed"] = p["side"]; migratedCount++; }
+
+    // Optional: We keep the old keys just in case, but you can uncomment the lines below to delete them
+    // oldKeys.forEach(k => delete p[k]);
+  });
+
+  if (migratedCount > 0) {
+    saveDB(db);
+    console.log(`[Migration] Successfully mapped ${migratedCount} old photos to the new 8-pose system.`);
+    toast(`RECOVERED ${migratedCount} OLD PHOTOS`, "green");
+  }
+}
 // === AUTO-BACKUP ENGINE ===
 function checkAutoBackup() {
   const db = getDB();
