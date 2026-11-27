@@ -225,7 +225,7 @@ async function sendChatMessage() {
       loadChatSidebar(); // Refresh sidebar UI
 
     } else {
-      historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: AI failed to respond.</div>`;
+      historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${data.error || "AI failed to respond."}</div>`;
     }
   } catch (err) {
     document.getElementById(loadingId).remove();

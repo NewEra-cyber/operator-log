@@ -1,33 +1,33 @@
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// We use the vision model to allow it to see the images
-const MODEL = "llama-3.2-11b-vision-preview"; 
+// Use the currently supported Qwen multimodal model
+const MODEL = "qwen/qwen3.8-27b";
 
 export async function onRequest(context) {
-  const req = context.request;
-  const apiKey = context.env.GROQ_API_KEY;
+    const req = context.request;
+    const apiKey = context.env.GROQ_API_KEY;
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
-  }
+    if (req.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
+    }
 
-  let question = "";
-  let userContext = {};
-  let chatHistory = [];
-  let images = []; // Array of base64 strings
+    let question = "";
+    let userContext = {};
+    let chatHistory = [];
+    let images = [];
 
-  try {
-    const body = await req.json();
-    question = body.question || "";
-    userContext = body.context || {};
-    chatHistory = body.history || [];
-    images = body.images || []; // NEW: Receive images
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400 });
-  }
+    try {
+        const body = await req.json();
+        question = body.question || "";
+        userContext = body.context || {};
+        chatHistory = body.history || [];
+        images = body.images || [];
+    } catch {
+        return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400 });
+    }
 
-  if (!question) return new Response(JSON.stringify({ error: "No question" }), { status: 400 });
+    if (!question) return new Response(JSON.stringify({ error: "No question" }), { status: 400 });
 
-  const systemPrompt = `
+    const systemPrompt = `
     You are the OPERATOR LOG AI Coach. You are highly intelligent, tactical, and conversational.
     You have access to the user's fitness data below.
     
@@ -42,48 +42,55 @@ export async function onRequest(context) {
     4. FORMATTING RULE: Do NOT use markdown asterisks like **this**. Use HTML bold tags like <b>this</b> for emphasis.
   `;
 
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...chatHistory,
-  ];
+    const messages = [
+        { role: "system", content: systemPrompt },
+        ...chatHistory,
+    ];
 
-  // Construct the user message. If there are images, we attach them.
-  if (images.length > 0) {
-    const userContent = [{ type: "text", text: question }];
-    images.forEach(img => {
-      // img is a base64 string (e.g., "/9j/4AAQSk...")
-      userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${img}` } });
-    });
-    messages.push({ role: "user", content: userContent });
-  } else {
-    messages.push({ role: "user", content: question });
-  }
+    // Construct the user message. If there are images, we attach them.
+    if (images.length > 0) {
+        const userContent = [{ type: "text", text: question }];
+        images.forEach(img => {
+            // img is a base64 string (e.g., "/9j/4AAQSk...")
+            userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${img}` } });
+        });
+        messages.push({ role: "user", content: userContent });
+    } else {
+        messages.push({ role: "user", content: question });
+    }
 
-  const payload = {
-    model: MODEL,
-    temperature: 0.3,
-    max_tokens: 2000,
-    messages: messages
-  };
+    const payload = {
+        model: MODEL,
+        temperature: 0.3,
+        max_tokens: 2000,
+        messages: messages
+    };
 
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + apiKey,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch(GROQ_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + apiKey,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
 
-    const data = await res.json();
-    const reply = data.choices[0].message.content;
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("[CHAT API ERROR]", errText);
+            throw new Error(`Groq API Error: ${res.status}`);
+        }
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-    });
+        const data = await res.json();
+        const reply = data.choices[0].message.content;
 
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to reach AI" }), { status: 500 });
-  }
+        return new Response(JSON.stringify({ reply }), {
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+
+    } catch (err) {
+        console.error("[CHAT CATCH ERROR]", err);
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    }
 }
