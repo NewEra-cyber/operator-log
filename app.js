@@ -1,5 +1,5 @@
 import { initDB, getDB, saveDB, mergeDBs, blankDB, migrate, clearDB } from './db.js';
-import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc } from './utils.js';
+import { $, $$, ymd, addDays, num, toast, compressImage, uid, pad2, esc, fmtAI } from './utils.js';
 import { TRAINING, BLUEPRINTS, MEAL_PLAN, GROCERY_LIST, MILESTONES, POSES, formatPose, POSE_REFERENCES } from './data.js';
 import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSession, getExState, scanResultHTML, dayProtein } from './view.js';
 
@@ -22,12 +22,12 @@ function loadChatSidebar() {
 
   chatList.innerHTML = chats.map(c => `
     <div style="padding: 12px; border-bottom: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" 
-         onclick="loadChat('${c.id}')">
+         data-act="load-chat" data-id="${esc(c.id)}">
       <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
         <div class="mono" style="font-size: 12px; color: #fff;">${esc(c.title)}</div>
         <div class="small color-muted" style="font-size: 10px;">${new Date(c.timestamp).toLocaleDateString()}</div>
       </div>
-      <button onclick="deleteChat('${c.id}', event)" style="background: none; border: none; color: #ff4b4b; font-size: 16px; padding: 4px;">✕</button>
+      <button data-act="delete-chat" data-id="${esc(c.id)}" style="background: none; border: none; color: #ff4b4b; font-size: 16px; padding: 4px;">✕</button>
     </div>
   `).join("");
 }
@@ -74,9 +74,7 @@ function renderChatMessages() {
     if (msg.role === "user") {
       historyDiv.innerHTML += `<div style="align-self: flex-end; background: var(--primary); color: #000; padding: 10px 16px; border-radius: 16px 16px 0 16px; max-width: 80%; font-weight: 600;">${esc(msg.content)}</div>`;
     } else {
-      let formatted = msg.content
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/\n/g, '<br>');
+      let formatted = fmtAI(String(msg.content == null ? "" : msg.content));
       historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
     }
   });
@@ -221,26 +219,26 @@ async function sendChatMessage() {
         const secondData = await secondRes.json();
 
         if (secondData.reply) {
-          let formatted = secondData.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+          let formatted = fmtAI(secondData.reply);
           historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
           chatHistory.push({ role: "user", content: text });
           chatHistory.push({ role: "assistant", content: secondData.reply });
         } else {
-          historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${secondData.error || "AI Vision failed."}</div>`;
+          historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${esc(secondData.error || "AI Vision failed.")}</div>`;
         }
       } else {
         historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: Photos not found in DB.</div>`;
       }
 
     } else if (data.reply) {
-      let formatted = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+      let formatted = fmtAI(data.reply);
       historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
 
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
 
     } else {
-      historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${data.error || "AI failed to respond."}</div>`;
+      historyDiv.innerHTML += `<div style="color: red; align-self: flex-start;">Error: ${esc(data.error || "AI failed to respond.")}</div>`;
     }
 
     // SAVING LOGIC
@@ -958,6 +956,8 @@ document.addEventListener("click", function (ev) {
   const act = el.dataset.act;
   if (navigator.vibrate) navigator.vibrate(10);
 
+  if (act === "load-chat") { window.loadChat(el.dataset.id); return; }
+  if (act === "delete-chat") { window.deleteChat(el.dataset.id, ev); return; }
   if (act === "close-camera-choice") { document.getElementById("cameraChoiceModal").classList.remove("open"); return; }
   if (act === "open-live-camera") { startLiveCamera(); return; }
   if (act === "close-live-camera") { stopLiveCamera(); return; }
@@ -1154,16 +1154,16 @@ document.addEventListener("click", function (ev) {
         data.muscles.forEach(m => {
           let color = m.status === "Improved" ? "var(--green)" : (m.status === "Needs Work" ? "var(--red)" : "var(--muted)");
           html += `<div class="flex-between" style="border-bottom:1px dashed #1d2731; padding:6px 0;">
-          <div><span class="small font-bold display-block" style="color:${color};">${m.group.toUpperCase()}</span>
+          <div><span class="small font-bold display-block" style="color:${color};">${esc(String(m.group || "").toUpperCase())}</span>
           <span class="small color-muted">${esc(m.notes)}</span></div>
-          <div class="mono" style="font-size:9px; color:${color};">${m.status.toUpperCase()}</div>
+          <div class="mono" style="font-size:9px; color:${color};">${esc(String(m.status || "").toUpperCase())}</div>
         </div>`;
         });
         resultDiv.innerHTML = html;
       })
       .catch(err => {
         console.error(err);
-        resultDiv.innerHTML = `<div class="mono color-red small">FAILED TO ANALYZE:<br>${err.message}</div>`;
+        resultDiv.innerHTML = `<div class="mono color-red small">FAILED TO ANALYZE:<br>${esc(err.message)}</div>`;
       });
     return;
   }
@@ -1220,7 +1220,46 @@ document.addEventListener("click", function (ev) {
   if (act === "save-sync") {
     const v = document.getElementById("syncIdInput").value.trim();
     if (!v) { toast("ENTER A SYNC CODE", "red"); return; }
-    const db = getDB(); db.settings.syncId = v; saveDB(db); render(); toast("SYNC CODE SAVED", "green"); return;
+    const db = getDB(); db.settings.syncId = v; saveDB(db); render(); toast(v.length < 22 ? "SAVED - WEAK CODE, USE GENERATE SECURE CODE" : "SYNC CODE SAVED", v.length < 22 ? "red" : "green"); return;
+  }
+  if (act === "gen-sync") {
+    (async function () {
+      const oldId = getDB().settings.syncId || "";
+      if (oldId && !confirm("Switch to a new secure sync code?\n\nYour data is merged, uploaded under the new code, and the old code stops working. Other devices must then enter the new code. Save it somewhere safe.")) return;
+      const statusEl = document.getElementById("syncStatus");
+      if (statusEl) statusEl.textContent = "STATUS: CREATING SECURE CODE...";
+      try {
+        // 1. Merge whatever is already in the cloud under the old code, so nothing is lost.
+        if (oldId) {
+          const pr = await fetch("/api/sync?id=" + encodeURIComponent(oldId));
+          if (!pr.ok) throw new Error("pull failed");
+          const remote = await pr.json();
+          if (remote && Object.keys(remote).length > 0) saveDB(mergeDBs(getDB(), remote));
+        }
+        // 2. Generate a 128-bit random code and upload the merged data under it.
+        const cur = getDB();
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        const newId = btoa(String.fromCharCode.apply(null, bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const payload = JSON.parse(JSON.stringify(cur));
+        if (!payload.settings.includePhotos) payload.photos = {};
+        const up = await fetch("/api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: newId, data: payload }) });
+        const upRes = await up.json();
+        if (!upRes.success) throw new Error("push failed");
+        // 3. Only after the upload succeeded: switch codes locally and retire the old one.
+        cur.settings.syncId = newId;
+        saveDB(cur);
+        if (oldId) {
+          fetch("/api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: oldId, data: {} }) }).catch(function () { });
+        }
+        render();
+        toast("NEW SYNC CODE CREATED - COPY IT NOW", "green");
+      } catch (err) {
+        if (statusEl) statusEl.textContent = "STATUS: CODE SWITCH FAILED (NOTHING LOST)";
+        toast("COULD NOT SWITCH CODE - CHECK CONNECTION", "red");
+      }
+    })();
+    return;
   }
   if (act === "sync-push") {
     const db = getDB();
@@ -1371,7 +1410,7 @@ document.addEventListener("click", function (ev) {
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
-        const formatted = data.advice.replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>');
+        const formatted = fmtAI(data.advice, "coach-highlight", false);
         resultDiv.innerHTML = `<div class="synthesis-text">${formatted}</div>`;
       })
       .catch(() => { resultDiv.innerHTML = '<div class="color-red small">Failed to synthesize. Check API key.</div>'; })
@@ -1547,7 +1586,7 @@ document.addEventListener("click", function (ev) {
     })
       .then(r => r.json())
       .then(data => {
-        let formattedAdvice = data.advice.replace(/\*\*(.*?)\*\*/g, '<span class="coach-highlight">$1</span>').replace(/\n/g, '<br>');
+        let formattedAdvice = fmtAI(data.advice, "coach-highlight");
         const color = formattedAdvice.includes("ERROR") || formattedAdvice.includes("Error") ? "var(--red)" : "var(--txt)";
         resultDiv.innerHTML = `<div class="coach-text" style="color: ${color};">${formattedAdvice}</div>`;
       })

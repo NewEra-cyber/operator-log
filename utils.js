@@ -7,6 +7,18 @@ export const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => 
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
 ));
 
+// Safe formatter for AI / server text. Escapes EVERYTHING first, then re-enables only
+// harmless attribute-free <b> <i> <em> <strong> <br> (the chat prompt asks the model for <b>),
+// **bold** and line breaks. Throws on non-strings so existing .catch() paths still trigger.
+export function fmtAI(text, boldClass, keepBreaks) {
+  if (typeof text !== "string") throw new TypeError("AI response was not text");
+  let out = esc(text)
+    .replace(/&lt;(\/?)(b|i|em|strong)&gt;/gi, "<$1$2>")
+    .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+    .replace(/\*\*(.*?)\*\*/g, boldClass ? '<span class="' + boldClass + '">$1</span>' : "<b>$1</b>");
+  return keepBreaks === false ? out : out.replace(/\n/g, "<br>");
+}
+
 export function ymd(d) {
   const t = d ? new Date(d) : new Date();
   return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());

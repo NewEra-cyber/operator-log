@@ -408,7 +408,7 @@ export function viewRefuel(db, state) {
     ? meals.map((m) =>
       `<div class="meal">
         <div class="meal-content">
-          ${m.img ? `<img src="${m.img}" class="meal-img" />` : ''}
+          ${m.img ? `<img src="${esc(m.img)}" class="meal-img" />` : ''}
           <div class="min-w-0">
             <div class="mn">${esc(m.name)}</div>
             ${m.breakdown ? `<div class="mb">${esc(m.breakdown)}</div>` : ""}
@@ -653,7 +653,7 @@ export function scanResultHTML(state) {
         <!-- TOP SECTION -->
         <div style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; flex-shrink: 0;">
           <div style="width: 40%; border-radius: 12px; overflow: hidden; border: 1px solid #333; flex-shrink: 0;">
-            ${img ? `<img src="${img}" style="width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;" />` : ''}
+            ${img ? `<img src="${esc(img)}" style="width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;" />` : ''}
           </div>
 
           <div class="ar-overlay-card" style="flex: 1; background: rgba(15, 15, 15, 0.95); padding: 16px;">
@@ -722,7 +722,7 @@ export function viewVault(db, state) {
 
     const slots = POSES.map((pose) =>
       `<button class="photo-slot" data-act="open-photo-modal" data-ms="${m.k}" data-pose="${pose}">
-        ${p[pose] ? `<img src="${p[pose]}" alt="${m.label} ${pose}" loading="lazy" />` : `<span class="ph-empty"><span>+</span><em>${formatPose(pose)}</em></span>`}
+        ${p[pose] ? `<img src="${esc(p[pose])}" alt="${m.label} ${pose}" loading="lazy" />` : `<span class="ph-empty"><span>+</span><em>${formatPose(pose)}</em></span>`}
       </button>`
     ).join("");
 
@@ -833,8 +833,8 @@ export function viewVault(db, state) {
         </div>
         
         <div class="split-container" id="splitSlider">
-          ${imgA ? `<img src="${imgA}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
-          ${imgB ? `<img src="${imgB}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
+          ${imgA ? `<img src="${esc(imgA)}" class="split-img split-top" id="imgTop" />` : '<div class="split-img split-top" style="background:#16161C; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
+          ${imgB ? `<img src="${esc(imgB)}" class="split-img split-bottom" />` : '<div class="split-img split-bottom" style="background:#0a0a0f; display:grid; place-items:center;"><span class="dim small">NO PHOTO</span></div>'}
           
           <div class="split-label label-before">
             ${state.cmpA === "reference" ? "REFERENCE" : state.cmpA === "baseline" ? "BASELINE" : state.cmpA.toUpperCase()} (BEFORE)
@@ -1100,9 +1100,9 @@ export function viewSystem(db) {
 
       <div class="card">
         <div class="kicker mb-6">CLOUD SYNC</div>
-        <div class="dim small mb-10">Enter a secret Sync Code (e.g. your name). Use the same code on other devices to sync your data.</div>
+        <div class="dim small mb-10">Tap GENERATE SECURE CODE to create a private random code, then enter the same code on your other devices. Keep it somewhere safe: anyone with the code can read and overwrite your synced data, and it cannot be recovered if lost.</div>
         <div class="manual" style="grid-template-columns: 1fr auto;">
-          <input id="syncIdInput" type="text" placeholder="Sync Code" value="${db.settings.syncId || ''}" />
+          <input id="syncIdInput" type="text" placeholder="Sync Code" value="${esc(db.settings.syncId || '')}" />
           <button data-act="save-sync" style="padding:0 15px;">SAVE</button>
         </div>
         <div class="flex-row mt-10">
@@ -1110,6 +1110,8 @@ export function viewSystem(db) {
           <button class="act-btn color-white m-0" data-act="sync-pull" style="flex:1; border-color:var(--primary);">⭳ PULL & MERGE</button>
         </div>
         <div id="syncStatus" class="mono small mt-8 text-center">STATUS: ${db.settings.syncId ? 'READY' : 'NOT CONFIGURED'}</div>
+        ${(db.settings.syncId && db.settings.syncId.length < 22) ? '<div class="small mt-8 text-center" style="color: var(--orange);">WEAK SYNC CODE - anyone who guesses it can read your data. Generate a secure code below.</div>' : ''}
+        <button class="act-btn mt-10" data-act="gen-sync">🔐 GENERATE SECURE CODE</button>
       </div>
 
       <div class="card">
