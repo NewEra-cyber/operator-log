@@ -2086,7 +2086,7 @@ async function boot() {
   await initDB();
   const db = getDB();
 
-  migrateOldPhotos(db);
+  if (typeof migrateOldPhotos === "function") migrateOldPhotos(db);
 
   // 1. RENDER LOCAL DATA IMMEDIATELY (Fixes the blank screen)
   const urlParams = new URLSearchParams(window.location.search);

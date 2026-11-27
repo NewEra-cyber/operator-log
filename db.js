@@ -322,6 +322,8 @@ export function blankDB() {
     workouts: {},
     history: {},
     photos: {},
+    photoAt: {},
+    tomb: {},
     favorites: [],
     weightLog: [],
     chats: []
@@ -416,7 +418,7 @@ export function migrate(raw) {
   if (Array.isArray(raw.chats)) db.chats = raw.chats.filter((c) => isObj(c) && c.id);
   if (isObj(raw.tomb)) db.tomb = Object.assign({}, raw.tomb);
   if (isObj(raw.photoAt)) db.photoAt = Object.assign({}, raw.photoAt);
-
+  if (!db.photoAt || typeof db.photoAt !== "object") db.photoAt = {};
   // photos that predate timestamps get a tiny, identical stamp on every device
   Object.keys(db.photos).forEach((ms) => {
     const slots = db.photos[ms];
