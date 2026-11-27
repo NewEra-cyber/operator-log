@@ -7,6 +7,7 @@ import { viewMission, viewRefuel, viewVault, viewBlueprint, viewSystem, getSessi
 // === CHAT ENGINE ===
 let currentChatId = null;
 let chatHistory = []; // Holds the active chat's messages for the API
+let chatImages = []; // Holds base64 strings of attached images
 
 function loadChatSidebar() {
   const db = getDB();
@@ -171,13 +172,16 @@ async function sendChatMessage() {
 
   // 4. Send to API
   try {
-    // Pass the last 10 messages for context
-    const recentHistory = chatHistory.slice(-10);
-
+    const recentHistory = chatHistory.slice(-6);
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: text, context: context, history: recentHistory })
+      body: JSON.stringify({
+        question: text,
+        context: context,
+        history: recentHistory,
+        images: chatImages // <--- SEND IMAGES
+      })
     });
 
     const data = await res.json();
@@ -187,10 +191,15 @@ async function sendChatMessage() {
       let formatted = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
       historyDiv.innerHTML += `<div style="align-self: flex-start; background: #222; color: #fff; padding: 10px 16px; border-radius: 16px 16px 16px 0; max-width: 80%; line-height: 1.4;">${formatted}</div>`;
 
-      // 5. SAVE CHAT TO DB
       chatHistory.push({ role: "user", content: text });
       chatHistory.push({ role: "assistant", content: data.reply });
 
+      // CLEAR IMAGES AFTER SENDING
+      chatImages = [];
+      document.getElementById("chatImagePreview").innerHTML = "";
+      document.getElementById("chatImagePreview").style.display = "none";
+
+      // ... (rest of the saving logic)
       if (!currentChatId) {
         // Create a new chat entry
         currentChatId = uid();
@@ -941,6 +950,10 @@ document.addEventListener("click", function (ev) {
     document.getElementById("chatModal").classList.add("open");
     loadChatSidebar();
     renderChatMessages();
+    return;
+  }
+  if (act === "attach-chat-image") {
+    document.getElementById("chatImageInput").click();
     return;
   }
   if (act === "close-chat") {
@@ -2025,6 +2038,27 @@ async function boot() {
   document.addEventListener("touchmove", function (e) {
     if (document.getElementById("lightbox").classList.contains("open")) e.preventDefault();
   }, { passive: false });
+  document.getElementById("chatImageInput").addEventListener("change", async function (e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const previewContainer = document.getElementById("chatImagePreview");
+    previewContainer.style.display = "flex";
+
+    for (const file of files) {
+      const base64 = await compressImage(file, 800, 0.7);
+      chatImages.push(base64.split(",")[1]); // Store just the base64 data
+
+      // Add thumbnail to preview
+      const img = document.createElement("img");
+      img.src = base64;
+      img.style.height = "40px";
+      img.style.borderRadius = "4px";
+      img.style.border = "1px solid #444";
+      previewContainer.appendChild(img);
+    }
+    e.target.value = ""; // Reset input
+  });
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { boot(); });

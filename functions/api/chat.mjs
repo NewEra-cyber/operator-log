@@ -1,80 +1,89 @@
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "qwen/qwen3.8-27b";
+// We use the vision model to allow it to see the images
+const MODEL = "llama-3.2-11b-vision-preview"; 
 
 export async function onRequest(context) {
-    const req = context.request;
-    const apiKey = context.env.GROQ_API_KEY;
+  const req = context.request;
+  const apiKey = context.env.GROQ_API_KEY;
 
-    if (req.method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
-    }
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*" } });
+  }
 
-    let question = "";
-    let userContext = {};
-    let chatHistory = [];
+  let question = "";
+  let userContext = {};
+  let chatHistory = [];
+  let images = []; // Array of base64 strings
 
-    try {
-        const body = await req.json();
-        question = body.question || "";
-        userContext = body.context || {};
-        chatHistory = body.history || [];
-    } catch {
-        return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400 });
-    }
+  try {
+    const body = await req.json();
+    question = body.question || "";
+    userContext = body.context || {};
+    chatHistory = body.history || [];
+    images = body.images || []; // NEW: Receive images
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400 });
+  }
 
-    if (!question) return new Response(JSON.stringify({ error: "No question" }), { status: 400 });
+  if (!question) return new Response(JSON.stringify({ error: "No question" }), { status: 400 });
 
-    const systemPrompt = `
-    You are the OPERATOR LOG AI Coach. You are a highly intelligent, tactical, and conversational fitness coach.
-    You have access to the user's FULL workout history (not just 30 days), today's meals, and PRs in the context below.
-
+  const systemPrompt = `
+    You are the OPERATOR LOG AI Coach. You are highly intelligent, tactical, and conversational.
+    You have access to the user's fitness data below.
+    
     *** USER DATA CONTEXT ***
     ${JSON.stringify(userContext, null, 2)}
     *************************
 
     RULES:
-    1. Be conversational. Answer the user's question directly using the provided data.
-    2. Look at "workoutHistoryLast30Days". This contains their full history. 
-    3. CRITICAL: The timeline ALREADY includes the day of the week (e.g., "[2026-11-19 - Thursday]"). DO NOT try to calculate the day of the week yourself. Trust the text provided in the brackets.
-    4. If the user asks for an "audit" or "months-long breakdown", analyze the full timeline, look for patterns, plateaus, or missed sessions, and write a comprehensive report. Do not cut yourself short.
-    5. If the user asks about their meals, look at "mealsLoggedToday".
-    6. Keep responses tactical.
-    7. FORMATTING RULE (CRITICAL): Do NOT use markdown asterisks like **this**. Use HTML bold tags like <b>this</b> for emphasis.
-    8. Do NOT show your internal thought process or self-corrections in the final output. Only output the final formatted response.
+    1. If the user asks about their physique/progress, and images are provided, analyze the visual differences carefully (muscle definition, posture, leanness).
+    2. If no images are provided, you MUST tell the user: "I cannot see your photos. Please attach a baseline and current photo to the chat so I can compare them."
+    3. Be conversational and tactical.
+    4. FORMATTING RULE: Do NOT use markdown asterisks like **this**. Use HTML bold tags like <b>this</b> for emphasis.
   `;
 
-    // Construct the message array: System Prompt + Past Chat + New Question
-    const messages = [
-        { role: "system", content: systemPrompt },
-        ...chatHistory,
-        { role: "user", content: question }
-    ];
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...chatHistory,
+  ];
 
-    const payload = {
-        model: MODEL,
-        temperature: 0.3,
-        max_tokens: 4000, // <--- CHANGED FROM 400 TO 4000
-        messages: messages
-    };
+  // Construct the user message. If there are images, we attach them.
+  if (images.length > 0) {
+    const userContent = [{ type: "text", text: question }];
+    images.forEach(img => {
+      // img is a base64 string (e.g., "/9j/4AAQSk...")
+      userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${img}` } });
+    });
+    messages.push({ role: "user", content: userContent });
+  } else {
+    messages.push({ role: "user", content: question });
+  }
 
-    try {
-        const res = await fetch(GROQ_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + apiKey,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
+  const payload = {
+    model: MODEL,
+    temperature: 0.3,
+    max_tokens: 2000,
+    messages: messages
+  };
 
-        const data = await res.json();
-        const reply = data.choices[0].message.content;
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-        return new Response(JSON.stringify({ reply }), {
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-        });
+    const data = await res.json();
+    const reply = data.choices[0].message.content;
 
-    } catch (err) {
-        return new Response(JSON.stringify({ error: "Failed to reach AI" }), { status: 500 });
-    }
+    return new Response(JSON.stringify({ reply }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Failed to reach AI" }), { status: 500 });
+  }
 }

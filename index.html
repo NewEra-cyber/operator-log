@@ -313,12 +313,24 @@
           <!-- Messages injected via JS -->
         </div>
 
+        <!-- IMAGE PREVIEW CONTAINER -->
+        <div id="chatImagePreview" style="display: none; gap: 8px; margin-bottom: 8px; overflow-x: auto;"></div>
+
         <div
-          style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 8px; display: flex; gap: 8px;">
+          style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 8px; display: flex; gap: 8px; align-items: center;">
+
+          <!-- HIDDEN FILE INPUT -->
+          <input type="file" id="chatImageInput" accept="image/*" style="display: none;" multiple />
+
+          <!-- UPLOAD BUTTON -->
+          <button data-act="attach-chat-image"
+            style="background: transparent; border: none; color: #aaa; font-size: 20px; cursor: pointer; padding: 0 8px;">📎</button>
+
           <input id="chatInput" type="text" placeholder="Ask about your meals, lifts, or PRs..."
             style="flex: 1; background: transparent; border: none; color: #fff; padding: 8px; outline: none;" />
+
           <button data-act="send-chat" id="chatSendBtn"
-            style="background: var(--primary); color: #000; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold; cursor: pointer;">SEND</button>
+            style="background: var(--primary); color: #000; border: none; border-radius: 8px; padding: 8px 16px; font-weight: bold; cursor: pointer;">SEND</button>
         </div>
       </div>
     </div>
